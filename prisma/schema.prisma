@@ -1,0 +1,80 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 📦 PRODUCTOS
+model Product {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  slug        String   @unique // Para URLs amigables: /producto/globo-metalico
+  price       Decimal  @default(0) @db.Decimal(10, 2) // 10 dígitos, 2 decimales
+  stock       Int      @default(0)
+  images      String[] // Array de URLs de Cloudinary
+  
+  category    Category @relation(fields: [categoryId], references: [id])
+  categoryId  String
+
+  orderItems  OrderItem[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 🗂️ CATEGORÍAS
+model Category {
+  id    String @id @default(uuid())
+  name  String
+  slug  String @unique
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 🛍️ PEDIDOS (CARRITO CONVERTIDO EN ORDEN)
+model Order {
+  id            String      @id @default(uuid())
+  totalAmount   Decimal     @db.Decimal(10, 2)
+  totalItems    Int
+  status        OrderStatus @default(PENDING)
+  isPaid        Boolean     @default(false)
+  
+  // Datos del cliente (Simple para MVP, sin auth compleja aún)
+  clientName    String
+  clientPhone   String      // Para WhatsApp
+  
+  orderItems    OrderItem[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// DETALLE DEL PEDIDO
+model OrderItem {
+  id        String  @id @default(uuid())
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2) // Precio al momento de la compra (snapshot)
+
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+}
+
+// ESTADOS DEL PEDIDO
+enum OrderStatus {
+  PENDING
+  PAID
+  DELIVERED
+  CANCELLED
+}
