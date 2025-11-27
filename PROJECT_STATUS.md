@@ -2,91 +2,111 @@
 
 ## 1. Funcionalidad Actual
 
-- Proyecto base configurado (Next.js + Tailwind v4 + Shadcn).
-- Base de datos conectada (Neon Tech) con Prisma v5 (Estable).
-- Schema definido y migrado.
-- SEEDING EJECUTADO: La base de datos tiene Categorías y Productos de prueba.
-- Server Action `getProducts` creado: Trae productos + categorías y formatea precios.
-- Componente `ProductCard` creado: UI responsiva con imágenes y formateo en Soles (PEN).
-- Configuración de Next.js actualizada para permitir imágenes de Cloudinary.
-- Componentes Shadcn (Button, Badge, Card) instalados correctamente.
-- Home Page (`/`) conectada a Base de Datos.
-- Renderizado de productos dinámico con Server Actions.
-- Manejo de estados de carga y error básico.
-- Server Action `getProduct(slug)` implementado.
-- Ruta dinámica `/product/[slug]` creada.
-- Página de Detalle de Producto terminada con:
-  - Imagen optimizada (Next/Image).
-  - SEO Metadata automático (Título/Descripción).
-  - Botón "Smart Link" a WhatsApp (Estrategia MVP).
-- Navbar Responsive implementado:
-  - Desktop: Links horizontales.
-  - Mobile: Menú lateral (Sheet) activado por botón hamburguesa.
-  - Iconos: Solo Lucide React (Search, ShoppingBag, Menu).
-- Refactorización visual: Eliminados emojis de UI (Títulos).
-- Estado Global (Store) implementado con Zustand.
-- Persistencia de datos en LocalStorage (el carrito no se borra al recargar).
-- Navbar conectado: Muestra el contador de items en tiempo real.
-- ProductCard interactivo: Botón "Agregar" suma productos al store.
-- Solución a Hydration Error implementada en Navbar.
+### 🔐 Seguridad & Auth (NUEVO)
+- **NextAuth v5 Implementado:** Sistema de autenticación robusto.
+- **Protección de Rutas:** Middleware (`middleware.ts`) que bloquea `/admin/*` a usuarios no logueados.
+- **Login Profesional:**
+  - UI "Split Screen" con imagen de marca.
+  - Manejo de estados de carga y error.
+  - Server Action `authenticate` para login seguro.
+- **Base de Datos:**
+  - Modelo `User` con roles (ADMIN/USER).
+  - Seed actualizado para crear usuario Admin por defecto (`admin@fiestasya.com`).
+  - Passwords encriptados con `bcryptjs`.
 
-## 2. Estructura de Carpetas (Resumen)
+### 🛒 Tienda (Frontend)
+- **Catálogo:**
+  - Home Page (`/`) con grilla dinámica de productos.
+  - Filtrado por Categorías (`/category/[slug]`).
+  - Detalle de Producto (`/product/[slug]`) con SEO metadata automática.
+- **Carrito & Checkout:**
+  - Estado Global persistente (Zustand + LocalStorage).
+  - `CartSidebar` (Sheet) para gestión rápida sin salir de la navegación.
+  - Página `/cart` con formulario de contacto (Nombre/Celular).
+  - **Validación Robusta:** Zod en backend y feedback visual en frontend (bordes rojos, limpieza al escribir).
+  - **Persistencia de Pedidos:** Los pedidos se guardan en Neon DB (`PENDING`) antes de redirigir.
+  - **Smart Link WhatsApp:** Redirección con mensaje pre-llenado incluyendo ID de pedido real (ej: #A1B2).
+
+### ⚙️ Administración (Backend Dashboard)
+- **Layout Diferenciado:**
+  - Arquitectura de Layouts separada: `(shop)` con Navbar vs `(admin)` con Sidebar lateral.
+  - Navbar eliminado de las rutas administrativas.
+- **Gestión de Pedidos:**
+  - Vista de Tabla (`/admin/orders`) conectada a la BD.
+  - Visualización de estado (Pendiente/Pagado) con Badges.
+  - Formato de moneda (PEN) y fechas localizados.
+
+### 🏗️ Arquitectura & Core
+- **Server Actions:**
+  - `getProducts`: Listado general y por categoría.
+  - `getProduct`: Búsqueda por slug.
+  - `createOrder`: Transacción segura con validación Zod.
+  - `getOrders`: Consulta para el panel admin.
+- **Base de Datos:**
+  - Modelos: Product, Category, Order, OrderItem.
+  - Seeding inicial ejecutado.
+
+## 2. Estructura de Carpetas (Actualizada)
 src/
-├── store/
-    └── cart.ts         # (NUEVO) Lógica del carrito (Add, Remove, Totals)
-├── actions/            # (Vacío) Server Actions
-│   └── products.ts         # (NUEVO) Lógica de backend
+├── actions/
+│   ├── auth-actions.ts     # (NUEVO) Login Action
+│   ├── products.ts         # Lectura de catálogo
+│   └── order.ts            # (NUEVO) Creación y lectura de pedidos + Validación Zod
 ├── app/
-│   ├── (admin)/        # (Vacío) Grupo Rutas Admin
-│   ├── (shop)/
-│   │   └── page.tsx        # (ACTUALIZADO) Home con grilla de productos
-|   |   └── product/
-|           └── [slug]/
-|               └── page.tsx        # (NUEVO) Detalle de producto
-│   └── layout.tsx          # (ACTUALIZADO) Layout base limpio
-│   ├── Navbar.tsx      # (NUEVO) Barra de navegación
-│   └── globals.css     # Limpio con variables shadcn
+│   ├── (admin)/            # (NUEVO) Grupo Privado
+│   │   ├── layout.tsx      # Sidebar Layout
+│   │   └── admin/
+│   │       └── orders/     # Página de lista de pedidos
+│   ├── (shop)/             # Grupo Público
+│   │   ├── layout.tsx      # (NUEVO) Navbar Layout (ShopLayout)
+│   │   ├── page.tsx        # Home
+│   │   ├── product/[slug]/ # Detalle
+│   │   ├── category/[slug]/# Categorías
+│   │   └── cart/           # Checkout Form
+│   ├── api/auth/[...nextauth]/ # (NUEVO) API Route Handler
+│   └── auth/login/         # (NUEVO) Página de Login Profesional
+│   ├── layout.tsx          # Root Layout (Limpio)
+│   └── globals.css         # Estilos globales
+├── auth.ts                 # (NUEVO) Lógica Auth + BD
+├── auth.config.ts          # (NUEVO) Config Auth Edge-compatible
+├── middleware.ts           # (NUEVO) Guardián de rutas
 ├── components/
-│   └── ui/                 # Ahora contiene: button.tsx, badge.tsx, card.tsx
-│   │   ├── sheet.tsx       # (NUEVO) Componente de sidebar móvil
-│   ├── layout/         # Navbar, Footer
-│   │   ├── Navbar.tsx       # (ACTUALIZADO) Conectado a Zustand
-│   └── features/       # (Vacío) Componentes de negocio
-│       └── ProductCard.tsx # (ACTUALIZADO) 'use client' + AddToCart
+│   ├── ui/                 # Shadcn (Input, Label, Table, Sheet, etc.)
+│   ├── layout/
+│   │   └── Navbar.tsx      # Navbar inteligente (Client Component)
+│   └── features/
+│       ├── ProductCard.tsx # Tarjeta de producto
+│       └── CartSidebar.tsx # Drawer lateral
 ├── lib/
-│   ├── prisma.ts       # Singleton de Prisma (NUEVO)
+│   ├── prisma.ts           # Singleton DB
 │   └── utils.ts
-└── types/              # (Vacío) Interfaces
-prisma/
-    └── schema.prisma   # Definición de Tablas (NUEVO)
-    └── seed.ts         # Script de carga de datos (NUEVO)
-next.config.ts              # (ACTUALIZADO) Permisos de imágenes
+├── store/
+│   └── cart.ts             # Estado global (Zustand)
+└── prisma/
+    └── schema.prisma       # Schema DB
 
 ## 3. Stack Técnico
 - Framework: Next.js 15 (App Router)
-- Lenguaje: TypeScript
-- Estilos: Tailwind CSS + shadcn/ui
-- Base de Datos: Neon Tech (PostgreSQL) - Configurada en .env
-- ORM: Prisma
-- Modelado: UUIDs para IDs, Decimal para dinero.
-- Herramienta de Seed: ts-node
-- Manejo de Moneda: Intl.NumberFormat (es-PE)
-- Imágenes: next/image con remotePatterns
-- Revalidación (ISR): Configurada a 60 segundos en page.tsx.
-- State Management: Zustand + Middleware Persist.
+- Lenguaje: TypeScript (Strict)
+- Estilos: Tailwind CSS v4 + shadcn/ui
+- Iconos: Lucide React (Exclusivo)
+- BD & ORM: Neon Tech (PostgreSQL) + Prisma v5.22
+- **Validación:** Zod (Backend) + React State (Frontend)
+- **Estado:** Zustand (Persist Middleware)
+- **UX:** Toasts (Pendiente), Sheets, Skeletons.
+- **Seguridad:** NextAuth.js v5 (Beta) + BcryptJS.
+- **Validación:** Zod.
+- **Estilos:** Tailwind Grid (Split Layout).
 
 ## 4. Dependencias Clave
 - next: latest
-- react: latest
-- tailwindcss: latest
-- class-variance-authority: (vía shadcn)
-- clsx: (vía shadcn)
-- tailwind-merge: (vía shadcn)
 - prisma: 5.22.0
-- @prisma/client: 5.22.0
-- ts-node: latest (Dev)
+- zod: latest (NUEVO)
 - zustand: latest
+- date-fns: (Opcional, usando Intl nativo por ahora)
+- lucide-react: latest
+- next-auth: beta
+- bcryptjs: latest
 
 ## 5. Próximo Paso
-- Crear la página del Carrito (`/cart`) para ver el resumen, sumar/restar cantidades y proceder a la compra (WhatsApp).
-- Agregar Feedback visual (Toasts) al agregar productos.
+- **Gestión de Productos (CRUD):** Crear la página `/admin/products` para agregar productos reales, subir fotos a Cloudinary y editar stock.

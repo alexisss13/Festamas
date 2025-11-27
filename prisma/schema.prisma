@@ -18,6 +18,8 @@ model Product {
   price       Decimal  @default(0) @db.Decimal(10, 2) // 10 dígitos, 2 decimales
   stock       Int      @default(0)
   images      String[] // Array de URLs de Cloudinary
+
+  isAvailable Boolean  @default(true) // 👈 NUEVO: Por defecto, todo nace visible
   
   category    Category @relation(fields: [categoryId], references: [id])
   categoryId  String
@@ -77,4 +79,21 @@ enum OrderStatus {
   PAID
   DELIVERED
   CANCELLED
+}
+
+// 👤 USUARIOS (ADMINISTRADORES)
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String    // Aquí se guardará el hash (ej: $2b$10$...)
+  role          Role      @default(USER)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum Role {
+  ADMIN
+  USER
 }

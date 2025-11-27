@@ -1,44 +1,45 @@
-// src/actions/products.ts
 'use server';
 
 import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
-// Definimos un tipo simple para el retorno, así el frontend sabe qué esperar
 export type ProductWithCategory = {
   id: string;
   title: string;
   slug: string;
-  price: number; // Convertiremos el Decimal a Number para evitar problemas en el frontend
+  price: number;
+  stock: number;
   images: string[];
+  isAvailable: boolean; // 👈 Agregamos esto al tipo
   category: {
     name: string;
     slug: string;
   };
 };
 
-export async function getProducts() {
+// Modificamos para aceptar filtros (útil para el Admin)
+export async function getProducts({ includeInactive = false } = {}) {
   try {
-    // Simulamos un pequeño delay de 0.5s para que veas el esqueleto de carga (Skeleton)
-    // En producción esto se quita, pero ayuda a desarrollar la UI de carga.
-    // await new Promise((resolve) => setTimeout(resolve, 500));
+    const whereClause = includeInactive ? {} : { isAvailable: true };
 
     const products = await prisma.product.findMany({
+      where: whereClause, // 👈 Filtro dinámico
       include: {
-        category: true, // Traemos también el nombre de la categoría
+        category: true,
       },
       orderBy: {
-        createdAt: 'desc', // Los más nuevos primero
+        createdAt: 'desc',
       },
     });
 
-    // Transformamos el resultado para serializar el Decimal a Number
-    // Next.js a veces se queja si pasas objetos Decimal directamente a los componentes
     const cleanProducts: ProductWithCategory[] = products.map((product) => ({
       id: product.id,
       title: product.title,
       slug: product.slug,
       price: Number(product.price),
+      stock: product.stock,
       images: product.images,
+      isAvailable: product.isAvailable, // 👈 Mapeamos el nuevo campo
       category: {
         name: product.category.name,
         slug: product.category.slug,
@@ -53,17 +54,19 @@ export async function getProducts() {
     console.error('Error obteniendo productos:', error);
     return {
       success: false,
-      message: 'No se pudieron cargar los productos. Inténtalo más tarde.',
+      message: 'No se pudieron cargar los productos.',
       data: [],
     };
   }
 }
 
+// Búsqueda por slug (Solo activos, porque es para la tienda pública)
 export async function getProduct(slug: string) {
   try {
-    const product = await prisma.product.findUnique({
+    const product = await prisma.product.findFirst({ // Usamos findFirst para poder filtrar
       where: {
         slug: slug,
+        isAvailable: true, // 👈 Solo si está activo
       },
       include: {
         category: true,
@@ -72,15 +75,15 @@ export async function getProduct(slug: string) {
 
     if (!product) return null;
 
-    // Transformación de datos (igual que en getProducts)
     return {
       id: product.id,
       title: product.title,
       description: product.description,
       slug: product.slug,
       price: Number(product.price),
-      images: product.images,
       stock: product.stock,
+      images: product.images,
+      isAvailable: product.isAvailable,
       category: {
         name: product.category.name,
         slug: product.category.slug,
@@ -92,6 +95,7 @@ export async function getProduct(slug: string) {
   }
 }
 
+// Por Categoría (Solo activos)
 export async function getProductsByCategory(categorySlug: string) {
   try {
     const category = await prisma.category.findUnique({
@@ -103,6 +107,7 @@ export async function getProductsByCategory(categorySlug: string) {
     const products = await prisma.product.findMany({
       where: {
         categoryId: category.id,
+        isAvailable: true, // 👈 Solo activos
       },
       include: {
         category: true,
@@ -112,13 +117,14 @@ export async function getProductsByCategory(categorySlug: string) {
       },
     });
 
-    // Transformación de datos (Misma lógica de siempre)
     const cleanProducts = products.map((product) => ({
       id: product.id,
       title: product.title,
       slug: product.slug,
       price: Number(product.price),
+      stock: product.stock,
       images: product.images,
+      isAvailable: product.isAvailable,
       category: {
         name: product.category.name,
         slug: product.category.slug,
@@ -132,5 +138,28 @@ export async function getProductsByCategory(categorySlug: string) {
   } catch (error) {
     console.log(error);
     return null;
+  }
+}
+
+// 🔥 SOFT DELETE (Borrado Lógico)
+export async function deleteProduct(id: string) {
+  try {
+    // En lugar de .delete, usamos .update
+    await prisma.product.update({
+      where: { id },
+      data: { 
+        isAvailable: false, // 👈 Lo "apagamos"
+        slug: `${id}-deleted`, // Truco Pro: Cambiamos el slug para liberar el original por si quieren crear otro igual
+      },
+    });
+    
+    revalidatePath('/admin/products');
+    revalidatePath('/');
+    revalidatePath('/(shop)');
+    
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: 'No se pudo eliminar el producto' };
   }
 }

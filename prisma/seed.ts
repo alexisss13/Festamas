@@ -1,5 +1,6 @@
 // prisma/seed.ts
 import { PrismaClient } from '@prisma/client'
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient()
 
@@ -73,6 +74,25 @@ async function main() {
   }
 
   console.log(`✅ Seed terminado correctamente. Se crearon ${productos.length} productos.`)
+
+  // 4. Crear Usuario Admin (Si no existe)
+  const emailAdmin = 'admin@fiestasya.com';
+  const existingAdmin = await prisma.user.findUnique({ where: { email: emailAdmin } });
+
+  if (!existingAdmin) {
+    const hashedPassword = await bcrypt.hash('123456', 10); // ⚠️ Contraseña temporal
+    
+    await prisma.user.create({
+      data: {
+        name: 'Administrador',
+        email: emailAdmin,
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    });
+    console.log('👤 Usuario Admin creado: admin@fiestasya.com / 123456');
+  }
+
 }
 
 main()
