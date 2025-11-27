@@ -1,12 +1,25 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+const navItems = [
+  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
+  { href: '/admin/products', label: 'Productos', icon: Package },
+  { href: '/admin/settings', label: 'Configuración', icon: Settings },
+];
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* SIDEBAR FIJO IZQUIERDA */}
@@ -18,22 +31,26 @@ export default function AdminLayout({
         </div>
         
         <nav className="flex-1 space-y-1 px-4 py-6">
-          <Link href="/admin/dashboard" className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-100 hover:bg-slate-800 transition-colors">
-            <LayoutDashboard className="h-5 w-5" />
-            Dashboard
-          </Link>
-          <Link href="/admin/orders" className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-100 hover:bg-slate-800 transition-colors">
-            <ShoppingCart className="h-5 w-5" />
-            Pedidos
-          </Link>
-          <Link href="/admin/products" className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
-            <Package className="h-5 w-5" />
-            Productos
-          </Link>
-          <Link href="/admin/settings" className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
-            <Settings className="h-5 w-5" />
-            Configuración
-          </Link>
+          {navItems.map((item) => {
+            // Verificamos si la ruta actual coincide con el link
+            const isActive = pathname.startsWith(item.href);
+
+            return (
+              <Link 
+                key={item.href}
+                href={item.href} 
+                className={cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  isActive 
+                    ? "bg-slate-800 text-white" // Estilo Activo
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-100" // Estilo Inactivo
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="border-t border-slate-800 p-4">
@@ -44,7 +61,7 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL (Con margen a la izquierda para respetar el sidebar) */}
+      {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 md:ml-64">
         {children}
       </main>

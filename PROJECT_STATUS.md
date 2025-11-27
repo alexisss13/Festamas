@@ -6,7 +6,7 @@
 - **NextAuth v5 Implementado:** Sistema de autenticación robusto.
 - **Protección de Rutas:** Middleware (`middleware.ts`) que bloquea `/admin/*` a usuarios no logueados.
 - **Login Profesional:**
-  - UI "Split Screen" con imagen de marca.
+  - Diseño "Glassmorphism" Central (Fondo abstracto CSS, sin imágenes externas).
   - Manejo de estados de carga y error.
   - Server Action `authenticate` para login seguro.
 - **Base de Datos:**
@@ -19,6 +19,7 @@
   - Home Page (`/`) con grilla dinámica de productos.
   - Filtrado por Categorías (`/category/[slug]`).
   - Detalle de Producto (`/product/[slug]`) con SEO metadata automática.
+  - **Filtro de Disponibilidad:** Solo muestra productos con `isAvailable: true`.
 - **Carrito & Checkout:**
   - Estado Global persistente (Zustand + LocalStorage).
   - `CartSidebar` (Sheet) para gestión rápida sin salir de la navegación.
@@ -31,40 +32,49 @@
 - **Layout Diferenciado:**
   - Arquitectura de Layouts separada: `(shop)` con Navbar vs `(admin)` con Sidebar lateral.
   - Navbar eliminado de las rutas administrativas.
+  - Sidebar inteligente (Active States) y Layout separado del cliente.
 - **Gestión de Pedidos:**
   - Vista de Tabla (`/admin/orders`) conectada a la BD.
   - Visualización de estado (Pendiente/Pagado) con Badges.
   - Formato de moneda (PEN) y fechas localizados.
+- **Gestión de Productos (NUEVO):**
+  - Vista de Tabla (`/admin/products`) con imágenes y stock.
+  - **Borrado Lógico (Soft Delete):** Los productos no se borran, se archivan (`isAvailable: false`).
+  - Visualización de estado (Activo/Archivado) con Badges.
 
 ### 🏗️ Arquitectura & Core
 - **Server Actions:**
-  - `getProducts`: Listado general y por categoría.
+  - `getProducts`: Soporta filtro `includeInactive` para el admin.
   - `getProduct`: Búsqueda por slug.
-  - `createOrder`: Transacción segura con validación Zod.
+  - `createOrder`: Validaciones de integridad referencial.
   - `getOrders`: Consulta para el panel admin.
+  - `deleteProduct`: Implementa Soft Delete (Update flag + Slug change).
 - **Base de Datos:**
   - Modelos: Product, Category, Order, OrderItem.
+  - Schema actualizado: Campo `isAvailable` en Product.
   - Seeding inicial ejecutado.
+  - Soft Delete implementado a nivel de arquitectura.
 
 ## 2. Estructura de Carpetas (Actualizada)
 src/
 ├── actions/
-│   ├── auth-actions.ts     # (NUEVO) Login Action
-│   ├── products.ts         # Lectura de catálogo
-│   └── order.ts            # (NUEVO) Creación y lectura de pedidos + Validación Zod
+│   ├── auth-actions.ts     # Login Action
+│   ├── products.ts         # CRUD Productos (Soft Delete)
+│   └── order.ts            # Gestión de Pedidos + Zod
 ├── app/
-│   ├── (admin)/            # (NUEVO) Grupo Privado
-│   │   ├── layout.tsx      # Sidebar Layout
+│   ├── (admin)/            # Grupo Privado
+│   │   ├── layout.tsx      # Sidebar Layout (Client Component)
 │   │   └── admin/
-│   │       └── orders/     # Página de lista de pedidos
+│   │       ├── orders/     # Lista de pedidos
+│   │       └── products/   # (NUEVO) Lista de productos + Delete
 │   ├── (shop)/             # Grupo Público
-│   │   ├── layout.tsx      # (NUEVO) Navbar Layout (ShopLayout)
+│   │   ├── layout.tsx      # Navbar Layout
 │   │   ├── page.tsx        # Home
 │   │   ├── product/[slug]/ # Detalle
 │   │   ├── category/[slug]/# Categorías
 │   │   └── cart/           # Checkout Form
-│   ├── api/auth/[...nextauth]/ # (NUEVO) API Route Handler
-│   └── auth/login/         # (NUEVO) Página de Login Profesional
+│   ├── auth/login/         # Login Glassmorphism
+│   ├── api/auth/[...]/     # NextAuth Handler
 │   ├── layout.tsx          # Root Layout (Limpio)
 │   └── globals.css         # Estilos globales
 ├── auth.ts                 # (NUEVO) Lógica Auth + BD
@@ -97,6 +107,7 @@ src/
 - **Seguridad:** NextAuth.js v5 (Beta) + BcryptJS.
 - **Validación:** Zod.
 - **Estilos:** Tailwind Grid (Split Layout).
+- **Arquitectura de Datos:** Soft Delete (Borrado Lógico)
 
 ## 4. Dependencias Clave
 - next: latest
@@ -109,4 +120,7 @@ src/
 - bcryptjs: latest
 
 ## 5. Próximo Paso
-- **Gestión de Productos (CRUD):** Crear la página `/admin/products` para agregar productos reales, subir fotos a Cloudinary y editar stock.
+- **Formulario de Producto:** Crear la página `/admin/products/new` para:
+  - Subir imágenes a Cloudinary (Widget o API).
+  - Crear y Editar productos (CRUD completo).
+  - Validar datos de entrada.
