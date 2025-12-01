@@ -17,12 +17,11 @@ export async function getDashboardStats() {
       // 2. Total de productos activos
       prisma.product.count({ where: { isAvailable: true } }),
       
-      // 3. Suma de ingresos (Solo de ordenes PAGADAS)
-      // Ojo: Como en tu MVP marcas manual, asumiremos que 'PAID' es lo que cuenta.
-      // Si quieres proyectar todo, quita el 'where'.
+      // 3. Suma de ingresos
+      // Sumamos basándonos en la bandera "isPaid", independientemente del estado de envío.
       prisma.order.aggregate({
         _sum: { totalAmount: true },
-        where: { status: 'PAID' } // O 'PENDING' si quieres ver proyección
+        where: { isPaid: true } 
       }),
 
       // 4. Productos con poco stock (menos de 5)

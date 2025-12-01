@@ -4,11 +4,9 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { productSchema } from '@/lib/zod';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 export async function createOrUpdateProduct(formData: z.infer<typeof productSchema>, id: string | null) {
   try {
-    // 1. Validar datos en el backend
     const validatedFields = productSchema.safeParse(formData);
 
     if (!validatedFields.success) {
@@ -17,9 +15,8 @@ export async function createOrUpdateProduct(formData: z.infer<typeof productSche
 
     const { title, slug, description, price, stock, categoryId, images, isAvailable } = validatedFields.data;
 
-    // 2. Transacción de Base de Datos
     if (id) {
-      // --- MODO EDICIÓN (UPDATE) ---
+      // UPDATE
       await prisma.product.update({
         where: { id },
         data: {
@@ -28,14 +25,13 @@ export async function createOrUpdateProduct(formData: z.infer<typeof productSche
           description,
           price,
           stock,
-          images, // Prisma sobrescribe el array
+          images,
           isAvailable,
           categoryId
         }
       });
     } else {
-      // --- MODO CREACIÓN (CREATE) ---
-      // Verificar si el slug ya existe
+      // CREATE
       const existingProduct = await prisma.product.findUnique({ where: { slug } });
       if (existingProduct) {
         return { success: false, message: 'El slug ya existe. Usa otro.' };
@@ -55,7 +51,6 @@ export async function createOrUpdateProduct(formData: z.infer<typeof productSche
       });
     }
 
-    // 3. Revalidar Caché
     revalidatePath('/admin/products');
     revalidatePath('/');
     revalidatePath('/(shop)');

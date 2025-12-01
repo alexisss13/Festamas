@@ -10,20 +10,19 @@ export type ProductWithCategory = {
   price: number;
   stock: number;
   images: string[];
-  isAvailable: boolean; // 👈 Agregamos esto al tipo
+  isAvailable: boolean;
   category: {
     name: string;
     slug: string;
   };
 };
 
-// Modificamos para aceptar filtros (útil para el Admin)
 export async function getProducts({ includeInactive = false } = {}) {
   try {
     const whereClause = includeInactive ? {} : { isAvailable: true };
 
     const products = await prisma.product.findMany({
-      where: whereClause, // 👈 Filtro dinámico
+      where: whereClause,
       include: {
         category: true,
       },
@@ -39,7 +38,7 @@ export async function getProducts({ includeInactive = false } = {}) {
       price: Number(product.price),
       stock: product.stock,
       images: product.images,
-      isAvailable: product.isAvailable, // 👈 Mapeamos el nuevo campo
+      isAvailable: product.isAvailable,
       category: {
         name: product.category.name,
         slug: product.category.slug,
@@ -60,13 +59,12 @@ export async function getProducts({ includeInactive = false } = {}) {
   }
 }
 
-// Búsqueda por slug (Solo activos, porque es para la tienda pública)
 export async function getProduct(slug: string) {
   try {
-    const product = await prisma.product.findFirst({ // Usamos findFirst para poder filtrar
+    const product = await prisma.product.findFirst({
       where: {
         slug: slug,
-        isAvailable: true, // 👈 Solo si está activo
+        isAvailable: true,
       },
       include: {
         category: true,
@@ -95,7 +93,6 @@ export async function getProduct(slug: string) {
   }
 }
 
-// Por Categoría (Solo activos)
 export async function getProductsByCategory(categorySlug: string) {
   try {
     const category = await prisma.category.findUnique({
@@ -107,7 +104,7 @@ export async function getProductsByCategory(categorySlug: string) {
     const products = await prisma.product.findMany({
       where: {
         categoryId: category.id,
-        isAvailable: true, // 👈 Solo activos
+        isAvailable: true,
       },
       include: {
         category: true,
@@ -141,15 +138,13 @@ export async function getProductsByCategory(categorySlug: string) {
   }
 }
 
-// 🔥 SOFT DELETE (Borrado Lógico)
 export async function deleteProduct(id: string) {
   try {
-    // En lugar de .delete, usamos .update
     await prisma.product.update({
       where: { id },
       data: { 
-        isAvailable: false, // 👈 Lo "apagamos"
-        slug: `${id}-deleted`, // Truco Pro: Cambiamos el slug para liberar el original por si quieren crear otro igual
+        isAvailable: false,
+        slug: `${id}-deleted`, 
       },
     });
     

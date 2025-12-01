@@ -2,12 +2,14 @@
 
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { OrderStatus } from '@prisma/client';
 
 // 1. Esquema de Validación (Reglas estrictas)
 const orderSchema = z.object({
   name: z.string()
     .min(3, "El nombre debe tener al menos 3 letras.")
-    .regex(/^[a-zA-Z\s\u00C0-\u00FF]+$/, "El nombre solo puede contener letras."), // Acepta tildes y ñ
+    .regex(/^[a-zA-Z\s\u00C0-\u00FF]+$/, "El nombre solo puede contener letras."), 
   phone: z.string()
     .min(9, "El celular debe tener 9 dígitos.")
     .max(9, "El celular debe tener 9 dígitos.")
@@ -38,20 +40,18 @@ export async function createOrder(data: CreateOrderInput) {
       return { success: false, message: 'Datos inválidos', errors: validation.error.flatten().fieldErrors };
     }
 
-    // 🛡️ NUEVA VALIDACIÓN DE SEGURIDAD 🛡️
-    // 1. Obtenemos los IDs de los productos que el cliente quiere comprar
+    // 🛡️ VALIDACIÓN DE SEGURIDAD E INTEGRIDAD 🛡️
     const productIds = data.items.map((item) => item.productId);
 
-    // 2. Buscamos esos productos en la Base de Datos
+    // Buscamos productos ACTIVOS en la BD
     const dbProducts = await prisma.product.findMany({
       where: {
         id: { in: productIds },
-        isAvailable: true,
+        isAvailable: true, // Importante para Soft Delete
       },
     });
 
-    // 3. Verificamos: ¿Encontramos la misma cantidad de productos que los solicitados?
-    // Si el cliente pide 3 productos, y en la BD solo encuentro 2, significa que uno fue borrado.
+    // Verificamos si encontramos todos los productos
     if (dbProducts.length !== productIds.length) {
       return { 
         success: false, 
@@ -59,7 +59,7 @@ export async function createOrder(data: CreateOrderInput) {
       };
     }
 
-    // 3. Si todo está bien, procedemos a guardar
+    // Transacción de creación
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
@@ -88,6 +88,8 @@ export async function createOrder(data: CreateOrderInput) {
     return { success: false, message: 'Error interno del servidor' };
   }
 }
+
+// Obtener todas las órdenes (Para el Admin)
 export async function getOrders() {
   try {
     const orders = await prisma.order.findMany({
@@ -97,15 +99,74 @@ export async function getOrders() {
       include: {
         orderItems: {
           include: {
-            product: true, // Traemos info del producto para mostrar nombres si queremos
+            product: true, 
           }
         }
       }
     });
 
-    return { success: true, data: orders };
+    // TRANSFORMACIÓN DE DATOS (SERIALIZACIÓN)
+    // Convertimos los Decimal de Prisma a Number de JS para que el frontend no explote
+    const safeOrders = orders.map((order) => ({
+      ...order,
+      totalAmount: Number(order.totalAmount), // 👈 Vital
+      orderItems: order.orderItems.map((item) => ({
+        ...item,
+        price: Number(item.price), // 👈 Vital
+        product: {
+          ...item.product,
+          price: Number(item.product.price), // 👈 Vital
+        }
+      }))
+    }));
+
+    return { success: true, data: safeOrders };
   } catch (error) {
     console.error(error);
     return { success: false, message: 'Error al obtener ordenes' };
+  }
+}
+// Obtener un pedido por ID (Detalle Admin)
+export async function getOrderById(id: string) {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        orderItems: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!order) return null;
+
+    return { success: true, order };
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+// Actualizar Estado y Pago (Admin)
+export async function updateOrderStatus(id: string, status: OrderStatus, isPaid: boolean) {
+  try {
+    await prisma.order.update({
+      where: { id },
+      data: {
+        status,
+        isPaid,
+      },
+    });
+
+    revalidatePath(`/admin/orders/${id}`);
+    revalidatePath('/admin/orders');
+    revalidatePath('/admin/dashboard');
+
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: 'Error al actualizar la orden' };
   }
 }
