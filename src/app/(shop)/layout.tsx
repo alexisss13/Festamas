@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
 export default function ShopLayout({
  children,
@@ -9,7 +10,7 @@ export default function ShopLayout({
    <main className="min-h-screen bg-slate-50">
      <Navbar />
      {children}
-     {/* Aquí iría el <Footer /> más adelante */}
+     <Footer />
    </main>
  );
 }
