@@ -10,3 +10,10 @@ export const productSchema = z.object({
   images: z.array(z.string()).min(1, { message: 'Debes subir al menos una imagen' }),
   isAvailable: z.boolean().default(true),
 });
+
+export const categorySchema = z.object({
+  name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres' }),
+  slug: z.string()
+    .min(3, { message: 'El slug es obligatorio' })
+    .regex(/^[a-z0-9-]+$/, { message: 'Solo letras minúsculas, números y guiones' }),
+});

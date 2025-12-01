@@ -2,115 +2,79 @@
 
 ## 1. Funcionalidad Actual
 
-### 🔐 Seguridad & Auth (COMPLETADO)
+### 🔐 Seguridad & Auth
 - **NextAuth v5 Implementado:** Sistema de autenticación robusto basado en sesiones encriptadas.
-- **Protección de Rutas:** Middleware (`middleware.ts`) que intercepta y bloquea el acceso a `/admin/*` si no hay sesión activa.
-- **Login Profesional:**
-  - Diseño "Glassmorphism" Central (Fondo abstracto generado con CSS, sin imágenes externas pesadas).
-  - Manejo de estados de carga (spinners) y mensajes de error claros.
-  - Server Action `authenticate` para validación segura contra BD.
-- **Base de Datos:**
-  - Modelo `User` con roles (ADMIN/USER).
-  - Seed actualizado para crear usuario Admin por defecto (`admin@fiestasya.com`).
-  - Contraseñas "hasheadas" con `bcryptjs`.
+- **Protección de Rutas:** Middleware (`middleware.ts`) que intercepta y bloquea el acceso a `/admin/*`.
+- **Login Profesional:** Diseño "Glassmorphism" Central con Server Action `authenticate`.
+- **Base de Datos:** Modelo `User` con roles (ADMIN/USER) y Seed de admin.
 
 ### 🛒 Tienda (Frontend)
+- **Navegación Dinámica:**
+  - El menú (Desktop y Móvil) carga las categorías reales desde la Base de Datos (Server Component Wrapper).
+  - **Buscador Integrado:** Barra de búsqueda en Desktop y dentro del Menú Móvil con redirección a `/search`.
 - **Catálogo:**
-  - Home Page (`/`) con grilla dinámica de productos.
-  - Filtrado por Categorías (`/category/[slug]`) y Detalle de Producto (`/product/[slug]`).
-  - **Filtro de Disponibilidad:** El cliente solo ve productos con `isAvailable: true`.
+  - Home Page (`/`) con grilla dinámica.
+  - Filtrado por Categorías y Detalle de Producto.
+  - Página de Resultados de Búsqueda (`/search?q=...`).
 - **Carrito & Checkout:**
-  - Estado Global persistente (Zustand + LocalStorage).
-  - `CartSidebar` (Sheet) para gestión rápida sin salir de la navegación.
-  - Página `/cart` con formulario de contacto (Nombre/Celular) y validación en tiempo real.
-  - **Integridad de Stock:** Verificación backend de que el producto existe y está activo antes de crear la orden.
-  - **Persistencia:** Los pedidos se guardan en BD (`PENDING`) antes de redirigir.
-  - **Smart Link WhatsApp:** Redirección con mensaje pre-llenado incluyendo ID de pedido real.
+  - Estado Global persistente (Zustand).
+  - `CartSidebar` (Sheet) para gestión rápida.
+  - Validación de Stock en tiempo real antes de crear la orden.
+  - **Integración WhatsApp:** Link inteligente usando el número configurado en el Admin.
 
 ### ⚙️ Administración (Backend Dashboard)
-- **Layout Diferenciado:**
-  - Arquitectura separada: `(shop)` con Navbar público vs `(admin)` con Sidebar lateral privado.
-  - Sidebar inteligente con estados activos (`usePathname`).
-- **Dashboard de Métricas:**
-  - Tarjetas de KPIs (Ingresos reales, Pedidos, Productos, Bajo Stock).
-  - Cálculo de ingresos basado en flag `isPaid` (dinero real) y no solo en estado de envío.
+- **Configuración Dinámica:**
+  - Página `/admin/settings` para cambiar el Teléfono de WhatsApp y Mensaje de Bienvenida sin tocar código.
 - **Gestión de Pedidos:**
-  - Vista de Tabla (`/admin/orders`) con **Pestañas de Filtrado** (Todos, Por Despachar, Por Pagar, Historial).
-  - Badges de colores para estados (Pendiente, Pagado, Entregado).
-  - Detalle de Pedido (`/admin/orders/[id]`) con controles para cambiar estado y marcar como pagado.
-- **Gestión de Productos (CRUD Completo):**
-  - Tabla de productos con imágenes y stock.
-  - **Borrado Lógico (Soft Delete):** Los productos se archivan (`isAvailable: false`) en lugar de borrarse físicamente.
-  - Formulario Reactivo (`react-hook-form` + `zod`) para Crear y Editar.
-  - **Imágenes:** Subida a Cloudinary mediante Widget (Unsigned preset).
+  - Tablero Kanban/Lista con filtros (Por Despachar, Por Pagar, Historial).
+  - Control de estados (Pendiente/Pagado/Entregado).
+- **Gestión de Inventario (CRUD Completo):**
+  - **Productos:** Crear, Editar, Soft Delete, Imágenes (Cloudinary Unsigned).
+  - **Categorías:** Crear, Editar, Eliminar (con protección si tiene productos).
+- **Dashboard KPI:** Métricas financieras reales basadas en pagos confirmados.
 
-### 🏗️ Arquitectura & Core
-- **Server Actions (Backend for Frontend):**
-  - `getProducts`: Soporta filtro `includeInactive` para el admin.
-  - `getProduct`: Búsqueda por slug optimizada.
-  - `createOrder`: Transacciones atómicas con validación de integridad.
-  - `getOrders`: Serialización de datos (Decimal -> Number) para componentes cliente.
-  - `deleteProduct`: Implementación de Soft Delete (Update flag + Slug change).
-  - `getDashboardStats`: Consultas agregadas (`count`, `sum`) en paralelo.
-- **Base de Datos:**
-  - Modelos: Product, Category, Order, OrderItem, User.
-  - Schema actualizado con Soft Delete (`isAvailable`).
-  - Seeding inicial ejecutado.
-
-### 🔗 Integración Frontend-Backend (NUEVO)
-- **Consumo de Configuración:** - `CartPage` ahora obtiene el teléfono y mensaje de bienvenida desde la BD (`StoreConfig`).
-  - `ProductPage` utiliza el teléfono configurado para el botón "Comprar".
-- **Fin del Hardcoding:** Ya no hay números de teléfono quemados en el código.
-
-## 2. Estructura de Carpetas (Actualizada)
+## 2. Estructura de Carpetas (Resumen)
 src/
 ├── actions/
-│   ├── settings.ts         # (NUEVO) Lógica de configuración
-│   ├── auth-actions.ts     # Login Action
-│   ├── products.ts         # CRUD Productos (Soft Delete)
-│   ├── product-form.ts     # Lógica Crear/Editar
-│   ├── dashboard.ts        # Métricas KPI
-│   └── order.ts            # Gestión de Pedidos + Zod
+│   ├── auth-actions.ts     # Login
+│   ├── products.ts         # Productos (Public + Admin)
+│   ├── categories.ts       # Categorías (NUEVO)
+│   ├── product-form.ts     # Lógica Formulario Producto
+│   ├── settings.ts         # Configuración Tienda
+│   ├── dashboard.ts        # KPIs
+│   └── order.ts            # Pedidos
 ├── app/
-│   ├── (admin)/            # Grupo Privado
-│   │   ├── layout.tsx      # Sidebar Layout + Toaster Provider
-│   │   └── admin/
-│   │       ├── settings/   # Página de config
-│   │       ├── dashboard/  # Métricas
-│   │       ├── orders/     # Lista (Tabs) y Detalle
-│   │       └── products/   # Lista y Formulario (New/Edit)
-│   ├── (shop)/             # Grupo Público
-│   │   ├── layout.tsx      # Navbar Layout
-│   │   ├── page.tsx        # Home
-│   │   ├── cart/           # Checkout
-│   │   └── ...             # Rutas dinámicas
-│   ├── auth/login/         # Login Glassmorphism
-│   ├── api/auth/[...]/     # NextAuth Handler
-│   └── ...
+│   ├── (admin)/            # Panel Privado
+│   │   ├── admin/
+│   │   │   ├── categories/ # CRUD Categorías
+│   │   │   ├── products/   # CRUD Productos
+│   │   │   ├── orders/     # Gestión Pedidos
+│   │   │   ├── settings/   # Configuración General
+│   │   │   └── dashboard/  # Métricas
+│   ├── (shop)/             # Tienda Pública
+│   │   ├── search/         # Resultados Búsqueda
+│   │   ├── category/       # Filtro Categorías
+│   │   ├── product/        # Detalle
+│   │   └── cart/           # Checkout
 ├── components/
-│   ├── ui/                 # Shadcn (Input, Tabs, Table, Sonner, etc.)
-│   ├── layout/             # Navbar, Sidebar
-│   └── features/
-│       ├── ProductForm.tsx # Formulario Maestro
-│       ├── OrdersView.tsx  # Vista Cliente con Tabs
-│       └── ...
-├── lib/
-│   ├── prisma.ts           # Singleton DB + Modelo StoreConfig
-│   └── zud.ts              # Esquemas de validación
-└── ...
+│   ├── layout/
+│   │   ├── Navbar.tsx      # Server Component (Data Fetching)
+│   │   └── NavbarClient.tsx# Client Component (UI + Search)
+│   ├── features/
+│   │   ├── ProductForm.tsx
+│   │   ├── CategoryForm.tsx
+│   │   └── OrdersView.tsx
+└── prisma/
+    └── schema.prisma       # Modelos: Product, Category, Order, User, StoreConfig
 
 ## 3. Stack Técnico
 - **Framework:** Next.js 15 (App Router)
-- **Lenguaje:** TypeScript (Strict)
 - **Estilos:** Tailwind CSS v4 + shadcn/ui
-- **BD & ORM:** Neon Tech (PostgreSQL) + Prisma v5.22
-- **Estado:** Zustand (Persist Middleware)
-- **Seguridad:** NextAuth.js v5 (Beta) + BcryptJS
-- **Validación:** Zod + React Hook Form
-- **Imágenes:** Cloudinary (Next-Cloudinary Widget)
-- **Arquitectura de Datos:** Soft Delete (Borrado Lógico)
-- **Notificaciones:** Sonner (Toasts).
-- **Configuración:** Persistencia en BD (PostgreSQL).
+- **BD:** Neon Tech (PostgreSQL) + Prisma v5.22
+- **Estado:** Zustand (Persist)
+- **Seguridad:** NextAuth v5 + Zod
+- **Imágenes:** Cloudinary
+- **UX:** Sonner (Toasts) + Skeletons
 
 ## 4. Dependencias Clave
 - next: latest
@@ -120,10 +84,9 @@ src/
 - next-auth: beta
 - next-cloudinary: latest
 - react-hook-form: latest
-- lucide-react: latest
-- sonner: latest (NUEVO)
-- next-themes: (Dependencia de Sonner)
+- sonner: latest
 
-## 5. Próximo Paso
-- **Consumir Configuración:** Actualizar `cart/page.tsx` y `product/[slug]/page.tsx` para que usen el teléfono de la base de datos (`getStoreConfig`) en lugar del hardcodeado.
-- **Buscador (Search):** Implementar la búsqueda real en el Navbar de la tienda.
+## 5. Próximo Paso (Sugerencias Futuras)
+- **Reportes:** Exportar pedidos a Excel/PDF.
+- **Cupones:** Sistema de descuentos simples.
+- **SEO Avanzado:** Generar sitemap.xml y robots.txt.
