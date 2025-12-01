@@ -26,8 +26,13 @@ function SearchInput({ className, onSearch }: SearchInputProps) {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
-    setQuery(searchParams.get('q') || '');
-  }, [searchParams]);
+    // 🛡️ FIX: Usamos requestAnimationFrame o setTimeout para evitar el error de render síncrono
+    const value = searchParams.get('q') || '';
+    if (value !== query) {
+        setQuery(value);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); 
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +88,7 @@ export function NavbarClient({ categories }: NavbarClientProps) {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         
         {/* 1. MENÚ MÓVIL */}

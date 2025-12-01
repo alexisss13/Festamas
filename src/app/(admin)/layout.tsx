@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { logout } from '@/actions/auth-actions';
 
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -55,7 +56,11 @@ export default function AdminLayout({
         </nav>
 
         <div className="border-t border-slate-800 p-4">
-          <Button variant="ghost" className="w-full justify-start gap-3 text-red-400 hover:bg-slate-800 hover:text-red-300">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start gap-3 text-red-400 hover:bg-slate-800 hover:text-red-300"
+            onClick={async () => await logout()}
+          >
             <LogOut className="h-5 w-5" />
             Cerrar Sesión
           </Button>

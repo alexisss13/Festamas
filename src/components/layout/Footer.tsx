@@ -58,8 +58,16 @@ export async function Footer() {
             <h3 className="font-semibold text-slate-900 mb-4">Empresa</h3>
             <ul className="space-y-3 text-sm text-slate-500">
               <li><Link href="/" className="hover:text-slate-900">Inicio</Link></li>
-              <li><span className="cursor-pointer hover:text-slate-900">Términos y Condiciones</span></li>
-              <li><span className="cursor-pointer hover:text-slate-900">Política de Privacidad</span></li>
+              <li>
+                <Link href="/terms" className="hover:text-slate-900 transition-colors">
+                  Términos y Condiciones
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-slate-900 transition-colors">
+                  Política de Privacidad
+                </Link>
+              </li>
               <li className="pt-2">
                 <Link href="/admin/dashboard" className="text-slate-400 hover:text-slate-900 text-xs">
                   Acceso Administrativo
@@ -70,7 +78,7 @@ export async function Footer() {
         </div>
         
         <div className="mt-8 border-t pt-8 text-center text-xs text-slate-400">
-          &copy; {new Date().getFullYear()} FiestasYa E-commerce. Todos los derechos reservados.
+          &copy; {new Date().getFullYear()} FiestasYa E-commerce.
         </div>
       </div>
     </footer>

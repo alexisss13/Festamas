@@ -1,13 +1,20 @@
-import { getDashboardStats } from '@/actions/dashboard';
+import { getDashboardStats, getSalesChartData, getRecentSales } from '@/actions/dashboard';
 import { DashboardCard } from './DashboardCard';
+import { Overview } from './Overview'; // 👈 Importar
+import { RecentSales } from './RecentSales'; // 👈 Importar
 import { CreditCard, Package, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default async function DashboardPage() {
-  const { data: stats } = await getDashboardStats();
+  // Ejecutamos todo en paralelo para máxima velocidad
+  const [statsRes, chartData, recentSales] = await Promise.all([
+    getDashboardStats(),
+    getSalesChartData(),
+    getRecentSales()
+  ]);
 
-  // Si falla, mostramos ceros para no romper la UI
-  const safeStats = stats || {
+  const safeStats = statsRes.data || {
     totalRevenue: 0,
     ordersCount: 0,
     productsCount: 0,
@@ -29,48 +36,58 @@ export default async function DashboardPage() {
 
       <Separator />
 
-      {/* GRILLA DE TARJETAS */}
+      {/* 1. TARJETAS KPI */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        
         <DashboardCard 
           title="Ingresos Totales (Pagados)"
           value={formatPrice(safeStats.totalRevenue)}
           icon={CreditCard}
           description="Suma de pedidos completados"
         />
-
         <DashboardCard 
           title="Pedidos Totales"
           value={safeStats.ordersCount}
           icon={ShoppingCart}
-          description="Órdenes registradas en sistema"
+          description="Órdenes registradas"
         />
-
         <DashboardCard 
           title="Productos Activos"
           value={safeStats.productsCount}
           icon={Package}
-          description="En tu catálogo público"
+          description="En catálogo"
         />
-
         <DashboardCard 
           title="Bajo Stock"
           value={safeStats.lowStockProducts}
           icon={AlertTriangle}
-          description="Productos con menos de 5 unidades"
+          description="Menos de 5 unidades"
         />
-
       </div>
 
-      {/* AQUÍ PODRÍAMOS PONER UN GRÁFICO LUEGO */}
+      {/* 2. GRÁFICOS Y LISTAS */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Espacio reservado para futuros gráficos */}
-        <div className="col-span-4 rounded-xl border bg-slate-50/50 p-10 text-center text-slate-400 border-dashed">
-            Gráfico de Ventas (Próximamente)
-        </div>
-        <div className="col-span-3 rounded-xl border bg-slate-50/50 p-10 text-center text-slate-400 border-dashed">
-            Últimas Ventas (Próximamente)
-        </div>
+        
+        {/* GRÁFICO (Ocupa 4 columnas) */}
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Resumen de Ventas</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <Overview data={chartData} />
+          </CardContent>
+        </Card>
+
+        {/* ÚLTIMAS VENTAS (Ocupa 3 columnas) */}
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Ventas Recientes</CardTitle>
+            <p className="text-sm text-slate-500">Últimas 5 transacciones pagadas.</p>
+          </CardHeader>
+          <CardContent>
+            <RecentSales sales={recentSales} />
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
