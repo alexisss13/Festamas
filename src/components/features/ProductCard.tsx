@@ -13,7 +13,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const addItem = useCartStore((state) => state.addItem); // 👈 Hook del carrito
+  const addItem = useCartStore((state) => state.addItem);
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('es-PE', {
@@ -35,6 +35,9 @@ export function ProductCard({ product }: ProductCardProps) {
     // Aquí luego pondremos un Toast de confirmación
   };
 
+  // Lógica de Agotado
+  const isOutOfStock = product.stock <= 0;
+
   return (
     <Card className="group overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow duration-300">
       <CardHeader className="p-0">
@@ -52,6 +55,15 @@ export function ProductCard({ product }: ProductCardProps) {
              <div className="flex h-full items-center justify-center text-slate-400">
                Sin imagen
              </div>
+             
+          )}
+
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                <Badge variant="destructive" className="text-lg px-4 py-1 pointer-events-none">
+                    Agotado
+                </Badge>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -73,9 +85,13 @@ export function ProductCard({ product }: ProductCardProps) {
         <span className="text-lg font-bold text-slate-900">
           {formatPrice(product.price)}
         </span>
-        {/* Botón conectado */}
-        <Button size="sm" variant="default" onClick={handleAddToCart}>
-          Agregar
+        <Button 
+            size="sm" 
+            variant={isOutOfStock ? "secondary" : "default"} 
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+        >
+          {isOutOfStock ? 'Sin Stock' : 'Agregar'}
         </Button>
       </CardFooter>
     </Card>

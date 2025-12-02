@@ -40,27 +40,31 @@ export async function createOrder(data: CreateOrderInput) {
       return { success: false, message: 'Datos inválidos', errors: validation.error.flatten().fieldErrors };
     }
 
-    // 🛡️ VALIDACIÓN DE SEGURIDAD E INTEGRIDAD 🛡️
     const productIds = data.items.map((item) => item.productId);
 
-    // Buscamos productos ACTIVOS en la BD
+    // 1. Validar existencia y STOCK disponible
     const dbProducts = await prisma.product.findMany({
-      where: {
-        id: { in: productIds },
-        isAvailable: true, // Importante para Soft Delete
-      },
+      where: { id: { in: productIds }, isAvailable: true },
     });
 
-    // Verificamos si encontramos todos los productos
     if (dbProducts.length !== productIds.length) {
-      return { 
-        success: false, 
-        message: 'Uno o más productos de tu carrito ya no están disponibles. Por favor actualiza la página.' 
-      };
+      return { success: false, message: 'Algunos productos ya no están disponibles' };
     }
 
-    // Transacción de creación
+    // Verificar que haya suficiente stock para cada item
+    for (const item of data.items) {
+      const product = dbProducts.find((p) => p.id === item.productId);
+      if (!product || product.stock < item.quantity) {
+        return { 
+          success: false, 
+          message: `Stock insuficiente para ${product?.title}. Solo quedan ${product?.stock}.` 
+        };
+      }
+    }
+
+    // 2. TRANSACCIÓN ATÓMICA (Crear Orden + Restar Stock)
     const order = await prisma.$transaction(async (tx) => {
+      // A. Crear la orden
       const newOrder = await tx.order.create({
         data: {
           clientName: data.name,
@@ -78,6 +82,19 @@ export async function createOrder(data: CreateOrderInput) {
           },
         },
       });
+
+      // B. Restar Stock de cada producto
+      for (const item of data.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity, // 👈 La magia de Prisma: resta automático
+            },
+          },
+        });
+      }
+
       return newOrder;
     });
 

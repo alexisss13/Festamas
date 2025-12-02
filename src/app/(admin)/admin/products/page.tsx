@@ -90,15 +90,14 @@ export default async function AdminProductsPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="icon" asChild className="text-slate-500 hover:text-slate-900">
+                        <Link href={`/admin/products/${product.slug}`}>
+                            <Pencil className="h-4 w-4" />
+                        </Link>
+                    </Button>
+                    
                     {product.isAvailable && (
-                        <>
-                            <Button variant="ghost" size="icon" asChild className="text-slate-500 hover:text-slate-900">
-                                <Link href={`/admin/products/${product.slug}`}>
-                                    <Pencil className="h-4 w-4" />
-                                </Link>
-                            </Button>
-                            <DeleteProductBtn id={product.id} />
-                        </>
+                        <DeleteProductBtn id={product.id} />
                     )}
                   </div>
                 </TableCell>
