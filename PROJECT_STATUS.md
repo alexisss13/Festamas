@@ -90,3 +90,4 @@ src/
 - **Reportes:** Exportar pedidos a Excel/PDF.
 - **Cupones:** Sistema de descuentos simples.
 - **SEO Avanzado:** Generar sitemap.xml y robots.txt.
+Prueba
