@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Loader2, Tag } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Loader2, Tag, MapPin, Truck, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -14,6 +14,8 @@ import { createOrder } from '@/actions/order';
 import { getStoreConfig } from '@/actions/settings';
 import { validateCoupon } from '@/actions/coupon';
 import { toast } from 'sonner';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, getTotalPrice, clearCart, applyCoupon, removeCoupon, getDiscountAmount, getFinalPrice, coupon } = useCartStore();
@@ -24,11 +26,17 @@ export default function CartPage() {
   const [phone, setPhone] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string[], phone?: string[] }>({});
+  const [errors, setErrors] = useState<{ name?: string[], phone?: string[], address?: string[] }>({});
 
+  // Estados de Envío
+  const [deliveryMethod, setDeliveryMethod] = useState('PICKUP'); // PICKUP | DELIVERY | PROVINCE
+  const [address, setAddress] = useState('');
+
+  // Configuración de la tienda (Cargada desde BD)
   const [storeConfig, setStoreConfig] = useState({
     whatsappPhone: '51999999999',
-    welcomeMessage: 'Hola, quiero confirmar mi pedido.'
+    welcomeMessage: 'Hola, quiero confirmar mi pedido.',
+    localDeliveryPrice: 0
   });
 
   useEffect(() => {
@@ -40,7 +48,8 @@ export default function CartPage() {
       if (config) {
         setStoreConfig({
           whatsappPhone: config.whatsappPhone,
-          welcomeMessage: config.welcomeMessage
+          welcomeMessage: config.welcomeMessage,
+          localDeliveryPrice: config.localDeliveryPrice || 0
         });
       }
     });
@@ -54,7 +63,7 @@ export default function CartPage() {
       if (res.success && res.coupon) {
           applyCoupon(res.coupon);
           toast.success('Cupón aplicado');
-          setCouponCode(''); // Limpiar input tras aplicar
+          setCouponCode('');
       } else {
           toast.error(res.message);
       }
@@ -66,51 +75,82 @@ export default function CartPage() {
       currency: 'PEN',
     }).format(value);
 
+  // Cálculo del costo de envío dinámico
+  const getShippingCost = () => {
+    if (deliveryMethod === 'DELIVERY') return storeConfig.localDeliveryPrice;
+    return 0; // PICKUP y PROVINCE (Por pagar) son 0 en la web
+  };
+
+  // Precio finalísimo (Productos - Descuento + Envío)
+  const getGrandTotal = () => {
+    return getFinalPrice() + getShippingCost();
+  };
+
   const handleCheckout = async () => {
-    setErrors({});
+    const newErrors: typeof errors = {};
+    if (!name.trim()) newErrors.name = ["El nombre es obligatorio"];
+    if (!phone.trim() || phone.length < 9) newErrors.phone = ["Celular inválido"];
+    if (deliveryMethod === 'DELIVERY' && !address.trim()) newErrors.address = ["La dirección es obligatoria para delivery"];
+
+    if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        toast.error("Por favor completa los campos requeridos");
+        return;
+    }
+
     setIsSubmitting(true);
 
+    // 👇 AQUÍ ESTABA EL ERROR: Faltaba enviar los datos de envío al backend
     const result = await createOrder({
       name,
       phone,
-      total: getFinalPrice(), // Enviamos el precio final con descuento
+      total: getGrandTotal(),
       items: items.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
         price: item.price,
       })),
+      // Agregamos estos 3 campos para que se guarden en la BD
+      deliveryMethod, 
+      shippingAddress: address,
+      shippingCost: getShippingCost() 
     });
 
     if (!result.success) {
       setIsSubmitting(false);
-      if (result.errors) {
-        setErrors(result.errors);
-        return;
-      }
       toast.error(result.message || 'Error desconocido');
       return;
     }
 
     const shortId = result.orderId!.split('-')[0].toUpperCase();
 
+    // CONSTRUCCIÓN DEL MENSAJE DE WHATSAPP
     let message = `${storeConfig.welcomeMessage}\n\n`; 
-    message += `--------------------------------\n`;
     message += `*Pedido:* #${shortId}\n`;
     message += `*Cliente:* ${name}\n`;
-    message += `--------------------------------\n\n`;
-    message += `*Detalle:*\n`;
+    
+    // Método de entrega en el mensaje
+    let deliveryText = "Recojo en Tienda";
+    if (deliveryMethod === 'DELIVERY') deliveryText = `Delivery Local (${address})`;
+    if (deliveryMethod === 'PROVINCE') deliveryText = "Envío a Provincia (Agencia)";
+    
+    message += `*Entrega:* ${deliveryText}\n`;
+    message += `--------------------------------\n`;
     
     items.forEach((item) => {
       message += `• ${item.quantity}x ${item.title}\n`;
     });
     
-    // Agregamos info del descuento al mensaje si existe
     if (coupon) {
         message += `\nSubtotal: ${formatPrice(getTotalPrice())}`;
         message += `\nDescuento (${coupon.code}): -${formatPrice(getDiscountAmount())}`;
     }
+
+    if (getShippingCost() > 0) {
+        message += `\nEnvío: ${formatPrice(getShippingCost())}`;
+    }
     
-    message += `\n*TOTAL A PAGAR: ${formatPrice(getFinalPrice())}*`;
+    message += `\n*TOTAL A PAGAR: ${formatPrice(getGrandTotal())}*`;
     message += `\n\nQuedo atento a los datos de pago.`;
 
     clearCart();
@@ -181,13 +221,11 @@ export default function CartPage() {
         <div className="lg:col-span-5">
           <Card className="bg-slate-50 border-slate-200 sticky top-24">
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">Resumen del Pedido</h2>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">Finalizar Compra</h2>
               
               <div className="space-y-4 mb-6">
                 <div className="grid w-full items-center gap-1.5">
-                  <Label htmlFor="name" className={errors.name ? "text-red-500" : ""}>
-                    Nombre completo
-                  </Label>
+                  <Label htmlFor="name" className={errors.name ? "text-red-500" : ""}>Nombre completo</Label>
                   <Input 
                     id="name" 
                     placeholder="Ej: Juan Pérez" 
@@ -196,15 +234,13 @@ export default function CartPage() {
                       setName(e.target.value);
                       if (errors.name) setErrors({ ...errors, name: undefined });
                     }}
-                    className={errors.name ? "border-red-500 bg-red-50 focus-visible:ring-red-500" : "bg-white"}
+                    className={errors.name ? "border-red-500 bg-red-50" : "bg-white"}
                   />
-                  {errors.name && <p className="text-sm text-red-500 animate-pulse">{errors.name[0]}</p>}
+                  {errors.name && <p className="text-sm text-red-500">{errors.name[0]}</p>}
                 </div>
 
                 <div className="grid w-full items-center gap-1.5">
-                  <Label htmlFor="phone" className={errors.phone ? "text-red-500" : ""}>
-                    Celular (WhatsApp)
-                  </Label>
+                  <Label htmlFor="phone" className={errors.phone ? "text-red-500" : ""}>Celular (WhatsApp)</Label>
                   <Input 
                     id="phone" 
                     placeholder="Ej: 999111222" 
@@ -214,15 +250,74 @@ export default function CartPage() {
                       if (errors.phone) setErrors({ ...errors, phone: undefined });
                     }}
                     maxLength={9}
-                    className={errors.phone ? "border-red-500 bg-red-50 focus-visible:ring-red-500" : "bg-white"}
+                    className={errors.phone ? "border-red-500 bg-red-50" : "bg-white"}
                   />
-                  {errors.phone && <p className="text-sm text-red-500 animate-pulse">{errors.phone[0]}</p>}
+                  {errors.phone && <p className="text-sm text-red-500">{errors.phone[0]}</p>}
                 </div>
+
+                {/* MÉTODO DE ENVÍO */}
+                <div className="pt-2">
+                    <Label className="mb-2 block">Método de Entrega</Label>
+                    <RadioGroup defaultValue="PICKUP" onValueChange={setDeliveryMethod} className="flex flex-col gap-3">
+                        
+                        <div className={`flex items-center space-x-3 border p-3 rounded-md cursor-pointer ${deliveryMethod === 'PICKUP' ? 'border-slate-900 bg-slate-50' : 'border-slate-200'}`}>
+                            <RadioGroupItem value="PICKUP" id="r1" />
+                            <Label htmlFor="r1" className="flex-1 cursor-pointer flex items-center gap-2">
+                                <Store className="h-4 w-4 text-slate-500" />
+                                <div>
+                                    <span className="block font-medium">Recojo en Tienda</span>
+                                    <span className="text-xs text-slate-500">Gratis - Av. España 123</span>
+                                </div>
+                            </Label>
+                        </div>
+
+                        <div className={`flex items-center space-x-3 border p-3 rounded-md cursor-pointer ${deliveryMethod === 'DELIVERY' ? 'border-slate-900 bg-slate-50' : 'border-slate-200'}`}>
+                            <RadioGroupItem value="DELIVERY" id="r2" />
+                            <Label htmlFor="r2" className="flex-1 cursor-pointer flex items-center gap-2">
+                                <Truck className="h-4 w-4 text-slate-500" />
+                                <div>
+                                    <span className="block font-medium">Delivery Local (Trujillo)</span>
+                                    <span className="text-xs text-slate-500">Costo: {formatPrice(storeConfig.localDeliveryPrice)}</span>
+                                </div>
+                            </Label>
+                        </div>
+
+                        <div className={`flex items-center space-x-3 border p-3 rounded-md cursor-pointer ${deliveryMethod === 'PROVINCE' ? 'border-slate-900 bg-slate-50' : 'border-slate-200'}`}>
+                            <RadioGroupItem value="PROVINCE" id="r3" />
+                            <Label htmlFor="r3" className="flex-1 cursor-pointer flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-slate-500" />
+                                <div>
+                                    <span className="block font-medium">Envío a Provincia</span>
+                                    <span className="text-xs text-slate-500">Pago en destino (Shalom/Olva)</span>
+                                </div>
+                            </Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+
+                {/* DIRECCIÓN (Solo si es Delivery) */}
+                {deliveryMethod === 'DELIVERY' && (
+                    <div className="animate-in fade-in slide-in-from-top-2">
+                        <Label htmlFor="address" className={errors.address ? "text-red-500" : ""}>Dirección de entrega</Label>
+                        <Textarea 
+                            id="address"
+                            placeholder="Calle, número, referencia..."
+                            className={`mt-1.5 resize-none h-20 ${errors.address ? "border-red-500 bg-red-50" : "bg-white"}`}
+                            value={address}
+                            onChange={(e) => {
+                                setAddress(e.target.value);
+                                if (errors.address) setErrors({ ...errors, address: undefined });
+                            }}
+                        />
+                        {errors.address && <p className="text-sm text-red-500 mt-1">{errors.address[0]}</p>}
+                    </div>
+                )}
+
               </div>
 
               <Separator className="my-4" />
               
-              {/* SECCIÓN CUPÓN MEJORADA */}
+              {/* CUPÓN */}
               <div className="mb-4">
                   {!coupon ? (
                       <div className="flex gap-2">
@@ -260,7 +355,6 @@ export default function CartPage() {
                   <span>{formatPrice(getTotalPrice())}</span>
                 </div>
                 
-                {/* Descuento condicional */}
                 {coupon && (
                   <div className="flex justify-between text-green-600 font-medium">
                     <span>Descuento</span>
@@ -270,7 +364,9 @@ export default function CartPage() {
 
                 <div className="flex justify-between text-slate-600">
                   <span>Envío</span>
-                  <span className="text-xs font-medium bg-slate-100 px-2 py-0.5 rounded text-slate-500">A coordinar</span>
+                  <span className={getShippingCost() > 0 ? "font-medium text-slate-900" : "text-xs font-medium bg-slate-100 px-2 py-0.5 rounded text-slate-500"}>
+                    {getShippingCost() > 0 ? formatPrice(getShippingCost()) : (deliveryMethod === 'PROVINCE' ? 'Por Pagar' : 'Gratis')}
+                  </span>
                 </div>
               </div>
 
@@ -278,7 +374,7 @@ export default function CartPage() {
 
               <div className="flex justify-between items-end mb-6">
                   <span className="text-base font-medium text-slate-900">Total a Pagar</span>
-                  <span className="text-2xl font-bold text-slate-900">{formatPrice(getFinalPrice())}</span>
+                  <span className="text-2xl font-bold text-slate-900">{formatPrice(getGrandTotal())}</span>
               </div>
 
               <Button 
@@ -298,7 +394,7 @@ export default function CartPage() {
               </Button>
               
               <p className="mt-4 text-xs text-center text-slate-500 leading-relaxed">
-                Al confirmar, se guardará tu pedido y te redirigiremos a WhatsApp para coordinar el pago y la entrega.
+                Al confirmar, se guardará tu pedido y te redirigiremos a WhatsApp para coordinar el pago.
               </p>
             </CardContent>
           </Card>

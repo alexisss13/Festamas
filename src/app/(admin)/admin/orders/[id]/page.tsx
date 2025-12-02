@@ -4,56 +4,51 @@ import { getOrderById } from '@/actions/order';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { OrderActions } from './OrderActions';
+import { MapPin, Store, Truck } from 'lucide-react';
 
 interface Props {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 }
 
 export default async function OrderDetailPage({ params }: Props) {
   const { id } = await params;
   const result = await getOrderById(id);
 
-  if (!result || !result.order) {
-    notFound();
-  }
+  if (!result || !result.order) notFound();
 
   const { order } = result;
 
   const formatPrice = (value: number) =>
-    new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-    }).format(value);
+    new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('es-PE', {
-      dateStyle: 'long',
-      timeStyle: 'short',
-    }).format(date);
+    return new Intl.DateTimeFormat('es-PE', { dateStyle: 'long', timeStyle: 'short' }).format(date);
   };
 
-  // 1. CÁLCULO DE TOTALES
-  // Calculamos cuánto debería costar sin descuento sumando los items
-  const subTotalCalculated = order.orderItems.reduce((acc, item) => {
-    return acc + (Number(item.price) * item.quantity);
-  }, 0);
-
+  // --- CÁLCULOS MATEMÁTICOS ---
+  const shippingCost = Number(order.shippingCost);
   const totalPaid = Number(order.totalAmount);
   
-  // Si el total pagado es MENOR que la suma de items, hubo descuento
-  const discountAmount = subTotalCalculated - totalPaid;
-  const hasDiscount = discountAmount > 0.01; // Margen por decimales
+  // Suma de productos puros
+  const itemsSubtotal = order.orderItems.reduce((acc, item) => acc + (Number(item.price) * item.quantity), 0);
+  
+  // Lo que debió costar (Productos + Envío)
+  const theoreticalTotal = itemsSubtotal + shippingCost;
+  
+  // Descuento = Lo que debió costar - Lo que pagó realmente
+  // (Si sale positivo, es que hubo descuento)
+  const discountAmount = theoreticalTotal - totalPaid;
+  const hasDiscount = discountAmount > 0.01;
+
+  // Icono según método
+  const DeliveryIcon = order.deliveryMethod === 'DELIVERY' ? Truck : (order.deliveryMethod === 'PROVINCE' ? MapPin : Store);
+  const deliveryLabel = {
+    'PICKUP': 'Recojo en Tienda',
+    'DELIVERY': 'Delivery Local',
+    'PROVINCE': 'Envío a Provincia'
+  }[order.deliveryMethod] || order.deliveryMethod;
 
   return (
     <div className="p-8 w-full max-w-7xl mx-auto">
@@ -64,49 +59,26 @@ export default async function OrderDetailPage({ params }: Props) {
           <h1 className="text-3xl font-bold text-slate-900">
             Pedido #{order.id.split('-')[0].toUpperCase()}
           </h1>
-          <p className="text-slate-500 mt-1">
-            Realizado el {formatDate(order.createdAt)}
-          </p>
+          <p className="text-slate-500 mt-1">Realizado el {formatDate(order.createdAt)}</p>
         </div>
         <div className="flex gap-2">
-           {/* BADGE DE ESTADO */}
-           {order.status === 'PENDING' && (
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-lg px-4 py-1">
-                Pendiente
-              </Badge>
-            )}
-            {order.status === 'DELIVERED' && (
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100 text-lg px-4 py-1">
-                Entregado
-              </Badge>
-            )}
-            {order.status === 'CANCELLED' && (
-              <Badge variant="destructive" className="text-lg px-4 py-1">
-                Cancelado
-              </Badge>
-            )}
-
-            {/* BADGE DE PAGO */}
-            {order.isPaid ? (
-               <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200 text-lg px-4 py-1">
-                 Pagado
-               </Badge>
-            ) : (
-               <Badge variant="outline" className="text-slate-500 text-lg px-4 py-1">
-                 No Pagado
-               </Badge>
-            )}
+           {order.status === 'PENDING' && <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 px-4 py-1">Pendiente</Badge>}
+           {order.status === 'DELIVERED' && <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100 px-4 py-1">Entregado</Badge>}
+           {order.status === 'CANCELLED' && <Badge variant="destructive" className="px-4 py-1">Cancelado</Badge>}
+           
+           {order.isPaid ? 
+             <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200 px-4 py-1">Pagado</Badge> : 
+             <Badge variant="outline" className="text-slate-500 px-4 py-1">No Pagado</Badge>
+           }
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* COLUMNA IZQUIERDA (2/3): DETALLE DE ITEMS */}
+        {/* COLUMNA IZQUIERDA: ITEMS */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Productos</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Productos</CardTitle></CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
@@ -122,35 +94,33 @@ export default async function OrderDetailPage({ params }: Props) {
                     <TableRow key={item.id}>
                       <TableCell className="flex items-center gap-4">
                         <div className="relative h-12 w-12 overflow-hidden rounded border bg-slate-100">
-                          {item.product.images[0] && (
-                            <Image 
-                              src={item.product.images[0]} 
-                              alt={item.product.title} 
-                              fill 
-                              className="object-cover" 
-                            />
-                          )}
+                          {item.product.images[0] && <Image src={item.product.images[0]} alt={item.product.title} fill className="object-cover" />}
                         </div>
                         <span className="font-medium text-slate-900">{item.product.title}</span>
                       </TableCell>
                       <TableCell className="text-right">{formatPrice(Number(item.price))}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right font-bold">
-                        {formatPrice(Number(item.price) * item.quantity)}
-                      </TableCell>
+                      <TableCell className="text-right font-bold">{formatPrice(Number(item.price) * item.quantity)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
               
+              {/* RESUMEN FINANCIERO */}
               <div className="flex justify-end mt-6">
-                <div className="w-full md:w-1/3 space-y-2">
+                <div className="w-full md:w-1/2 space-y-2">
                   <div className="flex justify-between text-sm text-slate-600">
-                    <span>Subtotal</span>
-                    <span>{formatPrice(subTotalCalculated)}</span>
+                    <span>Subtotal Productos</span>
+                    <span>{formatPrice(itemsSubtotal)}</span>
                   </div>
                   
-                  {/* 2. MOSTRAR DESCUENTO SI EXISTE */}
+                  {shippingCost > 0 && (
+                    <div className="flex justify-between text-sm text-slate-600">
+                        <span>Costo de Envío</span>
+                        <span>{formatPrice(shippingCost)}</span>
+                    </div>
+                  )}
+
                   {hasDiscount && (
                     <div className="flex justify-between text-sm text-green-600 font-medium">
                         <span>Descuento Aplicado</span>
@@ -160,7 +130,7 @@ export default async function OrderDetailPage({ params }: Props) {
 
                   <Separator />
                   <div className="flex justify-between text-xl font-bold text-slate-900">
-                    <span>Total</span>
+                    <span>Total Pagado</span>
                     <span>{formatPrice(totalPaid)}</span>
                   </div>
                 </div>
@@ -169,19 +139,36 @@ export default async function OrderDetailPage({ params }: Props) {
           </Card>
         </div>
 
-        {/* COLUMNA DERECHA (1/3): INFO CLIENTE Y ACCIONES */}
+        {/* COLUMNA DERECHA: INFO Y ACCIONES */}
         <div className="space-y-6">
-          
-          <OrderActions 
-            orderId={order.id} 
-            initialStatus={order.status} 
-            initialIsPaid={order.isPaid} 
-          />
+          <OrderActions orderId={order.id} initialStatus={order.status} initialIsPaid={order.isPaid} />
 
+          {/* DATOS DE ENTREGA */}
           <Card>
-            <CardHeader>
-              <CardTitle>Cliente</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Entrega</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                    <DeliveryIcon className="h-5 w-5 text-slate-500 mt-0.5" />
+                    <div>
+                        <p className="font-medium text-slate-900">{deliveryLabel}</p>
+                        {order.shippingAddress && (
+                            <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                                {order.shippingAddress}
+                            </p>
+                        )}
+                        {order.deliveryMethod === 'PROVINCE' && (
+                            <p className="text-xs text-orange-600 mt-1 font-medium bg-orange-50 inline-block px-2 py-0.5 rounded">
+                                Pago de envío en destino
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </CardContent>
+          </Card>
+
+          {/* DATOS CLIENTE */}
+          <Card>
+            <CardHeader><CardTitle>Cliente</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-slate-500">Nombre</p>
@@ -191,19 +178,11 @@ export default async function OrderDetailPage({ params }: Props) {
                 <p className="text-sm font-medium text-slate-500">WhatsApp</p>
                 <div className="flex items-center gap-2">
                     <p className="text-lg font-medium text-slate-900">{order.clientPhone}</p>
-                    <a 
-                        href={`https://wa.me/51${order.clientPhone}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="text-green-600 text-sm hover:underline"
-                    >
-                        (Abrir Chat)
-                    </a>
+                    <a href={`https://wa.me/51${order.clientPhone}`} target="_blank" rel="noreferrer" className="text-green-600 text-sm hover:underline">(Chat)</a>
                 </div>
               </div>
             </CardContent>
           </Card>
-
         </div>
 
       </div>

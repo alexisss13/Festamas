@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎉 FiestasYa E-commerce
 
-## Getting Started
+Plataforma de comercio electrónico moderna y escalable para la venta de artículos de fiesta. Desarrollada con las últimas tecnologías web.
 
-First, run the development server:
+## 🚀 Tecnologías (Stack)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Frontend:** Next.js 15 (App Router), React 19, Tailwind CSS v4.
+- **UI Kit:** Shadcn/UI + Lucide React.
+- **Backend:** Server Actions.
+- **Base de Datos:** Neon Tech (PostgreSQL) + Prisma ORM.
+- **Estado Global:** Zustand (Persistente).
+- **Autenticación:** NextAuth v5 (Auth.js).
+- **Imágenes:** Cloudinary.
+- **Emails:** Resend.
+- **Pagos:** Coordinación vía WhatsApp Smart Links.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Instalación y Configuración
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone [https://github.com/alexisss13/FiestasYa.git](https://github.com/alexisss13/FiestasYa.git)
+    cd FiestasYa
+    ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
 
-## Learn More
+3.  **Configurar Variables de Entorno:**
+    Crea un archivo `.env` en la raíz y agrega las siguientes claves (pide los valores al administrador):
 
-To learn more about Next.js, take a look at the following resources:
+    ```env
+    # Base de Datos (Neon Tech)
+    DATABASE_URL="postgresql://..."
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+    # Autenticación (Generar con: npx auth secret)
+    AUTH_SECRET="tu_secreto_super_seguro"
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+    # Cloudinary (Imágenes)
+    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="tu_cloud_name"
 
-## Deploy on Vercel
+    # Resend (Emails)
+    RESEND_API_KEY="re_..."
+    ADMIN_EMAIL="admin@tuempresa.com"
+    
+    # URL Base (Para producción)
+    NEXT_PUBLIC_APP_URL="http://localhost:3000"
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4.  **Inicializar Base de Datos:**
+    ```bash
+    npx prisma generate
+    npx prisma db push
+    ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5.  **Cargar Datos de Prueba (Semilla):**
+    Esto creará el usuario Admin inicial (`admin@fiestasya.com` / `123456`) y categorías base.
+    ```bash
+    npx prisma db seed
+    ```
+
+6.  **Correr el servidor de desarrollo:**
+    ```bash
+    npm run dev
+    ```
+    Visita `http://localhost:3000`.
+
+## 📦 Funcionalidades Clave
+
+### 🛒 Tienda (Cliente)
+- Catálogo dinámico con buscador y filtros.
+- Carrito de compras persistente.
+- Cálculo de envíos (Local/Provincia).
+- Cupones de descuento.
+- Checkout vía WhatsApp con mensaje detallado.
+
+### 🔐 Panel Administrativo (`/admin`)
+- **Dashboard:** Métricas de ventas en tiempo real y gráficos.
+- **Pedidos:** Gestión de estado (Pendiente/Pagado/Entregado) y exportación a Excel.
+- **Productos:** CRUD completo con gestión de stock e imágenes.
+- **Configuración:** Edición de teléfono de contacto y precios de envío.
+
+## 🤝 Contribución
+
+1.  Hacer fork del proyecto.
+2.  Crear una rama para tu feature (`git checkout -b feature/nueva-feature`).
+3.  Hacer commit (`git commit -m 'Add some feature'`).
+4.  Push a la rama (`git push origin feature/nueva-feature`).
+5.  Abrir un Pull Request.
+
+---
+&copy; 2025 FiestasYa. Trujillo, Perú.

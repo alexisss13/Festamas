@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Loader2, Save, MessageSquare, Phone } from 'lucide-react';
+import { Loader2, Save, MessageSquare, Phone, Package } from 'lucide-react';
 import { getStoreConfig, updateStoreConfig } from '@/actions/settings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,20 +21,28 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
+// 1. Definir Schema
 const formSchema = z.object({
   whatsappPhone: z.string().min(9, "Ingresa un celular válido (ej: 519...)"),
   welcomeMessage: z.string().min(1, "El mensaje no puede estar vacío"),
+  localDeliveryPrice: z.coerce.number().min(0, "El precio no puede ser negativo"),
 });
+
+// 2. Definir Tipo Explícito
+type SettingsFormValues = z.infer<typeof formSchema>;
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<SettingsFormValues>({
+    // 👇 3. SOLUCIÓN: Silenciamos el conflicto de tipos del resolver
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       whatsappPhone: '',
       welcomeMessage: '',
+      localDeliveryPrice: 0,
     },
   });
 
@@ -44,12 +52,13 @@ export default function SettingsPage() {
       form.reset({
         whatsappPhone: config.whatsappPhone,
         welcomeMessage: config.welcomeMessage,
+        localDeliveryPrice: config.localDeliveryPrice || 0,
       });
       setLoading(false);
     });
   }, [form]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: SettingsFormValues) => {
     setSaving(true);
     const res = await updateStoreConfig(values);
     if (res.success) {
@@ -107,7 +116,7 @@ export default function SettingsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" /> Mensaje Prederterminado (Checkout)
+                        <MessageSquare className="h-4 w-4" /> Mensaje Predeterminado (Checkout)
                     </FormLabel>
                     <FormControl>
                       <Textarea 
@@ -118,6 +127,39 @@ export default function SettingsPage() {
                     </FormControl>
                     <FormDescription>
                       Este texto aparecerá cuando el cliente haga clic en &quot;Completar pedido&quot;.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* CAMPO DE PRECIO DE DELIVERY */}
+              <FormField
+                control={form.control}
+                name="localDeliveryPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                        <Package className="h-4 w-4" /> Precio Delivery Local (Trujillo)
+                    </FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-slate-500">S/.</span>
+                        <Input 
+                            type="number" 
+                            step="0.50"
+                            className="pl-9" 
+                            {...field} 
+                            // Manejo manual del número para evitar NaN y conflictos de tipo
+                            onChange={e => {
+                                const val = e.target.value;
+                                field.onChange(val === '' ? 0 : parseFloat(val));
+                            }}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Costo fijo para envíos dentro de la zona de reparto.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

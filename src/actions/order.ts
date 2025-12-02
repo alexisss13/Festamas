@@ -4,33 +4,36 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { OrderStatus } from '@prisma/client';
+import { Resend } from 'resend';
+import { OrderEmail } from '@/components/email/OrderEmail';
+import * as React from 'react';
 
-// 1. Esquema de Validación (Reglas estrictas)
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 const orderSchema = z.object({
-  name: z.string()
-    .min(3, "El nombre debe tener al menos 3 letras.")
-    .regex(/^[a-zA-Z\s\u00C0-\u00FF]+$/, "El nombre solo puede contener letras."), 
-  phone: z.string()
-    .min(9, "El celular debe tener 9 dígitos.")
-    .max(9, "El celular debe tener 9 dígitos.")
-    .regex(/^\d+$/, "El celular solo debe contener números."),
+  name: z.string().min(3),
+  phone: z.string().min(9),
   total: z.number().min(0),
   items: z.array(z.object({
     productId: z.string(),
     quantity: z.number().min(1),
     price: z.number(),
   })),
+  // Validamos opcionalmente los campos de envío si vienen
+  deliveryMethod: z.string().optional(),
+  shippingAddress: z.string().optional(),
+  shippingCost: z.number().optional(),
 });
 
 interface CreateOrderInput {
   name: string;
   phone: string;
   total: number;
-  items: {
-    productId: string;
-    quantity: number;
-    price: number;
-  }[];
+  items: { productId: string; quantity: number; price: number }[];
+  // Campos opcionales para la acción (aunque el form los manda)
+  deliveryMethod?: string;
+  shippingAddress?: string;
+  shippingCost?: number;
 }
 
 export async function createOrder(data: CreateOrderInput) {
@@ -73,6 +76,9 @@ export async function createOrder(data: CreateOrderInput) {
           totalItems: data.items.reduce((acc, item) => acc + item.quantity, 0),
           status: 'PENDING',
           isPaid: false,
+          deliveryMethod: data.deliveryMethod || 'PICKUP',
+          shippingAddress: data.shippingAddress || '',
+          shippingCost: data.shippingCost || 0,
           orderItems: {
             create: data.items.map((item) => ({
               productId: item.productId,
@@ -83,20 +89,47 @@ export async function createOrder(data: CreateOrderInput) {
         },
       });
 
-      // B. Restar Stock de cada producto
+      // Descontar stock
       for (const item of data.items) {
         await tx.product.update({
           where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity, // 👈 La magia de Prisma: resta automático
-            },
-          },
+          data: { stock: { decrement: item.quantity } },
         });
       }
 
       return newOrder;
     });
+
+    // Lo hacemos después de la transacción para no bloquear la venta si falla el email
+    try {
+      if (process.env.RESEND_API_KEY && process.env.ADMIN_EMAIL) {
+        // Obtenemos los nombres de los productos para el correo
+        // (Como 'data.items' solo tiene IDs, usamos los que buscamos en 'dbProducts' al inicio)
+        const emailItems = data.items.map(item => {
+            const product = dbProducts.find(p => p.id === item.productId);
+            return { title: product?.title || 'Producto', quantity: item.quantity };
+        });
+
+        await resend.emails.send({
+          from: 'FiestasYa <onboarding@resend.dev>',
+          to: process.env.ADMIN_EMAIL,
+          subject: `Nuevo Pedido #${order.id.split('-')[0].toUpperCase()} - ${data.name}`,
+          // 👇 AQUÍ ESTÁ EL TRUCO: 'as React.ReactElement'
+          react: OrderEmail({
+            orderId: order.id,
+            customerName: data.name,
+            customerPhone: data.phone,
+            totalAmount: data.total,
+            items: emailItems,
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://fiestasya.vercel.app'}/admin/orders/${order.id}`
+          }) as React.ReactElement, 
+        });
+        console.log('📧 Notificación enviada al admin');
+      }
+    } catch (emailError) {
+      console.error('Error enviando notificación:', emailError);
+      // No lanzamos error para no interrumpir el flujo del usuario
+    }
 
     return { success: true, orderId: order.id };
     
@@ -119,6 +152,7 @@ export async function getOrders() {
     const safeOrders = orders.map((order) => ({
       ...order,
       totalAmount: Number(order.totalAmount),
+      shippingCost: Number(order.shippingCost), 
       orderItems: order.orderItems.map((item) => ({
         ...item,
         price: Number(item.price),
