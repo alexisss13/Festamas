@@ -43,6 +43,18 @@ export default async function OrderDetailPage({ params }: Props) {
     }).format(date);
   };
 
+  // 1. CÁLCULO DE TOTALES
+  // Calculamos cuánto debería costar sin descuento sumando los items
+  const subTotalCalculated = order.orderItems.reduce((acc, item) => {
+    return acc + (Number(item.price) * item.quantity);
+  }, 0);
+
+  const totalPaid = Number(order.totalAmount);
+  
+  // Si el total pagado es MENOR que la suma de items, hubo descuento
+  const discountAmount = subTotalCalculated - totalPaid;
+  const hasDiscount = discountAmount > 0.01; // Margen por decimales
+
   return (
     <div className="p-8 w-full max-w-7xl mx-auto">
       
@@ -133,14 +145,23 @@ export default async function OrderDetailPage({ params }: Props) {
               
               <div className="flex justify-end mt-6">
                 <div className="w-full md:w-1/3 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Subtotal</span>
-                    <span>{formatPrice(Number(order.totalAmount))}</span>
+                  <div className="flex justify-between text-sm text-slate-600">
+                    <span>Subtotal</span>
+                    <span>{formatPrice(subTotalCalculated)}</span>
                   </div>
+                  
+                  {/* 2. MOSTRAR DESCUENTO SI EXISTE */}
+                  {hasDiscount && (
+                    <div className="flex justify-between text-sm text-green-600 font-medium">
+                        <span>Descuento Aplicado</span>
+                        <span>- {formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
+
                   <Separator />
                   <div className="flex justify-between text-xl font-bold text-slate-900">
                     <span>Total</span>
-                    <span>{formatPrice(Number(order.totalAmount))}</span>
+                    <span>{formatPrice(totalPaid)}</span>
                   </div>
                 </div>
               </div>
@@ -151,14 +172,12 @@ export default async function OrderDetailPage({ params }: Props) {
         {/* COLUMNA DERECHA (1/3): INFO CLIENTE Y ACCIONES */}
         <div className="space-y-6">
           
-          {/* TARJETA DE ACCIONES (El componente interactivo) */}
           <OrderActions 
             orderId={order.id} 
             initialStatus={order.status} 
             initialIsPaid={order.isPaid} 
           />
 
-          {/* TARJETA DE CLIENTE */}
           <Card>
             <CardHeader>
               <CardTitle>Cliente</CardTitle>

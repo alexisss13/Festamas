@@ -89,33 +89,25 @@ export async function createOrder(data: CreateOrderInput) {
   }
 }
 
-// Obtener todas las órdenes (Para el Admin)
+// OBTENER ÓRDENES (SERIALIZADO)
 export async function getOrders() {
   try {
     const orders = await prisma.order.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
       include: {
-        orderItems: {
-          include: {
-            product: true, 
-          }
-        }
+        orderItems: { include: { product: true } }
       }
     });
 
-    // TRANSFORMACIÓN DE DATOS (SERIALIZACIÓN)
-    // Convertimos los Decimal de Prisma a Number de JS para que el frontend no explote
     const safeOrders = orders.map((order) => ({
       ...order,
-      totalAmount: Number(order.totalAmount), // 👈 Vital
+      totalAmount: Number(order.totalAmount),
       orderItems: order.orderItems.map((item) => ({
         ...item,
-        price: Number(item.price), // 👈 Vital
+        price: Number(item.price),
         product: {
           ...item.product,
-          price: Number(item.product.price), // 👈 Vital
+          price: Number(item.product.price),
         }
       }))
     }));
@@ -126,6 +118,8 @@ export async function getOrders() {
     return { success: false, message: 'Error al obtener ordenes' };
   }
 }
+
+
 // Obtener un pedido por ID (Detalle Admin)
 export async function getOrderById(id: string) {
   try {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Loader2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -12,20 +12,22 @@ import { Label } from '@/components/ui/label';
 import { useCartStore } from '@/store/cart';
 import { createOrder } from '@/actions/order';
 import { getStoreConfig } from '@/actions/settings';
+import { validateCoupon } from '@/actions/coupon';
+import { toast } from 'sonner';
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, getTotalPrice, clearCart } = useCartStore();
+  const { items, removeItem, updateQuantity, getTotalPrice, clearCart, applyCoupon, removeCoupon, getDiscountAmount, getFinalPrice, coupon } = useCartStore();
   const [isMounted, setIsMounted] = useState(false);
   
   // Estados del Formulario
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [couponCode, setCouponCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string[], phone?: string[] }>({});
 
-  // 2. Estado para la configuración de la tienda
   const [storeConfig, setStoreConfig] = useState({
-    whatsappPhone: '51999999999', // Fallback por si acaso
+    whatsappPhone: '51999999999',
     welcomeMessage: 'Hola, quiero confirmar mi pedido.'
   });
 
@@ -34,7 +36,6 @@ export default function CartPage() {
       setIsMounted(true);
     }, 100);
 
-    // 3. Traemos la configuración real al cargar
     getStoreConfig().then((config) => {
       if (config) {
         setStoreConfig({
@@ -46,6 +47,18 @@ export default function CartPage() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  const handleApplyCoupon = async () => {
+      if (!couponCode) return;
+      const res = await validateCoupon(couponCode);
+      if (res.success && res.coupon) {
+          applyCoupon(res.coupon);
+          toast.success('Cupón aplicado');
+          setCouponCode(''); // Limpiar input tras aplicar
+      } else {
+          toast.error(res.message);
+      }
+  };
 
   const formatPrice = (value: number) =>
     new Intl.NumberFormat('es-PE', {
@@ -60,7 +73,7 @@ export default function CartPage() {
     const result = await createOrder({
       name,
       phone,
-      total: getTotalPrice(),
+      total: getFinalPrice(), // Enviamos el precio final con descuento
       items: items.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
@@ -74,15 +87,12 @@ export default function CartPage() {
         setErrors(result.errors);
         return;
       }
-      alert(result.message || 'Error desconocido');
+      toast.error(result.message || 'Error desconocido');
       return;
     }
 
-    // ÉXITO
     const shortId = result.orderId!.split('-')[0].toUpperCase();
 
-    // 4. USAMOS LA CONFIGURACIÓN REAL AQUI
-    // Combinamos el mensaje configurado con los detalles técnicos del pedido
     let message = `${storeConfig.welcomeMessage}\n\n`; 
     message += `--------------------------------\n`;
     message += `*Pedido:* #${shortId}\n`;
@@ -94,12 +104,17 @@ export default function CartPage() {
       message += `• ${item.quantity}x ${item.title}\n`;
     });
     
-    message += `\n*TOTAL: ${formatPrice(getTotalPrice())}*`;
+    // Agregamos info del descuento al mensaje si existe
+    if (coupon) {
+        message += `\nSubtotal: ${formatPrice(getTotalPrice())}`;
+        message += `\nDescuento (${coupon.code}): -${formatPrice(getDiscountAmount())}`;
+    }
+    
+    message += `\n*TOTAL A PAGAR: ${formatPrice(getFinalPrice())}*`;
     message += `\n\nQuedo atento a los datos de pago.`;
 
     clearCart();
     
-    // Usamos el teléfono configurado
     const url = `https://wa.me/${storeConfig.whatsappPhone}?text=${encodeURIComponent(message)}`;
     
     setTimeout(() => {
@@ -130,12 +145,11 @@ export default function CartPage() {
       <h1 className="mb-8 text-3xl font-bold text-slate-900">Carrito de Compras</h1>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* COLUMNA IZQUIERDA (Items) - Sin cambios */}
         <div className="lg:col-span-7 space-y-4">
           {items.map((item) => (
              <Card key={item.id} className="overflow-hidden border-slate-200">
                <CardContent className="flex gap-4 p-4">
-                 <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border bg-slate-100">
+                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md border bg-slate-100">
                    <Image src={item.image} alt={item.title} fill className="object-cover" />
                  </div>
                  <div className="flex flex-1 flex-col justify-between">
@@ -164,14 +178,12 @@ export default function CartPage() {
           ))}
         </div>
 
-        {/* COLUMNA DERECHA (Formulario) - Sin cambios estructurales, solo usa state nuevo */}
         <div className="lg:col-span-5">
           <Card className="bg-slate-50 border-slate-200 sticky top-24">
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">Datos de Contacto</h2>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">Resumen del Pedido</h2>
               
               <div className="space-y-4 mb-6">
-                {/* INPUT NOMBRE */}
                 <div className="grid w-full items-center gap-1.5">
                   <Label htmlFor="name" className={errors.name ? "text-red-500" : ""}>
                     Nombre completo
@@ -189,7 +201,6 @@ export default function CartPage() {
                   {errors.name && <p className="text-sm text-red-500 animate-pulse">{errors.name[0]}</p>}
                 </div>
 
-                {/* INPUT CELULAR */}
                 <div className="grid w-full items-center gap-1.5">
                   <Label htmlFor="phone" className={errors.phone ? "text-red-500" : ""}>
                     Celular (WhatsApp)
@@ -211,25 +222,68 @@ export default function CartPage() {
 
               <Separator className="my-4" />
               
-              <div className="space-y-2 text-sm mb-4">
+              {/* SECCIÓN CUPÓN MEJORADA */}
+              <div className="mb-4">
+                  {!coupon ? (
+                      <div className="flex gap-2">
+                          <div className="relative w-full">
+                            <Tag className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                            <Input 
+                                placeholder="Código de cupón" 
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                className="bg-white pl-9"
+                            />
+                          </div>
+                          <Button variant="outline" onClick={handleApplyCoupon} className="shrink-0">Aplicar</Button>
+                      </div>
+                  ) : (
+                      <div className="flex items-center justify-between bg-green-50 p-3 rounded-md border border-green-200">
+                          <div className="flex items-center gap-2">
+                             <Tag className="h-4 w-4 text-green-600" />
+                             <span className="text-sm text-green-700 font-medium">
+                                Cupón <strong>{coupon.code}</strong> aplicado
+                             </span>
+                          </div>
+                          <Button variant="ghost" size="icon" onClick={removeCoupon} className="h-6 w-6 text-green-700 hover:text-green-900 hover:bg-green-100">
+                              <span className="sr-only">Quitar</span>
+                              <Trash2 className="h-4 w-4" />
+                          </Button>
+                      </div>
+                  )}
+              </div>
+
+              {/* TOTALES */}
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal</span>
                   <span>{formatPrice(getTotalPrice())}</span>
                 </div>
+                
+                {/* Descuento condicional */}
+                {coupon && (
+                  <div className="flex justify-between text-green-600 font-medium">
+                    <span>Descuento</span>
+                    <span>- {formatPrice(getDiscountAmount())}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between text-slate-600">
                   <span>Envío</span>
-                  <span>A coordinar</span>
+                  <span className="text-xs font-medium bg-slate-100 px-2 py-0.5 rounded text-slate-500">A coordinar</span>
                 </div>
               </div>
 
-              <div className="flex justify-between text-lg font-bold text-slate-900 mb-6">
-                <span>Total</span>
-                <span>{formatPrice(getTotalPrice())}</span>
+              <Separator className="my-4" />
+
+              <div className="flex justify-between items-end mb-6">
+                  <span className="text-base font-medium text-slate-900">Total a Pagar</span>
+                  <span className="text-2xl font-bold text-slate-900">{formatPrice(getFinalPrice())}</span>
               </div>
 
               <Button 
                 size="lg" 
-                className="w-full bg-green-600 hover:bg-green-700 text-lg"
+                className="w-full bg-green-600 hover:bg-green-700 text-lg shadow-md shadow-green-900/10 transition-all hover:scale-[1.01]"
                 onClick={handleCheckout}
                 disabled={isSubmitting}
               >
@@ -243,8 +297,8 @@ export default function CartPage() {
                 )}
               </Button>
               
-              <p className="mt-4 text-xs text-center text-slate-500">
-                Al confirmar, se guardará tu pedido y te redirigiremos a WhatsApp para finalizar el pago.
+              <p className="mt-4 text-xs text-center text-slate-500 leading-relaxed">
+                Al confirmar, se guardará tu pedido y te redirigiremos a WhatsApp para coordinar el pago y la entrega.
               </p>
             </CardContent>
           </Card>

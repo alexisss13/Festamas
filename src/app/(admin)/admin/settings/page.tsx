@@ -65,7 +65,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-8 max-w-5xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Configuración</h1>
         <p className="text-slate-500">Personaliza los datos de contacto de tu tienda.</p>
@@ -117,7 +117,7 @@ export default function SettingsPage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Este texto aparecerá cuando el cliente haga clic en "Completar pedido".
+                      Este texto aparecerá cuando el cliente haga clic en &quot;Completar pedido&quot;.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

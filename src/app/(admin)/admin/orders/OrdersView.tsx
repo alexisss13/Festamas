@@ -15,10 +15,19 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-// Definimos el tipo de dato que esperamos (simplificado para la vista)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Definimos la interfaz exacta que viene del backend
+interface Order {
+  id: string;
+  clientName: string;
+  clientPhone: string;
+  status: string;
+  isPaid: boolean;
+  totalAmount: number; // Ya serializado como number
+  createdAt: Date | string; // Puede venir como string si se serializa JSON
+}
+
 interface OrdersViewProps {
-  orders: any[]; // Usamos any aquí para facilitar la integración rápida con Prisma
+  orders: Order[]; 
 }
 
 const statusColor: Record<string, string> = {
@@ -36,7 +45,6 @@ const statusLabel: Record<string, string> = {
 };
 
 export function OrdersView({ orders }: OrdersViewProps) {
-  // Estado para forzar re-render si fuera necesario, aunque Tabs lo maneja
   const [activeTab, setActiveTab] = useState("all");
 
   const formatPrice = (value: number) =>
@@ -45,7 +53,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
       currency: 'PEN',
     }).format(value);
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('es-PE', {
       day: '2-digit',
       month: 'short',
@@ -54,21 +62,17 @@ export function OrdersView({ orders }: OrdersViewProps) {
     }).format(new Date(date));
   };
 
-  // Lógica de Filtrado
   const filteredOrders = orders.filter((order) => {
     if (activeTab === "all") return true;
     
-    // 🔥 PRIORIDAD: Pagado (isPaid=true) pero NO entregado ni cancelado
     if (activeTab === "priority") {
       return order.isPaid === true && order.status === 'PENDING';
     }
 
-    // ⏳ POR PAGAR: No pagado (isPaid=false) y no cancelado
     if (activeTab === "unpaid") {
       return order.isPaid === false && order.status !== 'CANCELLED';
     }
 
-    // ✅ COMPLETADOS: Entregados
     if (activeTab === "delivered") {
         return order.status === 'DELIVERED';
       }
@@ -101,7 +105,6 @@ export function OrdersView({ orders }: OrdersViewProps) {
             </Badge>
         </div>
 
-        {/* CONTENIDO DE LA TABLA (Se reutiliza para todas las tabs ya que filtramos el array) */}
         <div className="rounded-md border bg-white shadow-sm overflow-hidden">
             <Table>
             <TableHeader>
@@ -133,7 +136,6 @@ export function OrdersView({ orders }: OrdersViewProps) {
                         </div>
                     </TableCell>
                     <TableCell>
-                         {/* Badge de PAGO */}
                          {order.isPaid ? (
                             <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none px-2 shadow-none">
                                 Pagado
@@ -145,7 +147,6 @@ export function OrdersView({ orders }: OrdersViewProps) {
                          )}
                     </TableCell>
                     <TableCell>
-                        {/* Badge de ENVÍO */}
                         <Badge variant="outline" className={`font-medium border-none px-2 py-0.5 shadow-none ${statusColor[currentStatus] || statusColor.PENDING}`}>
                         {statusLabel[currentStatus] || statusLabel.PENDING}
                         </Badge>
@@ -177,8 +178,6 @@ export function OrdersView({ orders }: OrdersViewProps) {
             )}
         </div>
         
-        {/* Truco: Necesitamos renderizar los TabsContent vacíos o simples para que Shadcn no se queje, 
-            aunque estamos manejando el filtrado visualmente arriba */}
         <TabsContent value="all" />
         <TabsContent value="priority" />
         <TabsContent value="unpaid" />

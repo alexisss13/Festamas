@@ -103,3 +103,15 @@ main()
   .finally(async () => {
     await prisma.$disconnect()
   })
+
+// Crear cupón de prueba
+  await prisma.coupon.upsert({
+    where: { code: 'FIESTA2025' },
+    update: {},
+    create: {
+      code: 'FIESTA2025',
+      discount: 10.00, // 10 soles de descuento
+      type: 'FIXED',
+      isActive: true
+    }
+  });

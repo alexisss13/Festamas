@@ -105,3 +105,18 @@ model StoreConfig {
   
   updatedAt      DateTime @updatedAt
 }
+
+model Coupon {
+  id        String   @id @default(uuid())
+  code      String   @unique // Ej: FIESTA20
+  discount  Decimal  @db.Decimal(10, 2) // Monto o Porcentaje
+  type      CouponType @default(FIXED) // Fijo o Porcentaje
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+}
+
+enum CouponType {
+  FIXED
+  PERCENTAGE
+}
