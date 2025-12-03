@@ -11,21 +11,33 @@ const settingsSchema = z.object({
 });
 
 export async function getStoreConfig() {
-  // Buscamos la primera configuración, si no existe, devolvemos default ficticio
-  // (En el frontend manejaremos la creación si no existe)
   const config = await prisma.storeConfig.findFirst();
-  return config ? {
-    ...config,
-    localDeliveryPrice: Number(config.localDeliveryPrice)
-  } : { 
-    whatsappPhone: '', 
-    welcomeMessage: '', 
+  
+  if (config) {
+    return {
+      ...config,
+      localDeliveryPrice: Number(config.localDeliveryPrice),
+      // Aseguramos que los campos opcionales nunca sean null para evitar problemas en el form
+      heroImage: config.heroImage || '',
+      heroTitle: config.heroTitle || '',
+      heroSubtitle: config.heroSubtitle || '',
+      heroButtonText: config.heroButtonText || '',
+      heroButtonLink: config.heroButtonLink || '',
+      heroBtnColor: config.heroBtnColor || '#fb3099',
+    };
+  }
+
+  // Fallback si no hay configuración en BD
+  return { 
+    whatsappPhone: '51999999999', 
+    welcomeMessage: 'Hola FiestasYa...', 
     localDeliveryPrice: 0,
     heroImage: '',
     heroTitle: '',
     heroSubtitle: '',
     heroButtonText: '',
-    heroButtonLink: ''
+    heroButtonLink: '',
+    heroBtnColor: '#fb3099', // 👈 ESTE ERA EL QUE FALTABA
   };
 }
 

@@ -111,12 +111,13 @@ model StoreConfig {
 
   localDeliveryPrice Decimal @default(10.00) @db.Decimal(10, 2)
 
-  // 👇 NUEVOS CAMPOS: HERO
-  heroImage       String?  // URL de Cloudinary
+  // HERO CONFIG
+  heroImage       String?
   heroTitle       String   @default("Celebra a lo Grande")
   heroSubtitle    String   @default("Todo para tu fiesta en un solo lugar")
   heroButtonText  String   @default("Ver Productos")
-  heroButtonLink  String   @default("/search?q=")
+  heroButtonLink  String   @default("#catalogo") // 👈 Default: Ancla al catálogo
+  heroBtnColor    String   @default("#fb3099")
   
   updatedAt      DateTime @updatedAt
 }
@@ -136,13 +137,22 @@ enum CouponType {
   PERCENTAGE
 }
 
-// 👇 NUEVA TABLA: BANNERS (Para las tarjetas de "Golosinas", "Piñatas", etc)
+// BANNERS SUPER VITAMINADOS
 model Banner {
   id        String   @id @default(uuid())
   title     String
-  image     String   // URL Cloudinary
-  link      String   // Ej: "/category/globos"
-  order     Int      @default(0) // Para ordenar cuál sale primero
+  image     String
+  link      String
+  
+  btnText   String   @default("Ver Más")
+  btnColor  String   @default("#000000")
+  btnTextColor String @default("#FFFFFF")
+  textColor String   @default("#FFFFFF") 
+  
+  position  String   @default("TOP") // 'TOP' | 'BOTTOM'
+  size      String   @default("GRID") // 'GRID' | 'FULL'
+  
+  order     Int      @default(0)
   isActive  Boolean  @default(true)
   
   createdAt DateTime @default(now())

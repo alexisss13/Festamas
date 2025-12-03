@@ -12,16 +12,11 @@ export default async function DesignPage() {
   ]);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-10">
-      <div className="flex items-center gap-3">
-        <div className="p-3 bg-pink-100 rounded-lg text-pink-600">
-            <Palette className="h-8 w-8" />
-        </div>
+    <div className="p-8 max-w-5xl mx-auto space-y-10">  
         <div>
             <h1 className="text-3xl font-bold text-slate-900">Personalizar Tienda</h1>
             <p className="text-slate-500">Gestiona la portada y promociones visibles en el inicio.</p>
         </div>
-      </div>
 
       {/* SECCIÓN HERO */}
       <section id="hero-config">

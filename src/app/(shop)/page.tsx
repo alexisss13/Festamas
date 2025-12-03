@@ -1,15 +1,67 @@
 import Link from 'next/link';
-import Image from 'next/image'; // Importante para el Hero con imagen
+import Image from 'next/image';
 import { getProducts } from '@/actions/products';
-import { getStoreConfig } from '@/actions/settings'; // 👈 Traemos config
-import { getBanners } from '@/actions/design'; // 👈 Traemos banners
+import { getStoreConfig } from '@/actions/settings';
+import { getBanners } from '@/actions/design';
 import { ProductCard } from '@/components/features/ProductCard';
 import { Button } from '@/components/ui/button';
+import { PartyPopper } from 'lucide-react';
 
 export const revalidate = 60; 
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BannerGrid({ banners }: { banners: any[] }) {
+  if (!banners || banners.length === 0) return null;
+
+  return (
+    <section className="container mx-auto px-4 py-8">
+      {/* Usamos auto-fill con minmax para responsive fluido */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {banners.map((banner) => {
+            // Lógica de tamaños
+            let colSpan = "col-span-1"; // GRID
+            if (banner.size === 'FULL') colSpan = "md:col-span-2 lg:col-span-3 h-[350px]";
+            if (banner.size === 'HALF') colSpan = "md:col-span-1 lg:col-span-2 h-[280px]"; // Mitad en pantallas grandes (o 2/3 en grid de 3)
+            // Ajuste visual: Si es HALF en grid de 3, ocupa 2 espacios. Si hay 2 HALF, se verá raro en grid de 3, 
+            // pero flexible en grid de 2. Lo ideal es jugar con el orden.
+
+            return (
+              <Link 
+                key={banner.id} 
+                href={banner.link} 
+                className={`group relative overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all ${colSpan} ${banner.size === 'GRID' ? 'h-64' : ''}`}
+              >
+                <Image 
+                    src={banner.image} 
+                    alt={banner.title} 
+                    fill 
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-6">
+                    <div className="w-full flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                        <h3 
+                            className={`font-extrabold drop-shadow-md leading-tight ${banner.size === 'GRID' ? 'text-xl' : 'text-3xl'}`}
+                            style={{ color: banner.textColor || '#FFFFFF' }}
+                        >
+                            {banner.title}
+                        </h3>
+                        <span 
+                            style={{ backgroundColor: banner.btnColor, color: banner.btnTextColor || '#FFFFFF' }} 
+                            className="inline-block px-4 py-2 rounded-full text-sm font-bold shadow-lg transform transition-transform group-hover:-translate-y-1 text-center min-w-[100px]"
+                        >
+                            {banner.btnText}
+                        </span>
+                    </div>
+                </div>
+              </Link>
+            );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage() {
-  // 1. Carga de datos paralela (Ultra rápido)
   const [productsRes, config, banners] = await Promise.all([
     getProducts(),
     getStoreConfig(),
@@ -17,35 +69,35 @@ export default async function HomePage() {
   ]);
 
   const products = productsRes.data;
+  const topBanners = banners.filter((b: any) => b.position === 'TOP');
+  const bottomBanners = banners.filter((b: any) => b.position === 'BOTTOM');
 
   return (
     <main>
-      {/* 1. HERO SECTION DINÁMICO */}
-      <section className="relative h-[500px] w-full overflow-hidden flex items-center justify-center text-center bg-slate-900">
-        {/* Imagen de Fondo Configurable */}
+      {/* 1. HERO SECTION PERSONALIZABLE */}
+      <section className="relative h-[500px] md:h-[600px] w-full overflow-hidden flex items-center justify-center text-center bg-slate-900">
         {config.heroImage ? (
             <Image 
                 src={config.heroImage} 
                 alt="Hero" 
                 fill 
-                className="object-cover opacity-60" // Oscurecemos un poco para leer texto
+                className="object-cover opacity-70"
                 priority
             />
         ) : (
-            // Fallback: Degradado si no hay imagen
-            <div className="absolute inset-0 bg-linear-to-r from-secondary to-primary opacity-90" />
+            <div className="absolute inset-0 bg-gradient-to-r from-secondary to-primary opacity-90" />
         )}
         
-        <div className="relative z-10 container px-4">
+        <div className="relative z-10 container px-4 animate-in fade-in zoom-in duration-700">
           <h1 className="mb-6 text-5xl font-extrabold tracking-tight text-white drop-shadow-lg md:text-7xl">
             {config.heroTitle || "Celebra a lo Grande"}
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-white/90 md:text-xl drop-shadow-md">
+          <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-white/90 md:text-2xl drop-shadow-md">
             {config.heroSubtitle}
           </p>
           <div className="flex justify-center gap-4">
-            <Button asChild size="lg" className="bg-white text-primary hover:bg-slate-100 text-lg px-8 font-bold shadow-xl border-none">
-              <Link href={config.heroButtonLink || "/search?q="}>
+            <Button asChild size="lg" className="text-white hover:opacity-90 text-lg px-8 py-6 font-bold shadow-xl border-none rounded-full transition-transform hover:scale-105" style={{ backgroundColor: config.heroBtnColor || '#fb3099' }}>
+              <Link href={config.heroButtonLink || "#catalogo"}>
                 {config.heroButtonText || "Ver Catálogo"}
               </Link>
             </Button>
@@ -53,40 +105,16 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 2. BANNERS PROMOCIONALES (GRID DINÁMICO) */}
-      {banners.length > 0 && (
-          <section className="container mx-auto px-4 py-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {banners.map((banner) => (
-                    <Link key={banner.id} href={banner.link} className="group relative h-64 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all">
-                        <Image 
-                            src={banner.image} 
-                            alt={banner.title} 
-                            fill 
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                        {/* Overlay degradado para leer texto */}
-                        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent flex items-end p-6">
-                            <div>
-                                <h3 className="text-2xl font-bold text-white mb-2">{banner.title}</h3>
-                                <span className="text-sm font-semibold text-white/90 bg-primary px-3 py-1 rounded-full">
-                                    Ver más
-                                </span>
-                            </div>
-                        </div>
-                    </Link>
-                ))}
-            </div>
-          </section>
-      )}
+      {/* 2. BANNERS SUPERIORES (TOP) */}
+      <BannerGrid banners={topBanners} />
 
-      {/* 3. CATÁLOGO (Igual que antes) */}
+      {/* 3. CATÁLOGO */}
       <section id="catalogo" className="container mx-auto px-4 py-16">
-        <div className="mb-10 flex flex-col items-center text-center">
+        <div className="mb-12 flex flex-col items-center text-center">
           <h2 className="text-3xl font-extrabold text-slate-900 md:text-4xl">
-            Lo Más Nuevo
+            Nuestros Productos
           </h2>
-          <div className="mt-2 h-1 w-20 rounded-full bg-secondary"></div>
+          <div className="mt-2 h-1.5 w-24 rounded-full bg-primary"></div>
         </div>
 
         {products && products.length > 0 ? (
@@ -97,10 +125,15 @@ export default async function HomePage() {
           </div>
         ) : (
           <div className="py-20 text-center">
-            <p className="text-slate-500">Cargando productos...</p>
+            <PartyPopper className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500 text-lg">Aún no hay productos disponibles.</p>
           </div>
         )}
       </section>
+
+      {/* 4. BANNERS INFERIORES (BOTTOM) */}
+      <BannerGrid banners={bottomBanners} />
+
     </main>
   );
 }
