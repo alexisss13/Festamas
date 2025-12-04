@@ -4,10 +4,14 @@ import { getProducts } from '@/actions/products';
 import { getStoreConfig } from '@/actions/settings';
 import { getBanners } from '@/actions/design';
 import { ProductCard } from '@/components/features/ProductCard';
+import { ProductSort } from '@/components/features/ProductSort';
 import { Button } from '@/components/ui/button';
 import { PartyPopper } from 'lucide-react';
 
 export const revalidate = 60; 
+interface Props {
+  searchParams: Promise<{ sort?: string }>; // 👈 Recibimos params
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BannerGrid({ banners }: { banners: any[] }) {
@@ -72,9 +76,10 @@ function BannerGrid({ banners }: { banners: any[] }) {
   );
 }
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: Props) {
+  const { sort } = await searchParams; 
   const [productsRes, config, banners] = await Promise.all([
-    getProducts(),
+    getProducts({ sort: sort || 'newest' }),
     getStoreConfig(),
     getBanners(true) // Solo activos
   ]);
@@ -121,11 +126,14 @@ export default async function HomePage() {
 
       {/* 3. CATÁLOGO */}
       <section id="catalogo" className="container mx-auto px-4 py-16">
-        <div className="mb-12 flex flex-col items-center text-center">
-          <h2 className="text-3xl font-extrabold text-slate-900 md:text-4xl">
-            Nuestros Productos
-          </h2>
-          <div className="mt-2 h-1.5 w-24 rounded-full bg-primary"></div>
+        <div className="mb-12 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col items-center md:items-start">
+             <h2 className="text-3xl font-extrabold text-slate-900">Nuestros Productos</h2>
+             <div className="mt-1 h-1 w-20 rounded-full bg-primary md:ml-1"></div>
+          </div>
+          
+          {/* 👇 AQUÍ EL FILTRO DE ORDENAMIENTO */}
+          <ProductSort />
         </div>
 
         {products && products.length > 0 ? (
@@ -141,6 +149,7 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+      
 
       {/* 4. BANNERS INFERIORES (BOTTOM) */}
       <BannerGrid banners={bottomBanners} />

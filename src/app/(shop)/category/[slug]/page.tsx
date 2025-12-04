@@ -2,12 +2,14 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { getProductsByCategory } from '@/actions/products';
 import { ProductCard } from '@/components/features/ProductCard';
+import { ProductSort } from '@/components/features/ProductSort';
 import { PartyPopper, SearchX } from 'lucide-react';
 
 interface Props {
   params: Promise<{
     slug: string;
   }>;
+  searchParams: Promise<{ sort?: string }>;
 }
 
 // 1. SEO Dinámico
@@ -21,10 +23,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function CategoryPage({ params }: Props) {
+export default async function CategoryPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const data = await getProductsByCategory(slug);
-
+  const { sort } = await searchParams;
+  const data = await getProductsByCategory(slug, sort || 'newest');
+  
   if (!data) {
     notFound();
   }
@@ -35,8 +38,9 @@ export default async function CategoryPage({ params }: Props) {
     <div className="container mx-auto px-4 py-12">
       
       {/* CABECERA CON BRANDING */}
-      <div className="mb-12 flex flex-col items-center text-center animate-in fade-in slide-in-from-top-4 duration-500">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 capitalize md:text-5xl">
+      <div className="mb-12 flex flex-col md:flex-row items-center justify-between gap-6 border-b pb-6">
+        <div className="flex flex-col items-center md:items-start text-center md:text-left">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 capitalize">
           {categoryName}
         </h1>
         {/* Línea decorativa de marca */}
@@ -45,6 +49,8 @@ export default async function CategoryPage({ params }: Props) {
         <p className="mt-4 text-lg text-slate-500 max-w-2xl">
           Explora nuestra colección exclusiva de {categoryName.toLowerCase()} y encuentra justo lo que necesitas.
         </p>
+        </div>
+        <ProductSort />
       </div>
 
       {/* RESULTADOS */}

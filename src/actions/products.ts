@@ -17,10 +17,21 @@ export type ProductWithCategory = {
   };
 };
 
+// Helper para definir el ordenamiento
+const getOrderBy = (sort: string) => {
+    switch (sort) {
+        case 'price_asc': return { price: 'asc' as const };
+        case 'price_desc': return { price: 'desc' as const };
+        case 'newest': return { createdAt: 'desc' as const };
+        default: return { createdAt: 'desc' as const };
+    }
+};
+
 // Modificamos la firma de la función para aceptar 'query'
 export async function getProducts({ 
   includeInactive = false, 
-  query = '' // 👈 Nuevo parámetro opcional
+  query = '', // 👈 Nuevo parámetro opcional
+  sort = 'newest'
 } = {}) {
   try {
     // Construimos el filtro dinámicamente
@@ -44,9 +55,7 @@ export async function getProducts({
       include: {
         category: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: getOrderBy(sort),
     });
 
     // ... (El resto del mapeo 'cleanProducts' se queda EXACTAMENTE IGUAL)
@@ -112,7 +121,7 @@ export async function getProduct(slug: string) {
   }
 }
 
-export async function getProductsByCategory(categorySlug: string) {
+export async function getProductsByCategory(categorySlug: string, sort = 'newest') {
   try {
     const category = await prisma.category.findUnique({
       where: { slug: categorySlug },
@@ -128,9 +137,7 @@ export async function getProductsByCategory(categorySlug: string) {
       include: {
         category: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: getOrderBy(sort),
     });
 
     const cleanProducts = products.map((product) => ({
