@@ -3,7 +3,7 @@
 ## 1. Funcionalidad Actual
 
 ### 🔐 Seguridad & Auth
-- **NextAuth v5 Implementado:** Sistema de autenticación robusto basado en sesiones encriptadas.
+- **NextAuth v5 Implementado:** Sistema de autenticación robusto basado en sesiones encriptadas. c
 - **Protección de Rutas:** Middleware (`middleware.ts`) que intercepta y bloquea el acceso a `/admin/*`.
 - **Login Profesional:** Diseño "Glassmorphism" Central con Server Action `authenticate`.
 - **Base de Datos:** Modelo `User` con roles (ADMIN/USER) y Seed de admin.
