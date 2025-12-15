@@ -4,12 +4,16 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { categorySchema } from '@/lib/zod';
 import { revalidatePath } from 'next/cache';
+import { Division } from '@prisma/client';
 
 // --- LEER ---
-export async function getCategories() {
+// Aceptamos un parámetro opcional 'division'. Si no viene, devuelve todas (útil para admin).
+export async function getCategories(division?: Division) {
   try {
-    // Traemos también el conteo de productos para mostrarlo en la tabla
+    const whereClause = division ? { division } : {};
+
     const categories = await prisma.category.findMany({
+      where: whereClause,
       include: {
         _count: {
           select: { products: true }
@@ -30,9 +34,9 @@ export async function createOrUpdateCategory(data: z.infer<typeof categorySchema
     const valid = categorySchema.safeParse(data);
     if (!valid.success) return { success: false, message: 'Datos inválidos' };
 
-    const { name, slug } = valid.data;
+    const { name, slug, division } = valid.data; // 👈 Ahora extraemos division
 
-    // Verificar slug único (excepto si es el mismo ID que editamos)
+    // Verificar slug único
     const existing = await prisma.category.findUnique({ where: { slug } });
     if (existing && existing.id !== id) {
       return { success: false, message: 'El slug ya existe.' };
@@ -41,11 +45,11 @@ export async function createOrUpdateCategory(data: z.infer<typeof categorySchema
     if (id) {
       await prisma.category.update({
         where: { id },
-        data: { name, slug },
+        data: { name, slug, division },
       });
     } else {
       await prisma.category.create({
-        data: { name, slug },
+        data: { name, slug, division },
       });
     }
 
@@ -57,10 +61,9 @@ export async function createOrUpdateCategory(data: z.infer<typeof categorySchema
   }
 }
 
-// --- ELIMINAR (Con Seguridad) ---
+// --- ELIMINAR ---
 export async function deleteCategory(id: string) {
   try {
-    // 1. Verificar si tiene productos
     const category = await prisma.category.findUnique({
       where: { id },
       include: { _count: { select: { products: true } } }
@@ -73,7 +76,6 @@ export async function deleteCategory(id: string) {
       };
     }
 
-    // 2. Si está vacía, borrar
     await prisma.category.delete({ where: { id } });
     
     revalidatePath('/admin/categories');

@@ -9,20 +9,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 🌍 ENUM DIVISIÓN
+// JUGUETERIA = Festamas (Marca Principal)
+// FIESTAS = FiestasYa (División Secundaria)
+enum Division {
+  JUGUETERIA
+  FIESTAS
+}
+
 // 📦 PRODUCTOS
 model Product {
   id          String   @id @default(uuid())
   title       String
   description String
-  slug        String   @unique // Para URLs amigables: /producto/globo-metalico
-  price       Decimal  @default(0) @db.Decimal(10, 2) // 10 dígitos, 2 decimales
+  slug        String   @unique
+  price       Decimal  @default(0) @db.Decimal(10, 2)
   stock       Int      @default(0)
-  images      String[] // Array de URLs de Cloudinary
+  images      String[]
 
-  isAvailable Boolean  @default(true) // 👈 NUEVO: Por defecto, todo nace visible
+  isAvailable Boolean  @default(true)
+  
+  // Variantes
+  color       String?
+  groupTag    String?
 
-  color       String?  // Ej: "#FF0000" (Hexadecimal)
-  groupTag    String?  // Ej: "globos-cromados" (Identificador para agrupar)
+  // 👇 CAMBIO CLAVE: Por defecto ahora es JUGUETERIA (Festamas)
+  division    Division @default(JUGUETERIA)
   
   category    Category @relation(fields: [categoryId], references: [id])
   categoryId  String
@@ -39,29 +51,30 @@ model Category {
   name  String
   slug  String @unique
 
+  // 👇 CAMBIO CLAVE: Por defecto JUGUETERIA
+  division Division @default(JUGUETERIA)
+
   products Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// 🛍️ PEDIDOS (CARRITO CONVERTIDO EN ORDEN)
+// 🛍️ PEDIDOS
 model Order {
   id            String      @id @default(uuid())
+  
   totalAmount   Decimal     @db.Decimal(10, 2)
   totalItems    Int
   status        OrderStatus @default(PENDING)
   isPaid        Boolean     @default(false)
   
-  // Datos del cliente (Simple para MVP, sin auth compleja aún)
   clientName    String
-  clientPhone   String      // Para WhatsApp
-
-  deliveryMethod  String   @default("PICKUP") // 'PICKUP' | 'DELIVERY' | 'PROVINCE'
-  shippingAddress String?  // Opcional porque en Recojo no hay dirección
+  clientPhone   String
+  deliveryMethod String   @default("PICKUP") 
+  shippingAddress String?
   shippingCost    Decimal  @default(0) @db.Decimal(10, 2)
-
-  notes           String?     // Opcional, puede ser nulo
+  notes           String?
   
   orderItems    OrderItem[]
 
@@ -69,11 +82,10 @@ model Order {
   updatedAt     DateTime @updatedAt
 }
 
-// DETALLE DEL PEDIDO
 model OrderItem {
   id        String  @id @default(uuid())
   quantity  Int
-  price     Decimal @db.Decimal(10, 2) // Precio al momento de la compra (snapshot)
+  price     Decimal @db.Decimal(10, 2)
 
   order     Order   @relation(fields: [orderId], references: [id])
   orderId   String
@@ -82,7 +94,6 @@ model OrderItem {
   productId String
 }
 
-// ESTADOS DEL PEDIDO
 enum OrderStatus {
   PENDING
   PAID
@@ -90,12 +101,12 @@ enum OrderStatus {
   CANCELLED
 }
 
-// 👤 USUARIOS (ADMINISTRADORES)
+// 👤 USUARIOS
 model User {
   id            String    @id @default(uuid())
   name          String
   email         String    @unique
-  password      String    // Aquí se guardará el hash (ej: $2b$10$...)
+  password      String
   role          Role      @default(USER)
   
   createdAt     DateTime  @default(now())
@@ -110,16 +121,15 @@ enum Role {
 model StoreConfig {
   id             String   @id @default(uuid())
   whatsappPhone  String   @default("51999999999")
-  welcomeMessage String   @default("Hola FiestasYa, quiero consultar por...")
-
+  welcomeMessage String   @default("Hola Festamas, quiero confirmar mi pedido...")
   localDeliveryPrice Decimal @default(10.00) @db.Decimal(10, 2)
 
   // HERO CONFIG
   heroImage       String?
-  heroTitle       String   @default("Celebra a lo Grande")
-  heroSubtitle    String   @default("Todo para tu fiesta en un solo lugar")
-  heroButtonText  String   @default("Ver Productos")
-  heroButtonLink  String   @default("#catalogo") // 👈 Default: Ancla al catálogo
+  heroTitle       String   @default("Juguetes y Alegría")
+  heroSubtitle    String   @default("Encuentra el regalo perfecto en Festamas")
+  heroButtonText  String   @default("Ver Juguetes")
+  heroButtonLink  String   @default("#catalogo")
   heroBtnColor    String   @default("#fb3099")
   
   updatedAt      DateTime @updatedAt
@@ -127,9 +137,9 @@ model StoreConfig {
 
 model Coupon {
   id        String   @id @default(uuid())
-  code      String   @unique // Ej: FIESTA20
-  discount  Decimal  @db.Decimal(10, 2) // Monto o Porcentaje
-  type      CouponType @default(FIXED) // Fijo o Porcentaje
+  code      String   @unique
+  discount  Decimal  @db.Decimal(10, 2)
+  type      CouponType @default(FIXED)
   isActive  Boolean  @default(true)
   
   createdAt DateTime @default(now())
@@ -140,7 +150,7 @@ enum CouponType {
   PERCENTAGE
 }
 
-// BANNERS SUPER VITAMINADOS
+// BANNERS
 model Banner {
   id        String   @id @default(uuid())
   title     String
@@ -152,8 +162,8 @@ model Banner {
   btnTextColor String @default("#FFFFFF")
   textColor String   @default("#FFFFFF") 
   
-  position  String   @default("TOP") // 'TOP' | 'BOTTOM'
-  size      String   @default("GRID") // 'GRID' | 'FULL'
+  position  String   @default("TOP")
+  size      String   @default("GRID")
   
   order     Int      @default(0)
   isActive  Boolean  @default(true)

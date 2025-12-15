@@ -1,66 +1,72 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Menu, Search, ShoppingBag } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Search, ShoppingCart, ChevronDown, Menu, MapPin, Heart, User, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useCartStore } from '@/store/cart';
+import { useUIStore, Division } from '@/store/ui';
 import { CartSidebar } from '@/components/features/CartSidebar';
 
+interface Category {
+  id: string; 
+  name: string; 
+  slug: string;
+  division: Division;
+}
+
 interface NavbarClientProps {
-  categories: { id: string; name: string; slug: string }[];
+  categories: Category[];
 }
 
-interface SearchInputProps {
-  className?: string;
-  onSearch?: () => void;
-}
-
-function SearchInput({ className, onSearch }: SearchInputProps) {
+// --- BUSCADOR ---
+function SearchInput({ onSearch, className, btnBgColor, iconColor, isTransparent }: { onSearch?: () => void, className?: string, btnBgColor?: string, iconColor?: string, isTransparent?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
 
   useEffect(() => {
     const value = searchParams.get('q') || '';
-    if (value !== query) {
-        setQuery(value);
-    }
+    if (value !== query) setQuery(value);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); 
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (query.trim()) {
       router.push(`/search?q=${encodeURIComponent(query.trim())}`);
     } else {
       router.push('/');
     }
-
-    if (onSearch) {
-      onSearch();
-    }
+    if (onSearch) onSearch();
   };
 
   return (
-    <form onSubmit={handleSearch} className={cn("relative", className)}>
+    <form onSubmit={handleSearch} className={cn("relative w-full group", className)}>
       <Input
         type="text"
         placeholder="Buscar productos..."
-        className="h-10 w-full pl-3 pr-10 bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary"
+        className={cn(
+            "h-11 w-full pl-6 pr-14 border-0 rounded-full transition-all duration-300 text-[15px] font-normal shadow-sm group-hover:shadow-md focus-visible:ring-2",
+            // FiestasYa: Input gris suave para contraste. Festamas: Blanco puro.
+            isTransparent 
+                ? "bg-slate-100 focus-visible:ring-slate-200 text-slate-600 placeholder:text-slate-400" 
+                : "!bg-white focus-visible:ring-white/50 text-slate-900 placeholder:text-slate-400"
+        )}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
       <button 
         type="submit" 
-        className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-primary transition-colors"
+        className="absolute right-1 top-1 h-9 w-9 flex items-center justify-center rounded-full transition-transform duration-200 hover:scale-105 shadow-sm"
+        style={{ backgroundColor: btnBgColor, color: iconColor }} 
       >
-        <Search className="h-4 w-4" />
+        <Search className="h-5 w-5" />
         <span className="sr-only">Buscar</span>
       </button>
     </form>
@@ -68,129 +74,330 @@ function SearchInput({ className, onSearch }: SearchInputProps) {
 }
 
 export function NavbarClient({ categories }: NavbarClientProps) {
-  const pathname = usePathname();
-  const totalItems = useCartStore((state) => state.getTotalItems());
-  const [loaded, setLoaded] = useState(false);
-  const [isSheetOpen, setIsSheetOpen] = useState(false); 
+  const { getTotalItems } = useCartStore();
+  const { currentDivision, setDivision } = useUIStore();
   
-  useEffect(() => {
-    setLoaded(true);
-  }, []);
+  // FIX: Estado inicializado correctamente
+  const [loaded, setLoaded] = useState(false);
+  
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const routes = [
-    { href: '/', label: 'Inicio' },
-    ...categories.map(cat => ({
-      href: `/category/${cat.slug}`,
-      label: cat.name
-    }))
-  ];
+  const menuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  // FIX ERROR REACT: Solo actualizamos si no está cargado
+  useEffect(() => {
+    if (!loaded) {
+        setLoaded(true);
+    }
+  }, [loaded]);
+
+  // FIX ERROR REACT: Verificamos antes de actualizar estado al navegar
+  useEffect(() => {
+    if (isMenuOpen) setIsMenuOpen(false);
+    if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  // Cerrar al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuRef]);
+
+  const filteredCategories = categories.filter(cat => cat.division === currentDivision);
+  const isToys = currentDivision === 'JUGUETERIA';
+  const brandName = isToys ? 'Festamas' : 'FiestasYa';
+  
+  // --- 🎨 DEFINICIÓN DE COLORES ---
+  const festamasPink = '#fc4b65';
+  const fiestasBrandPink = '#ec4899'; // Rosa FiestasYa
+
+  // 1. Fondo Navbar
+  // FiestasYa: Glassmorphism (Blanco translúcido + Blur)
+  const navbarStyleClass = isToys 
+    ? "bg-[#fc4b65]" 
+    : "bg-white/95 backdrop-blur-md border-b border-slate-200";
+
+  // 2. Textos Generales
+  const navTextClass = isToys ? "text-white" : "text-slate-600";
+  
+  // 3. Botones Hover (AJUSTADO PARA FIESTASYA)
+  // Festamas: Borde blanco, Hover Blanco, Texto Rosa.
+  // FiestasYa: Borde transparente, Hover Rosa Pálido (bg-pink-50), Texto Rosa Fuerte.
+  const buttonHoverClass = isToys 
+    ? "border-white/40 hover:bg-white hover:text-[#fc4b65] hover:border-white text-white" 
+    : `border-transparent text-slate-600 hover:bg-pink-50 hover:text-[${fiestasBrandPink}] hover:border-pink-100`;
+
+  // 4. Menu Activo (Dropdown abierto)
+  const activeMenuClass = isToys 
+    ? "bg-white text-[#fc4b65] border-white shadow-md"
+    : `bg-pink-50 text-[${fiestasBrandPink}] border-pink-100 shadow-md`;
+
+  // 5. Badge Carrito (CORREGIDO FINAL)
+  // Festamas: Fondo Blanco, Texto Rosa.
+  // FiestasYa: Fondo Rosa Fuerte, Texto Blanco.
+  const badgeClass = isToys 
+    ? "bg-white text-[#fc4b65]" 
+    : "bg-[#ec4899] text-white";
+
+  // 6. Buscador
+  const searchBtnColor = isToys ? '#be123c' : 'transparent';
+  const searchIconColor = isToys ? '#ffffff' : '#64748b'; // Lupa Gris (Slate-500)
+
+  // 7. Icono Carrito Base
+  // En FiestasYa siempre es Rosa para destacar.
+  const cartIconClass = isToys ? "text-white" : "text-[#ec4899]";
+
+  // 8. Menú Desplegable Links
+  const dropdownBrandColor = isToys ? "text-[#fc4b65]" : `text-[${fiestasBrandPink}]`;
+  const dropdownHoverColor = isToys ? "hover:text-[#fc4b65]" : `hover:text-[${fiestasBrandPink}]`;
+
+  const iconFestamas = '/images/IconoFestamas.png';
+  const iconFiestasYa = '/images/IconoFiestasYa.png';
+  const activeIconPath = isToys ? iconFestamas : iconFiestasYa;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        
-        {/* 1. MENÚ MÓVIL */}
-        <div className="md:hidden">
-            {/* SOLUCIÓN DE HIDRATACIÓN: Solo renderizamos el Sheet interactivo si el cliente cargó */}
-            {loaded ? (
-              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="mr-2 hover:text-primary">
-                    <Menu className="h-6 w-6" />
-                    <span className="sr-only">Abrir menú</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[300px] sm:w-[400px] p-0">
-                  <SheetTitle className="sr-only">Menú</SheetTitle>
-                  
-                  <div className="flex flex-col h-full py-6">
-                    <div className="px-6 mb-6">
-                       <span className="text-xl font-bold tracking-tighter text-primary">
-                        FiestasYa
-                      </span>
+    <>
+      {/* 1. SUPER HEADER */}
+      <div className="w-full h-9 bg-white border-b border-slate-100 flex items-center z-[60] relative text-[11px]">
+        <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 flex items-center justify-between h-full">
+            <div className="flex h-full mr-auto">
+                 <button 
+                    onClick={() => setDivision('JUGUETERIA')}
+                    className={cn(
+                        "relative h-full px-4 flex items-center justify-center gap-2 transition-all duration-300 border-b-[3px]",
+                        isToys ? "bg-slate-50" : "bg-transparent opacity-60 hover:opacity-100 grayscale hover:grayscale-0"
+                    )}
+                    style={{ borderColor: isToys ? festamasPink : 'transparent' }} 
+                >
+                    <div className="relative h-5 w-16">
+                        <Image src={iconFestamas} alt="Festamas" fill className="object-contain" />
                     </div>
-
-                    {/* BUSCADOR MÓVIL */}
-                    <div className="px-6 mb-6">
-                        <Suspense fallback={<div className="h-10 bg-slate-100 rounded-md" />}>
-                            <SearchInput onSearch={() => setIsSheetOpen(false)} />
-                        </Suspense>
+                </button>
+                <button 
+                    onClick={() => setDivision('FIESTAS')}
+                    className={cn(
+                        "relative h-full px-4 flex items-center justify-center gap-2 transition-all duration-300 border-b-[3px]",
+                        !isToys ? "bg-slate-50" : "bg-transparent opacity-60 hover:opacity-100 grayscale hover:grayscale-0"
+                    )}
+                    style={{ borderColor: !isToys ? '#eab308' : 'transparent' }} 
+                >
+                    <div className="relative h-5 w-16">
+                        <Image src={iconFiestasYa} alt="FiestasYa" fill className="object-contain" />
                     </div>
-
-                    <nav className="flex flex-col gap-2 px-4">
-                      {routes.map((route) => (
-                        <Link
-                          key={route.href}
-                          href={route.href}
-                          onClick={() => setIsSheetOpen(false)}
-                          className={cn(
-                            "flex items-center rounded-md px-2 py-3 text-lg font-medium transition-colors",
-                            pathname === route.href 
-                              ? "text-primary bg-primary/10 font-bold" 
-                              : "text-slate-600 hover:bg-slate-50 hover:text-primary"
-                          )}
-                        >
-                          {route.label}
-                        </Link>
-                      ))}
-                    </nav>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            ) : (
-              // Fallback visual mientras carga (evita layout shift pero no es interactivo)
-              <Button variant="ghost" size="icon" className="mr-2">
-                <Menu className="h-6 w-6" />
-              </Button>
-            )}
+                </button>
+            </div>
+            <div className="hidden md:flex items-center gap-4 text-slate-500 font-medium">
+                <span>Venta Telefónica: (01) 615-6002</span>
+                <span className="h-3 w-px bg-slate-300"></span>
+                <Link href="/ayuda" className="hover:text-slate-800 transition-colors">Centro de Ayuda</Link>
+            </div>
         </div>
+      </div>
 
-        {/* 2. LOGO DESKTOP */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <span className="text-2xl font-extrabold tracking-tighter text-primary group-hover:opacity-90 transition-opacity">
-            FiestasYa
-          </span>
-        </Link>
-
-        {/* 3. NAVEGACIÓN DESKTOP */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          {routes.map((route) => (
-            <Link
-              key={route.href}
-              href={route.href}
-              className={cn(
-                "transition-colors hover:text-primary",
-                pathname === route.href ? "text-primary font-bold" : "text-slate-600"
-              )}
-            >
-              {route.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* 4. ACCIONES */}
-        <div className="flex items-center gap-4">
+      {/* 2. NAVBAR PRINCIPAL */}
+      {/* Sticky: top-0 y z-50 asegurados */}
+      <header 
+        className={cn(
+            "w-full py-4 shadow-sm sticky top-0 z-50 transition-all duration-300", 
+            navbarStyleClass
+        )}
+      >
+        <div className="w-full max-w-[1600px] mx-auto flex items-center gap-6 px-4 lg:px-8 relative">
           
-          {/* BUSCADOR DESKTOP */}
-          <div className="hidden sm:block w-full max-w-[200px] lg:max-w-[300px]">
+          {/* LOGO */}
+          <Link href="/" className="shrink-0 group hidden md:block mr-2">
+             <div className="relative h-12 w-48 transition-transform duration-300 group-hover:scale-[1.02]">
+                <Image 
+                    src={activeIconPath} 
+                    alt={brandName} 
+                    fill 
+                    className="object-contain" 
+                    priority 
+                />
+             </div>
+          </Link>
+
+          {/* BOTÓN CATEGORÍAS */}
+          <div className="relative hidden md:block" ref={menuRef}>
+            <Button 
+                variant="ghost" 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className={cn(
+                    "flex flex-row items-center gap-2 h-11 px-6 font-bold tracking-wide border rounded-lg transition-all duration-200",
+                    isMenuOpen ? activeMenuClass : buttonHoverClass
+                )}
+            >
+                <span className="text-base">Categorías</span>
+                <ChevronDown className={cn("h-5 w-5 stroke-[3] transition-transform duration-300", isMenuOpen && "rotate-180")} />
+            </Button>
+
+            {/* MENÚ DESPLEGABLE */}
+            {isMenuOpen && (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 origin-top-left z-60">
+                    <nav className="flex flex-col py-1">
+                        <Link 
+                            href="/" 
+                            onClick={() => setIsMenuOpen(false)}
+                            className={cn(
+                                "flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors font-bold text-sm",
+                                dropdownBrandColor
+                            )}
+                        >
+                            <Home className="w-4 h-4" /> Inicio
+                        </Link>
+                        {filteredCategories.map((cat) => (
+                            <Link 
+                                key={cat.id} 
+                                href={`/category/${cat.slug}`} 
+                                onClick={() => setIsMenuOpen(false)}
+                                className={cn(
+                                    "block px-4 py-3 hover:bg-slate-50 transition-colors text-slate-600 font-medium text-sm border-t border-slate-50 capitalize",
+                                    dropdownHoverColor
+                                )}
+                            >
+                                {cat.name}
+                            </Link>
+                        ))}
+                    </nav>
+                </div>
+            )}
+          </div>
+
+          {/* MENÚ MÓVIL */}
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+                <Button variant="ghost" className={cn("md:hidden flex items-center p-2", navTextClass)}>
+                    <Menu className="h-8 w-8" />
+                </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px] p-0 z-[100]"> 
+                <div className="flex flex-col h-full bg-white">
+                    <div className="px-6 py-6 border-b bg-slate-50">
+                        <div className="relative h-14 w-36">
+                            <Image src={activeIconPath} alt={brandName} fill className="object-contain object-left" />
+                        </div>
+                    </div>
+                    <nav className="flex-1 p-4 overflow-y-auto">
+                        <Link 
+                            href="/" 
+                            onClick={() => setIsMobileMenuOpen(false)} 
+                            className={cn("block p-3 border-b border-slate-50 text-lg font-bold", dropdownBrandColor)}
+                        >
+                            Inicio
+                        </Link>
+                        {filteredCategories.map((cat) => (
+                            <Link key={cat.id} href={`/category/${cat.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="block p-3 border-b border-slate-50 text-slate-700 text-lg capitalize hover:text-primary">{cat.name}</Link>
+                        ))}
+                    </nav>
+                </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* BUSCADOR */}
+          <div className="flex-1 max-w-4xl hidden md:block mx-2">
              <Suspense>
-                <SearchInput />
+                <SearchInput btnBgColor={searchBtnColor} iconColor={searchIconColor} isTransparent={!isToys} />
              </Suspense>
           </div>
 
-          <CartSidebar>
-            <Button variant="ghost" size="icon" className="relative text-slate-800 hover:text-primary hover:bg-primary/10">
-              <ShoppingBag className="h-6 w-6" />
-              {loaded && totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white border-2 border-white animate-in zoom-in">
-                  {totalItems}
-                </span>
-              )}
-              <span className="sr-only">Ver carrito</span>
-            </Button>
-          </CartSidebar>
+          {/* ICONOS DERECHA */}
+          <div className="flex items-center gap-2 md:gap-3 ml-auto md:ml-0">
+             
+             {/* LOGIN */}
+             <Button 
+                variant="ghost" 
+                className={cn(
+                    "hidden lg:flex flex-row items-center gap-2 h-11 px-3 text-left border rounded-lg transition-all duration-200",
+                    buttonHoverClass
+                )}
+             >
+                <User className="h-6 w-6" />
+                <div className="flex flex-col leading-none">
+                    <span className="text-[10px] opacity-80 font-normal">Hola,</span>
+                    <span className="text-sm font-bold">Inicia Sesión</span>
+                </div>
+                <ChevronDown className="h-3 w-3 opacity-70 ml-1" />
+             </Button>
+
+             <div className={cn("hidden lg:block h-8 w-px mx-1", isToys ? "bg-white/30" : "bg-slate-300")}></div>
+
+             {/* FAVORITOS */}
+             <Button 
+                variant="ghost" 
+                size="icon"
+                className={cn("hidden md:flex h-11 w-11 border rounded-lg transition-all duration-200", buttonHoverClass)}
+             >
+                 <Heart className="h-6 w-6" />
+             </Button>
+
+             {/* CARRITO */}
+             <CartSidebar>
+                <Button 
+                    variant="ghost" 
+                    className={cn(
+                        "relative flex items-center gap-2 h-11 px-4 group border rounded-lg transition-all duration-200",
+                        buttonHoverClass,
+                        // En FiestasYa forzamos icono rosa si no hay hover
+                        !isToys && "text-[#ec4899] group-hover:text-[#ec4899]"
+                    )}
+                >
+                <div className="relative">
+                    <ShoppingCart className="h-6 w-6" />
+                    {/* Badge Sólido: Círculo Rosa, Texto Blanco */}
+                    {loaded && getTotalItems() > 0 && (
+                        <span className={cn(
+                            "absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold shadow-sm ring-1 ring-white animate-in zoom-in",
+                            badgeClass
+                        )}>
+                        {getTotalItems()}
+                        </span>
+                    )}
+                </div>
+                <div className="hidden xl:flex flex-col items-start leading-none ml-1">
+                     <span className="text-sm font-bold">Carrito</span>
+                </div>
+                </Button>
+            </CartSidebar>
+          </div>
+        </div>
+
+        <div className="md:hidden px-4 pb-3 pt-1 relative z-50">
+             <Suspense>
+                <SearchInput btnBgColor={searchBtnColor} iconColor={searchIconColor} isTransparent={!isToys} className="shadow-none" />
+             </Suspense>
+        </div>
+      </header>
+
+      {/* BACKDROP */}
+      {isMenuOpen && (
+        <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-[1px] z-40 transition-opacity duration-300"
+            onClick={() => setIsMenuOpen(false)}
+        />
+      )}
+
+      {/* 3. SUB-HEADER */}
+      <div className="hidden md:block w-full bg-white border-b border-slate-200 py-2 relative z-30">
+        <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 flex items-center justify-between text-sm">
+            <div className="flex items-center gap-6">
+                <button className="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors group">
+                    <MapPin className="h-5 w-5 text-slate-400 group-hover:text-primary" />
+                    <span className="font-medium">Ingresa tu ubicación</span>
+                </button>
+                <Link href="/tiendas" className="text-slate-500 hover:text-slate-800 transition-colors">Nuestras Tiendas</Link>
+            </div>
         </div>
       </div>
-    </header>
+    </>
   );
 }

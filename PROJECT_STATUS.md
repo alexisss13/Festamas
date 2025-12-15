@@ -27,6 +27,12 @@
   - Componentes visuales (`ProductCardSkeleton`, `ProductDetailSkeleton`) que imitan el layout real.
   - Elimina el "layout shift" y mejora la percepción de velocidad.
 
+  ### 🧠 Backend Logic (Monolito Modular)
+- **Actions Actualizados:**
+  - `getProducts`: Ahora acepta parámetro `division` (Default: JUGUETERIA).
+  - `getCategories`: Filtrado opcional por división.
+  - `createOrUpdateProduct/Category`: Soporte completo para guardar el campo `division`.
+
 ## 2. Estructura Clave (Resumen)
 src/
 ├── actions/            # Server Actions cacheados

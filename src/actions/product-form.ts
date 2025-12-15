@@ -13,7 +13,11 @@ export async function createOrUpdateProduct(formData: z.infer<typeof productSche
       return { success: false, message: 'Datos inválidos', errors: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { title, slug, description, price, stock, categoryId, images, isAvailable, color, groupTag } = validatedFields.data;
+    // 👇 Desestructuramos también 'division'
+    const { 
+      title, slug, description, price, stock, categoryId, images, 
+      isAvailable, color, groupTag, division 
+    } = validatedFields.data;
 
     const dataToSave = {
         title,
@@ -24,6 +28,7 @@ export async function createOrUpdateProduct(formData: z.infer<typeof productSche
         images,
         isAvailable,
         categoryId,
+        division, // 👈 Guardamos la división
         color: color || null,
         groupTag: groupTag || null
     };
@@ -46,7 +51,7 @@ export async function createOrUpdateProduct(formData: z.infer<typeof productSche
       });
     }
 
-    // ⚠️ CORRECCIÓN: Agregamos 'default' como segundo argumento
+    // Invalidamos el caché global de productos
     revalidateTag('products', 'default'); 
     
     revalidatePath('/admin/products');

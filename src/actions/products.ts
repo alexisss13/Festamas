@@ -1,7 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma, Division } from '@prisma/client'; // 👈 Importamos Division
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { unstable_cache } from 'next/cache';
 
@@ -30,8 +30,11 @@ const getOrderBy = (sort: string): Prisma.ProductOrderByWithRelationInput => {
 
 // --- VERSIÓN CACHEADA ---
 const getCachedProducts = unstable_cache(
-  async (includeInactive: boolean, query: string, sort: string) => {
+  async (includeInactive: boolean, query: string, sort: string, division: Division) => {
     const whereClause: Prisma.ProductWhereInput = {};
+
+    // 1. Filtro por División (OBLIGATORIO)
+    whereClause.division = division;
 
     if (!includeInactive) {
       whereClause.isAvailable = true;
@@ -75,10 +78,14 @@ const getCachedProducts = unstable_cache(
 export async function getProducts({ 
   includeInactive = false, 
   query = '', 
-  sort = 'newest'
+  sort = 'newest',
+  division = 'JUGUETERIA' as Division // 👈 Default: Juguetería
 } = {}) {
   try {
     if (includeInactive) {
+       // Versión Admin (Sin caché, pero con filtro de división opcional si quisieras)
+       // Por ahora el admin ve TODO, pero podríamos filtrarlo también.
+       // Dejamos que el admin vea todo el inventario mezclado por ahora en la lista general.
        const products = await prisma.product.findMany({
          orderBy: getOrderBy(sort),
          include: { category: true }
@@ -92,7 +99,8 @@ export async function getProducts({
        return { success: true, data };
     }
 
-    const cachedData = await getCachedProducts(includeInactive, query, sort);
+    // Versión Tienda (Filtrada por división)
+    const cachedData = await getCachedProducts(includeInactive, query, sort, division);
     
     return {
       success: true,
@@ -132,7 +140,8 @@ export const getProduct = unstable_cache(
           slug: product.category.slug,
         },
         color: product.color,
-        groupTag: product.groupTag
+        groupTag: product.groupTag,
+        division: product.division // 👈 Retornamos la división para saber dónde estamos
       };
     } catch (error) {
       console.log(error);
@@ -152,6 +161,8 @@ export const getProductsByCategory = unstable_cache(
 
       if (!category) return null;
 
+      // Al filtrar por categoría, implícitamente filtramos por división
+      // porque la categoría pertenece a una división.
       const products = await prisma.product.findMany({
         where: { categoryId: category.id, isAvailable: true },
         include: { category: true },
@@ -175,6 +186,7 @@ export const getProductsByCategory = unstable_cache(
       return {
         categoryName: category.name,
         products: cleanProducts,
+        division: category.division // 👈 Útil para el frontend
       };
     } catch (error) {
       console.log(error);
@@ -195,7 +207,6 @@ export async function deleteProduct(id: string) {
       },
     });
     
-    // ⚠️ CORRECCIÓN: Agregamos 'default' como segundo argumento
     revalidateTag('products', 'default'); 
     
     revalidatePath('/admin/products');

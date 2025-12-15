@@ -2,13 +2,17 @@ import prisma from '@/lib/prisma';
 import { NavbarClient } from './NavbarClient';
 
 export async function Navbar() {
-  // 1. Obtenemos las categorías de la BD
-  // (Solo necesitamos id, name y slug para el menú)
+  // 1. Obtenemos todas las categorías, pero traemos el campo 'division'
+  // para poder filtrarlas en el cliente.
   const categories = await prisma.category.findMany({
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, slug: true }
+    select: { 
+      id: true, 
+      name: true, 
+      slug: true,
+      division: true // 👈 Vital para el filtrado
+    }
   });
 
-  // 2. Renderizamos la parte cliente pasándole los datos
   return <NavbarClient categories={categories} />;
 }
