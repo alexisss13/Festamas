@@ -30,24 +30,24 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   
-  // 1. LÓGICA DE IDENTIDAD (TIENDAS)
-  // Festamas (Juguetería) = Rojo/Rosa Intenso
-  // FiestasYa (Fiestas) = Fucsia/Morado Vibrante
-  // Nota: Si 'division' viene nulo, asumimos Juguetería por seguridad
+  // 1. LÓGICA DE IDENTIDAD
+  // Si no hay división, asumimos Juguetería (Festamas)
   const isFestamas = product.division === 'JUGUETERIA' || !product.division;
   
+  // Definimos la variante de marca para usar en Badge y Textos
+  // @ts-ignore (Ignoramos error si TS no ha recargado badgeVariants aún)
+  const brandVariant = isFestamas ? 'festamas' : 'fiestasya';
+
+  // Configuración de colores SOLO para bordes y fondos decorativos que NO son componentes UI
   const theme = isFestamas 
     ? {
-        badge: 'bg-[#fc4b65]', 
         text: 'text-[#fc4b65]',
         border: 'group-hover:border-[#fc4b65]/50',
         wholesaleBg: 'bg-red-50',
         wholesaleBorder: 'border-red-100',
         wholesaleText: 'text-red-700',
-        // Ya no necesitamos buttonHover aquí, el botón sabe cuidarse solo
       }
     : {
-        badge: 'bg-[#fb3099]', // Ajustado al color exacto de FiestasYa
         text: 'text-[#fb3099]',
         border: 'group-hover:border-[#fb3099]/50',
         wholesaleBg: 'bg-fuchsia-50',
@@ -68,7 +68,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Card className={cn(
         "group relative flex flex-col h-full overflow-hidden transition-all duration-300 bg-white border border-slate-200",
-        "hover:shadow-lg hover:-translate-y-1", // Efecto de elevación sutil
+        "hover:shadow-lg hover:-translate-y-1",
         theme.border
     )}>
       
@@ -78,11 +78,16 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Badges Flotantes */}
         <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
             {isOutOfStock ? (
-                <Badge variant="secondary" className="bg-slate-900 text-white text-[10px] font-bold px-2 h-5 shadow-sm">
+                // Badge de Sistema (Agotado) -> Usa variant="secondary" (Gris oscuro/negro según tu tema)
+                <Badge variant="secondary" className="bg-slate-900 text-white font-bold px-2 h-5 shadow-sm">
                     AGOTADO
                 </Badge>
             ) : hasDiscount && (
-                <Badge className={cn("text-white font-bold text-[10px] px-2 h-5 border-0 shadow-sm flex items-center gap-1", theme.badge)}>
+                // 💎 BADGE DE MARCA: Usamos la variante nativa
+                <Badge 
+                    variant={brandVariant} 
+                    className="font-bold px-2 h-5 border-0 shadow-sm flex items-center gap-1"
+                >
                     <Tag className="w-3 h-3" /> -{discount}%
                 </Badge>
             )}
@@ -123,7 +128,7 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
         </div>
 
-        {/* Título (Truncado a 2 líneas) */}
+        {/* Título */}
         <Link href={`/product/${product.slug}`} title={product.title}>
             <h3 className="text-xs sm:text-sm font-medium text-slate-700 leading-tight line-clamp-2 h-[2.5em] group-hover:text-black transition-colors">
                 {product.title}
@@ -133,12 +138,9 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Bloque de Precios */}
         <div className="mt-auto pt-1">
             <div className="flex items-end gap-2 flex-wrap">
-                {/* Precio Final (Héroe) */}
                 <span className="text-lg font-bold text-slate-900 leading-none">
                     S/ {finalPrice.toFixed(2)}
                 </span>
-
-                {/* Precio Anterior (Tachado) */}
                 {hasDiscount && (
                     <span className="text-xs text-slate-400 line-through mb-[2px]">
                         S/ {price.toFixed(2)}
@@ -146,7 +148,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 )}
             </div>
 
-            {/* Bloque Mayorista (Estilo Compacto) */}
+            {/* Bloque Mayorista */}
             {hasWholesale && !isOutOfStock && (
                  <div className={cn("mt-2 flex items-center justify-between rounded px-2 py-1.5 border", theme.wholesaleBg, theme.wholesaleBorder)}>
                     <div className="flex flex-col leading-none">
@@ -170,8 +172,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <AddToCartButton 
             product={product as any} 
             disabled={isOutOfStock}
-            // ⚠️ FIX: Quitamos 'bg-slate-900' para que se use el color de la variante (Rosa/Fucsia)
-            // Mantenemos solo estilos de layout y tipografía
+            // El botón ya sabe qué color usar, solo definimos layout
             className="w-full h-9 text-xs font-bold shadow-none transition-transform active:scale-95"
         />
       </CardFooter>
