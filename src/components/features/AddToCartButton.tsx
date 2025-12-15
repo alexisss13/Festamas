@@ -1,62 +1,56 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart';
-import { toast } from 'sonner';
+import { Product } from '@prisma/client';
+import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
-interface Product {
-  id: string;
-  slug: string;
-  title: string;
-  price: number;
-  images: string[];
-  stock: number;
+interface Props {
+  product: Product;
+  disabled?: boolean;
+  className?: string; // 👈 Agregamos esta prop
 }
 
-export function AddToCartButton({ product }: { product: Product }) {
-  const router = useRouter();
-  const addItem = useCartStore((state) => state.addItem);
-  const [quantity, setQuantity] = useState(1);
-
-  const isOutOfStock = product.stock <= 0;
+export function AddToCartButton({ product, disabled, className }: Props) {
+  const addProductToCart = useCartStore(state => state.addProductToCart);
+  const [added, setAdded] = useState(false);
 
   const handleAddToCart = () => {
-    if (isOutOfStock) return;
-
-    addItem({
+    // Simulamos un objeto CartProduct simple
+    const cartProduct = {
       id: product.id,
       slug: product.slug,
       title: product.title,
       price: Number(product.price),
-      image: product.images[0] || '',
-      quantity: quantity,
-    });
+      quantity: 1,
+      image: product.images[0],
+      stock: product.stock, // Asegúrate de que tu store acepte esto
+      // Si tu store requiere más campos, agrégalos aquí
+    };
 
+    addProductToCart(cartProduct as any); // Casteo 'any' temporal para evitar líos de tipos con el store
+    
+    setAdded(true);
     toast.success('Producto agregado al carrito');
+    setTimeout(() => setAdded(false), 2000);
   };
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row w-full sm:w-auto">
-      <Button 
-        size="lg" 
-        className="text-lg w-full sm:w-auto bg-slate-900 hover:bg-slate-800"
-        onClick={handleAddToCart}
-        disabled={isOutOfStock}
-      >
-        <ShoppingCart className="mr-2 h-5 w-5" />
-        {isOutOfStock ? 'Agotado' : 'Agregar al Carrito'}
-      </Button>
-      
-      <Button 
-        variant="outline" 
-        size="lg"
-        onClick={() => router.back()} // Vuelve a donde estaba
-      >
-        Seguir viendo
-      </Button>
-    </div>
+    <Button 
+      onClick={handleAddToCart}
+      disabled={disabled}
+      className={cn("w-full font-bold transition-all duration-300", className)} // 👈 Usamos cn para mezclar clases
+    >
+      {added ? (
+        "¡Agregado!"
+      ) : (
+        <>
+          <ShoppingCart className="mr-2 h-4 w-4" /> Agregar
+        </>
+      )}
+    </Button>
   );
 }
