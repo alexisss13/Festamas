@@ -26,14 +26,21 @@ model Product {
   price       Decimal  @default(0) @db.Decimal(10, 2)
   stock       Int      @default(0)
   images      String[]
-
+  
   isAvailable Boolean  @default(true)
   
-  // Variantes
+  // --- NUEVOS CAMPOS ---
+  wholesalePrice     Decimal? @db.Decimal(10, 2) // Precio por mayor (Opcional)
+  wholesaleMinCount  Int?     // Cantidad mínima para aplicar precio mayorista
+  
+  discountPercentage Int      @default(0) // Descuento porcentual (0 = sin descuento)
+  
+  tags               String[] // Etiquetas: ["niño", "verano", "oferta"]
+  
+  // Variantes (existentes)
   color       String?
   groupTag    String?
 
-  // 👇 CAMBIO CLAVE: Por defecto ahora es JUGUETERIA (Festamas)
   division    Division @default(JUGUETERIA)
   
   category    Category @relation(fields: [categoryId], references: [id])

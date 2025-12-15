@@ -14,10 +14,18 @@ export const productSchema = z.object({
   categoryId: z.string().min(1, { message: 'Debes seleccionar una categoría' }),
   images: z.array(z.string()).min(1, { message: 'Debes subir al menos una imagen' }),
   isAvailable: z.boolean().default(true),
+  
+  // Nuevos campos
+  wholesalePrice: z.coerce.number().min(0).optional().nullable(),
+  wholesaleMinCount: z.coerce.number().int().min(1).optional().nullable(),
+  discountPercentage: z.coerce.number().int().min(0).max(100).default(0),
+  
+  // Recibimos tags como string separado por comas desde el formulario ("niño, verano")
+  tags: z.string().optional(),
+
   color: z.string().optional(), 
   groupTag: z.string().optional(),
-  
-  division: divisionEnum, // Usa la validación de Prisma
+  division: divisionEnum,
 });
 
 // --- ESQUEMA DE CATEGORÍAS ---

@@ -1,324 +1,222 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { z } from 'zod';
-import { productSchema } from '@/lib/zod';
 import { createOrUpdateProduct } from '@/actions/product-form';
-import ImageUpload from '@/components/ui/image-upload';
-import { toast } from 'sonner';
+import { Product, Category, Division } from '@prisma/client';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Palette, Tags } from 'lucide-react';
-type ProductFormValues = z.infer<typeof productSchema>;
+import { Loader2, Save, ArrowLeft, DollarSign, Tag, Percent } from 'lucide-react';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import ImageUpload from '@/components/ui/image-upload';
 
-interface ProductFormProps {
-  initialData?: (ProductFormValues & { id: string }) | null;
-  categories: { id: string; name: string }[];
+interface Props {
+  product?: Product | null;
+  categories: Category[];
 }
 
-export function ProductForm({ initialData, categories }: ProductFormProps) {
+export function ProductForm({ product, categories }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState<string[]>(product?.images || []);
+  const [isAvailable, setIsAvailable] = useState(product?.isAvailable ?? true);
 
-  const title = initialData ? 'Editar Producto' : 'Crear Producto';
-  const action = initialData ? 'Guardar cambios' : 'Crear';
-
-  const defaultValues: ProductFormValues = initialData ? {
-    title: initialData.title,
-    slug: initialData.slug,
-    description: initialData.description,
-    price: parseFloat(String(initialData.price)),
-    stock: parseInt(String(initialData.stock)),
-    categoryId: initialData.categoryId,
-    images: initialData.images,
-    isAvailable: initialData.isAvailable,
-    color: initialData.color || '',
-    groupTag: initialData.groupTag || '',
-  } : {
-    title: '',
-    slug: '',
-    description: '',
-    price: 0,
-    stock: 0,
-    categoryId: '',
-    images: [],
-    isAvailable: true,
-    color: '',
-    groupTag: '',
-  };
-
-  const form = useForm<ProductFormValues>({
-    // 👇 AQUÍ ESTÁ LA SOLUCIÓN: Silenciamos el linter para esta línea específica
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(productSchema) as any,
-    defaultValues,
-    mode: "onChange",
-  });
-
-  // Quitamos el tipado explícito 'SubmitHandler' para dejar que TS infiera el tipo correcto del form
-  const onSubmit = async (data: ProductFormValues) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setLoading(true);
-    const result = await createOrUpdateProduct(data, initialData?.id || null);
+
+    const formData = new FormData(e.currentTarget);
     
+    // Agregar imágenes manualmente al FormData
+    images.forEach(img => formData.append('images', img));
+    // Agregar isAvailable
+    if (isAvailable) formData.set('isAvailable', 'on');
+
+    const result = await createOrUpdateProduct(formData, product?.id);
+
     if (result.success) {
-      toast.success(initialData ? 'Producto actualizado' : 'Producto creado');
+      toast.success(product ? 'Producto actualizado' : 'Producto creado');
       router.push('/admin/products');
       router.refresh();
     } else {
-      toast.error(result.message || 'Error inesperado');
+      toast.error(result.error || 'Error al guardar');
     }
     setLoading(false);
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
+    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8 pb-10">
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* COLUMNA IZQUIERDA: Info Principal */}
+        <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">Información General</h3>
+                
+                <div className="space-y-2">
+                    <Label htmlFor="title">Título del Producto</Label>
+                    <Input id="title" name="title" defaultValue={product?.title} required placeholder="Ej. Muñeca Barbie Playa" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="slug">Slug (URL)</Label>
+                        <Input id="slug" name="slug" defaultValue={product?.slug} required placeholder="muneca-barbie-playa" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="categoryId">Categoría</Label>
+                        <select 
+                            id="categoryId" 
+                            name="categoryId" 
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            defaultValue={product?.categoryId}
+                            required
+                        >
+                            <option value="">Seleccionar...</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name} ({cat.division})</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="description">Descripción</Label>
+                    <Textarea id="description" name="description" defaultValue={product?.description} required rows={5} />
+                </div>
+
+                {/* TAGS (NUEVO) */}
+                <div className="space-y-2">
+                    <Label htmlFor="tags" className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-slate-500" /> Etiquetas (Tags)
+                    </Label>
+                    <Input 
+                        id="tags" 
+                        name="tags" 
+                        defaultValue={product?.tags.join(', ')} 
+                        placeholder="Ej. niño, verano, superhéroe (separados por coma)" 
+                    />
+                    <p className="text-xs text-slate-500">Útil para agrupar productos en secciones especiales.</p>
+                </div>
+            </div>
+
+            {/* PRECIOS Y OFERTAS (NUEVO) */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" /> Precios y Ofertas
+                </h3>
+
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="price">Precio Regular (Unitario)</Label>
+                        <Input type="number" id="price" name="price" defaultValue={String(product?.price || '')} required step="0.01" min="0" />
+                    </div>
+                    
+                    {/* DESCUENTO PORCENTUAL */}
+                    <div className="space-y-2">
+                        <Label htmlFor="discountPercentage" className="text-pink-600 font-semibold flex items-center gap-1">
+                            <Percent className="h-4 w-4" /> Descuento (%)
+                        </Label>
+                        <Input 
+                            type="number" 
+                            id="discountPercentage" 
+                            name="discountPercentage" 
+                            defaultValue={product?.discountPercentage || 0} 
+                            min="0" 
+                            max="100" 
+                            className="border-pink-200 focus-visible:ring-pink-500"
+                        />
+                        <p className="text-xs text-slate-400">Si pones 20, se mostrará como -20% OFF.</p>
+                    </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-4">
+                    <h4 className="font-semibold text-sm text-slate-700">Configuración Mayorista (Opcional)</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="wholesalePrice">Precio Mayorista</Label>
+                            <Input 
+                                type="number" 
+                                id="wholesalePrice" 
+                                name="wholesalePrice" 
+                                defaultValue={product?.wholesalePrice ? String(product.wholesalePrice) : ''} 
+                                step="0.01" 
+                                min="0" 
+                                placeholder="0.00"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="wholesaleMinCount">Cantidad Mínima</Label>
+                            <Input 
+                                type="number" 
+                                id="wholesaleMinCount" 
+                                name="wholesaleMinCount" 
+                                defaultValue={product?.wholesaleMinCount || ''} 
+                                min="1" 
+                                placeholder="Ej. 6"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* COLUMNA DERECHA: Estado e Imágenes */}
+        <div className="space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 className="font-bold text-lg text-slate-800 mb-4">Estado</h3>
+                
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="isAvailable">Disponible</Label>
+                    <Switch id="isAvailable" checked={isAvailable} onCheckedChange={setIsAvailable} />
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="stock">Stock Actual</Label>
+                    <Input type="number" id="stock" name="stock" defaultValue={product?.stock || 0} required min="0" />
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="division">División</Label>
+                    <select 
+                        id="division" 
+                        name="division" 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        defaultValue={product?.division || 'JUGUETERIA'}
+                    >
+                        <option value="JUGUETERIA">🧸 Festamas</option>
+                        <option value="FIESTAS">🎉 FiestasYa</option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 className="font-bold text-lg text-slate-800 mb-4">Imágenes</h3>
+                <ImageUpload 
+                    value={images} 
+                    onChange={(urls) => setImages(urls)}
+                />
+            </div>
+        </div>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            
-            {/* COLUMNA IZQUIERDA (2/3) */}
-            <div className="md:col-span-2 space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Información del Producto</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre del Producto</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ej: Globo Metálico Dorado" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="slug"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Slug (URL)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="globo-metalico-dorado" {...field} />
-                            </FormControl>
-                            <FormDescription>URL única del producto.</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="price"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Precio (S/.)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                step="0.01" 
-                                placeholder="0.00" 
-                                {...field} 
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  field.onChange(val === '' ? 0 : parseFloat(val));
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descripción</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Detalles del producto..." className="resize-none h-32" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-              {/* 👇 NUEVA SECCIÓN: VARIANTES */}
-              <Card className="border-blue-100 bg-blue-50/30">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-900">
-                        <Palette className="h-5 w-5" /> Variantes de Color (Opcional)
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField control={form.control} name="groupTag" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="flex items-center gap-2"><Tags className="h-4 w-4"/> Agrupar con (Tag)</FormLabel>
-                            <FormControl><Input placeholder="Ej: globos-metalicos-numeros" {...field} /></FormControl>
-                            <FormDescription>Usa el MISMO texto exacto en todos los colores del mismo producto.</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    
-                    <FormField control={form.control} name="color" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Color del Producto</FormLabel>
-                            <div className="flex gap-2">
-                                <div className="w-10 h-10 rounded border overflow-hidden relative shadow-sm">
-                                    <input type="color" className="absolute -top-2 -left-2 w-16 h-16 cursor-pointer" {...field} />
-                                </div>
-                                <FormControl>
-                                    <Input placeholder="#FF0000" {...field} className="flex-1 font-mono" />
-                                </FormControl>
-                            </div>
-                            <FormDescription>Selecciona el color representativo.</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Inventario</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="stock"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Stock Disponible</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="0" 
-                                {...field}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  field.onChange(val === '' ? 0 : parseFloat(val));
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                     <FormField
-                        control={form.control}
-                        name="isAvailable"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm mt-2">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base">Disponible</FormLabel>
-                              <FormDescription>
-                                Mostrar en la tienda
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* COLUMNA DERECHA (1/3) */}
-            <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Imágenes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="images"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <ImageUpload 
-                            value={field.value} 
-                            disabled={loading} 
-                            onChange={(urls) => field.onChange(urls)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Organización</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Categoría</FormLabel>
-                        <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              <Button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800" size="lg">
-                {loading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                )}
-                {action}
-              </Button>
-            </div>
-
-          </div>
-        </form>
-      </Form>
-    </div>
+      {/* FOOTER ACTIONS */}
+      <div className="flex items-center justify-end gap-4 border-t pt-6">
+        <Link href="/admin/products">
+            <Button type="button" variant="outline" disabled={loading}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Cancelar
+            </Button>
+        </Link>
+        <Button type="submit" className="min-w-[150px] bg-slate-900 hover:bg-slate-800" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {product ? 'Guardar Cambios' : 'Crear Producto'}
+        </Button>
+      </div>
+    </form>
   );
 }
