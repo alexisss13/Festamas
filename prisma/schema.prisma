@@ -150,24 +150,24 @@ enum CouponType {
   PERCENTAGE
 }
 
-// BANNERS
+// schema.prisma
+
+enum BannerPosition {
+  TOP_STRIP // El cintillo delgado de arriba
+  MAIN_HERO // El carrusel grande principal
+}
+
 model Banner {
-  id        String   @id @default(uuid())
-  title     String
-  image     String
-  link      String
+  id          String   @id @default(uuid())
+  title       String   // Nombre interno para que lo ubiques
+  imageUrl    String   // URL de Cloudinary/S3
+  mobileUrl   String?  // Opcional: URL versión móvil (recomendado)
+  link        String?  // A donde te lleva si das clic (/category/lego)
+  position    BannerPosition
+  division    Division // 'JUGUETERIA' o 'FIESTAS' (Importado de tu enum existente)
+  active      Boolean  @default(true)
+  order       Int      @default(0) // Para ordenar (1, 2, 3...)
   
-  btnText   String   @default("Ver Más")
-  btnColor  String   @default("#000000")
-  btnTextColor String @default("#FFFFFF")
-  textColor String   @default("#FFFFFF") 
-  
-  position  String   @default("TOP")
-  size      String   @default("GRID")
-  
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
