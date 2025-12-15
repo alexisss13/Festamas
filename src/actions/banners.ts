@@ -1,13 +1,13 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { Banner, BannerPosition, Division } from '@prisma/client';
+import { BannerPosition, Division } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
-// Crear un nuevo banner desde el Admin
 export async function createBanner(data: {
   title: string;
   imageUrl: string;
+  mobileUrl?: string; // 👈 Agregamos este campo opcional
   link?: string;
   position: BannerPosition;
   division: Division;
@@ -17,10 +17,10 @@ export async function createBanner(data: {
       data: {
         ...data,
         active: true,
-        order: 0, // Por defecto al inicio
+        order: 0,
       },
     });
-    revalidatePath('/'); // Actualizar el home para que se vea al instante
+    revalidatePath('/'); 
     return { success: true, data: banner };
   } catch (error) {
     console.error(error);

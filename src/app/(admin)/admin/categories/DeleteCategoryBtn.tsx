@@ -11,18 +11,28 @@ export function DeleteCategoryBtn({ id }: { id: string }) {
 
   const handleDelete = async () => {
     if (!confirm('¿Seguro que quieres eliminar esta categoría?')) return;
+    
     setLoading(true);
     const res = await deleteCategory(id);
+    
     if (res.success) {
       toast.success('Categoría eliminada');
     } else {
-      toast.error(res.message); // Aquí saldrá el error si tiene productos
+      // 🛡️ FIX: Leemos 'error' en lugar de 'message'
+      toast.error(res.error); 
     }
+    
     setLoading(false);
   };
 
   return (
-    <Button variant="ghost" size="icon" onClick={handleDelete} disabled={loading} className="text-red-500 hover:bg-red-50">
+    <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={handleDelete} 
+        disabled={loading} 
+        className="text-red-500 hover:bg-red-50 hover:text-red-600"
+    >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
     </Button>
   );

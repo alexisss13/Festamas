@@ -1,11 +1,11 @@
 import Link from 'next/link';
+import prisma from '@/lib/prisma'; // Importamos prisma directo para server component
 import { getProducts } from '@/actions/products';
-// import { getStoreConfig } from '@/actions/settings'; // YA NO LO NECESITAMOS AQUÍ (El Hero se encarga)
-// import { getBanners } from '@/actions/design';     // YA NO LO NECESITAMOS (El Hero se encarga)
 import { ProductCard } from '@/components/features/ProductCard';
 import { ProductSort } from '@/components/features/ProductSort';
 import { PartyPopper } from 'lucide-react';
-import { Hero } from '@/components/ui/Hero'; // El nuevo Hero inteligente
+import { Hero } from '@/components/ui/Hero';
+import { FeaturedCategories } from '@/components/features/FeaturedCategories'; // 👈 Importamos
 
 export const revalidate = 60; 
 
@@ -16,26 +16,34 @@ interface Props {
 export default async function HomePage({ searchParams }: Props) {
   const { sort } = await searchParams;
 
-  // Solo traemos productos. Los banners y la config del Hero ahora las maneja el componente <Hero /> internamente.
+  // 1. Traemos productos
   const productsRes = await getProducts({ sort: sort || 'newest' });
   const products = productsRes.data;
+
+  // 2. Traemos Categorías (para el nuevo componente)
+  // Como estamos en un Server Component, podemos llamar a Prisma directo para mayor velocidad
+  const categories = await prisma.category.findMany({
+      orderBy: { name: 'asc' },
+  });
 
   return (
     <main>
       
-      {/* 1. HERO INTELIGENTE (Cintillo + Carrusel Principal) */}
-      {/* Este componente ya sabe si mostrar Festamas o FiestasYa y trae sus banners de la BD */}
+      {/* 1. HERO (Cintillo + Carrusel Principal) */}
       <Hero />
 
-      {/* 2. CATÁLOGO DE PRODUCTOS */}
+      {/* 2. COMPRA POR CATEGORÍA (NUEVO) 📸 */}
+      {/* Le pasamos todas las categorías y él filtra en el cliente según la tienda */}
+      <FeaturedCategories categories={categories} />
+
+      {/* 3. CATÁLOGO DE PRODUCTOS */}
       <section id="catalogo" className="container mx-auto px-4 py-16">
         <div className="mb-12 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-col items-center md:items-start">
              <h2 className="text-3xl font-extrabold text-slate-900">Nuestros Productos</h2>
-             <div className="mt-1 h-1 w-20 rounded-full bg-[#fc4b65] md:ml-1"></div> {/* Color Festamas por defecto */}
+             <div className="mt-1 h-1 w-20 rounded-full bg-slate-200 md:ml-1"></div>
           </div>
           
-          {/* FILTRO */}
           <ProductSort />
         </div>
 

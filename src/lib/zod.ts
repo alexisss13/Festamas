@@ -1,8 +1,10 @@
 import { z } from 'zod';
+import { Division } from '@prisma/client'; // 👈 ¡FALTABA ESTO!
 
-// Validamos que sea uno de los valores permitidos en la BD
-export const divisionEnum = z.enum(['FIESTAS', 'JUGUETERIA']);
+// Usamos el enum nativo de Prisma para asegurar que coincida con la BD
+export const divisionEnum = z.nativeEnum(Division);
 
+// --- ESQUEMA DE PRODUCTOS ---
 export const productSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres' }),
   slug: z.string().min(3, { message: 'El slug es obligatorio' }).regex(/^[a-z0-9-]+$/, { message: 'El slug solo puede tener letras minúsculas, números y guiones' }),
@@ -14,13 +16,16 @@ export const productSchema = z.object({
   isAvailable: z.boolean().default(true),
   color: z.string().optional(), 
   groupTag: z.string().optional(),
-  division: divisionEnum, // 👈 Obligatorio
+  
+  division: divisionEnum, // Usa la validación de Prisma
 });
 
+// --- ESQUEMA DE CATEGORÍAS ---
 export const categorySchema = z.object({
-  name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres' }),
-  slug: z.string()
-    .min(3, { message: 'El slug es obligatorio' })
-    .regex(/^[a-z0-9-]+$/, { message: 'Solo letras minúsculas, números y guiones' }),
-  division: divisionEnum, // 👈 Obligatorio
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+  slug: z.string().min(3, 'El slug debe tener al menos 3 caracteres'),
+  
+  division: z.nativeEnum(Division), // 👈 Ahora sí funcionará porque importamos Division
+  
+  image: z.string().optional().nullable(),
 });

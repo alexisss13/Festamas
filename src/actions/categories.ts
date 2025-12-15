@@ -1,13 +1,11 @@
 'use server';
 
-import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { categorySchema } from '@/lib/zod';
 import { revalidatePath } from 'next/cache';
 import { Division } from '@prisma/client';
 
 // --- LEER ---
-// Aceptamos un parámetro opcional 'division'. Si no viene, devuelve todas (útil para admin).
 export async function getCategories(division?: Division) {
   try {
     const whereClause = division ? { division } : {};
@@ -24,40 +22,87 @@ export async function getCategories(division?: Division) {
     return { success: true, data: categories };
   } catch (error) {
     console.error(error);
-    return { success: false, data: [] };
+    return { success: false, error: 'Error al cargar categorías' };
   }
 }
 
-// --- CREAR / EDITAR ---
-export async function createOrUpdateCategory(data: z.infer<typeof categorySchema>, id: string | null) {
+export async function getCategoryById(id: string) {
+    try {
+        const category = await prisma.category.findUnique({ where: { id } });
+        return { success: true, data: category };
+    } catch (error) {
+        return { success: false, error: 'Error al cargar categoría' };
+    }
+}
+
+// --- CREAR ---
+export async function createCategory(formData: FormData) {
+  const data = {
+    name: formData.get('name'),
+    slug: formData.get('slug'),
+    division: formData.get('division'),
+    image: formData.get('image'), // Recibimos imagen
+  };
+
+  const parsed = categorySchema.safeParse(data);
+
+  if (!parsed.success) {
+    // 🛡️ FIX: Usamos .issues en lugar de .errors para evitar el error de TS
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
   try {
-    const valid = categorySchema.safeParse(data);
-    if (!valid.success) return { success: false, message: 'Datos inválidos' };
-
-    const { name, slug, division } = valid.data; // 👈 Ahora extraemos division
-
-    // Verificar slug único
-    const existing = await prisma.category.findUnique({ where: { slug } });
-    if (existing && existing.id !== id) {
-      return { success: false, message: 'El slug ya existe.' };
-    }
-
-    if (id) {
-      await prisma.category.update({
-        where: { id },
-        data: { name, slug, division },
-      });
-    } else {
-      await prisma.category.create({
-        data: { name, slug, division },
-      });
-    }
+    await prisma.category.create({
+      data: {
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        division: parsed.data.division,
+        image: parsed.data.image || null,
+      },
+    });
 
     revalidatePath('/admin/categories');
+    revalidatePath('/'); // Actualizar Home
     return { success: true };
   } catch (error) {
-    console.error(error);
-    return { success: false, message: 'Error de servidor' };
+    console.log(error);
+    return { success: false, error: 'Error al crear la categoría' };
+  }
+}
+
+// --- EDITAR ---
+export async function updateCategory(id: string, formData: FormData) {
+  const data = {
+    name: formData.get('name'),
+    slug: formData.get('slug'),
+    division: formData.get('division'),
+    image: formData.get('image'),
+  };
+
+  const parsed = categorySchema.safeParse(data);
+
+  if (!parsed.success) {
+    // 🛡️ FIX: Usamos .issues
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
+  try {
+    await prisma.category.update({
+      where: { id },
+      data: {
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        division: parsed.data.division,
+        image: parsed.data.image || null,
+      },
+    });
+
+    revalidatePath('/admin/categories');
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: 'Error al actualizar la categoría' };
   }
 }
 
@@ -72,7 +117,7 @@ export async function deleteCategory(id: string) {
     if (category && category._count.products > 0) {
       return { 
         success: false, 
-        message: `No se puede eliminar: Esta categoría tiene ${category._count.products} productos asociados.` 
+        error: `No se puede eliminar: Tiene ${category._count.products} productos asociados.` 
       };
     }
 
@@ -82,6 +127,6 @@ export async function deleteCategory(id: string) {
     return { success: true };
   } catch (error) {
     console.error(error);
-    return { success: false, message: 'Error al eliminar' };
+    return { success: false, error: 'Error al eliminar la categoría' };
   }
 }

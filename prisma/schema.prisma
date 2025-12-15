@@ -47,14 +47,15 @@ model Product {
 
 // 🗂️ CATEGORÍAS
 model Category {
-  id    String @id @default(uuid())
-  name  String
-  slug  String @unique
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  division  Division @default(JUGUETERIA)
 
-  // 👇 CAMBIO CLAVE: Por defecto JUGUETERIA
-  division Division @default(JUGUETERIA)
+  // 👇 AGREGAMOS ESTO:
+  image     String?  // URL de la imagen (Opcional por si alguna no tiene)
 
-  products Product[]
+  products  Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

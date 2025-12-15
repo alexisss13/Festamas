@@ -7,6 +7,7 @@ import { getCategories } from '@/actions/categories';
 import { DeleteCategoryBtn } from './DeleteCategoryBtn';
 
 export default async function CategoriesPage() {
+  // Obtenemos las categorías (incluyendo el conteo de productos)
   const { data: categories } = await getCategories();
 
   return (
@@ -26,6 +27,7 @@ export default async function CategoriesPage() {
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Slug</TableHead>
+              <TableHead>Tienda</TableHead>
               <TableHead className="text-center">Productos</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
@@ -33,10 +35,19 @@ export default async function CategoriesPage() {
           <TableBody>
             {categories?.map((cat) => (
               <TableRow key={cat.id}>
-                <TableCell className="font-medium">{cat.name}</TableCell>
+                <TableCell className="font-medium flex items-center gap-2">
+                    {/* Si tiene imagen, podrías mostrar una miniatura aquí si quisieras */}
+                    {cat.name}
+                </TableCell>
                 <TableCell className="text-slate-500 font-mono text-sm">{cat.slug}</TableCell>
+                <TableCell>
+                    <Badge variant="outline" className={cat.division === 'JUGUETERIA' ? 'text-pink-600 border-pink-200 bg-pink-50' : 'text-purple-600 border-purple-200 bg-purple-50'}>
+                        {cat.division === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa'}
+                    </Badge>
+                </TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="secondary">{cat._count.products}</Badge>
+                  {/* 🛡️ FIX: Acceso seguro a _count */}
+                  <Badge variant="secondary">{cat._count?.products || 0}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -50,6 +61,13 @@ export default async function CategoriesPage() {
                 </TableCell>
               </TableRow>
             ))}
+            {(!categories || categories.length === 0) && (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                        No hay categorías creadas.
+                    </TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
