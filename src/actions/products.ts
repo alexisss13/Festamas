@@ -2,9 +2,9 @@
 
 import prisma from '@/lib/prisma';
 import { Prisma, Division } from '@prisma/client';
-import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'; // 👈 Imports fusionados correctamente
+import { revalidatePath, unstable_cache } from 'next/cache';
 
-// Tipado fuerte para asegurar que el frontend reciba lo que espera
+// Tipado fuerte
 export type ProductWithCategory = {
   id: string;
   title: string;
@@ -13,11 +13,11 @@ export type ProductWithCategory = {
   stock: number;
   images: string[];
   isAvailable: boolean;
-  wholesalePrice: number;     
-  wholesaleMinCount: number | null; 
-  discountPercentage: number; 
-  tags: string[];             
-  division: Division;         
+  wholesalePrice: number;
+  wholesaleMinCount: number | null;
+  discountPercentage: number;
+  tags: string[];
+  division: Division;
   createdAt: Date;
   category: {
     name: string;
@@ -167,56 +167,96 @@ export const getProduct = unstable_cache(
 );
 
 // =====================================================================
-// 3. GET PRODUCTS BY CATEGORY
+// 3. GET PRODUCTS BY CATEGORY (Con Filtros y Paginación) 🚀
 // =====================================================================
-export const getProductsByCategory = unstable_cache(
-  async (categorySlug: string, sort = 'newest') => {
-    try {
-      const category = await prisma.category.findUnique({
-        where: { slug: categorySlug },
-      });
+interface CategoryOptions {
+  page?: number;
+  take?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: string;
+  tag?: string;
+}
 
-      if (!category) return null;
+export const getProductsByCategory = async (
+  categorySlug: string, 
+  { page = 1, take = 12, minPrice, maxPrice, sort = 'newest', tag }: CategoryOptions = {}
+) => {
+  try {
+    const category = await prisma.category.findUnique({
+      where: { slug: categorySlug },
+    });
 
-      const products = await prisma.product.findMany({
-        where: { categoryId: category.id, isAvailable: true },
-        include: { category: true },
-        orderBy: getOrderBy(sort),
-      });
+    if (!category) return null;
 
-      const cleanProducts = products.map((product) => ({
-        id: product.id,
-        title: product.title,
-        slug: product.slug,
-        price: Number(product.price),
-        stock: product.stock,
-        images: product.images,
-        isAvailable: product.isAvailable,
-        wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
-        wholesaleMinCount: product.wholesaleMinCount,
-        discountPercentage: product.discountPercentage,
-        tags: product.tags,
-        division: product.division,
-        createdAt: product.createdAt,
-        category: {
-          name: product.category.name,
-          slug: product.category.slug,
-        },
-      }));
+    // 1. MINERÍA DE TAGS: Extraer todos los tags únicos de esta categoría (sin filtros de precio)
+    // Esto sirve para poblar el sidebar con opciones reales
+    const allProductsTags = await prisma.product.findMany({
+      where: { categoryId: category.id, isAvailable: true },
+      select: { tags: true }
+    });
 
-      return {
-        categoryName: category.name,
-        products: cleanProducts,
-        division: category.division 
-      };
-    } catch (error) {
-      console.log(error);
-      return null;
-    }
-  },
-  ['get-products-by-category'],
-  { tags: ['products', 'categories'] }
-);
+    // Aplanamos el array de arrays y quitamos duplicados
+    const uniqueTags = Array.from(new Set(allProductsTags.flatMap(p => p.tags))).sort();
+
+    // 2. FILTRADO: Ahora sí aplicamos los filtros para la lista de productos
+    const whereClause: Prisma.ProductWhereInput = {
+      categoryId: category.id,
+      isAvailable: true,
+      price: {
+        gte: minPrice, 
+        lte: maxPrice, 
+      },
+      tags: tag ? { has: tag } : undefined 
+    };
+
+    const totalCount = await prisma.product.count({ where: whereClause });
+    const totalPages = Math.ceil(totalCount / take);
+
+    const products = await prisma.product.findMany({
+      where: whereClause,
+      include: { category: true },
+      orderBy: getOrderBy(sort),
+      take: take,
+      skip: (page - 1) * take,
+    });
+
+    const cleanProducts = products.map((product) => ({
+      id: product.id,
+      title: product.title,
+      slug: product.slug,
+      price: Number(product.price),
+      stock: product.stock,
+      images: product.images,
+      isAvailable: product.isAvailable,
+      wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
+      wholesaleMinCount: product.wholesaleMinCount,
+      discountPercentage: product.discountPercentage,
+      tags: product.tags,
+      division: product.division,
+      createdAt: product.createdAt,
+      category: {
+        name: product.category.name,
+        slug: product.category.slug,
+      },
+    }));
+
+    return {
+      categoryName: category.name,
+      division: category.division,
+      products: cleanProducts,
+      availableTags: uniqueTags, // 👈 Enviamos los tags al frontend
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount
+      }
+    };
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
 
 // =====================================================================
 // 4. DELETE PRODUCT (Admin)
