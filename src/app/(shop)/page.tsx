@@ -44,7 +44,6 @@ export default async function Home() {
               </div>
               
               <Button variant="link" asChild className="text-slate-500 hover:text-slate-900 font-medium">
-                {/* 🔗 FIX: Enlace dinámico a la nueva página */}
                 <Link href={`/new-arrivals?division=${currentDivision}`}>
                   Ver todo <ArrowRight className="ml-1 w-4 h-4" />
                 </Link>
@@ -61,7 +60,7 @@ export default async function Home() {
         {/* 3. BANNER INTERMEDIO */}
         {middleBanner && <PromoBanner banner={middleBanner} />}
 
-        {/* 4. SECCIONES DINÁMICAS */}
+        {/* 4. SECCIONES DINÁMICAS (TAGS) */}
         {sectionsWithProducts.map((section) => {
           if (!section.products || section.products.length === 0) return null;
 
@@ -79,8 +78,9 @@ export default async function Home() {
                   )}
                 </div>
                 
+                {/* 🔗 BOTÓN DESKTOP: Apunta a /collections con tag y division */}
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex border-slate-200 text-slate-600 hover:text-slate-900">
-                    <Link href={`/search?tag=${section.tag}`}>
+                    <Link href={`/collections?tag=${section.tag}&division=${section.division}`}>
                         Ver colección
                     </Link>
                 </Button>
@@ -89,8 +89,9 @@ export default async function Home() {
               <ProductCarousel products={section.products as any} autoPlay={true} />
               
               <div className="mt-4 px-2 sm:hidden">
+                  {/* 🔗 BOTÓN MÓVIL: Mismo cambio */}
                   <Button variant="outline" className="w-full" asChild>
-                    <Link href={`/search?tag=${section.tag}`}>Ver colección</Link>
+                    <Link href={`/collections?tag=${section.tag}&division=${section.division}`}>Ver colección</Link>
                   </Button>
               </div>
             </section>
