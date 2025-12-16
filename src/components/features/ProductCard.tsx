@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AddToCartButton } from './AddToCartButton';
 import { cn } from '@/lib/utils';
-import { Tag, Package } from 'lucide-react';
+import { Tag, Package, Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: {
@@ -29,16 +30,12 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  
-  // 1. LÓGICA DE IDENTIDAD
-  // Si no hay división, asumimos Juguetería (Festamas)
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Lógica de Tienda (Festamas vs FiestasYa)
   const isFestamas = product.division === 'JUGUETERIA' || !product.division;
-  
-  // Definimos la variante de marca para usar en Badge y Textos
-  // @ts-ignore (Ignoramos error si TS no ha recargado badgeVariants aún)
   const brandVariant = isFestamas ? 'festamas' : 'fiestasya';
 
-  // Configuración de colores SOLO para bordes y fondos decorativos que NO son componentes UI
   const theme = isFestamas 
     ? {
         text: 'text-[#fc4b65]',
@@ -55,45 +52,63 @@ export function ProductCard({ product }: ProductCardProps) {
         wholesaleText: 'text-fuchsia-700',
       };
 
-  // 2. LÓGICA DE PRECIOS
+  // Precios
   const price = Number(product.price) || 0;
   const wholesalePrice = product.wholesalePrice ? Number(product.wholesalePrice) : 0;
   const discount = product.discountPercentage || 0;
   const hasDiscount = discount > 0;
-  
   const finalPrice = hasDiscount ? price * (1 - discount / 100) : price;
   const isOutOfStock = product.stock <= 0;
   const hasWholesale = wholesalePrice > 0;
 
+  // Manejador Favoritos
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault(); // Evita abrir el link del producto
+    e.stopPropagation();
+    setIsFavorite(!isFavorite);
+    // Aquí conectarías con tu Server Action en el futuro
+  };
+
   return (
     <Card className={cn(
-        "group relative flex flex-col h-full overflow-hidden transition-all duration-300 bg-white border border-slate-200",
+        "group relative flex flex-col h-full overflow-visible transition-all duration-300 bg-white border border-slate-200",
         "hover:shadow-lg hover:-translate-y-1",
         theme.border
     )}>
       
-      {/* --- SECCIÓN IMAGEN --- */}
-      <Link href={`/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-white">
+      {/* SECCIÓN IMAGEN */}
+      <Link href={`/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-white rounded-t-lg">
         
-        {/* Badges Flotantes */}
+        {/* Badges (Izquierda) */}
         <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
             {isOutOfStock ? (
-                // Badge de Sistema (Agotado) -> Usa variant="secondary" (Gris oscuro/negro según tu tema)
                 <Badge variant="secondary" className="bg-slate-900 text-white font-bold px-2 h-5 shadow-sm">
                     AGOTADO
                 </Badge>
             ) : hasDiscount && (
-                // 💎 BADGE DE MARCA: Usamos la variante nativa
-                <Badge 
-                    variant={brandVariant} 
-                    className="font-bold px-2 h-5 border-0 shadow-sm flex items-center gap-1"
-                >
+                // @ts-ignore
+                <Badge variant={brandVariant} className="font-bold px-2 h-5 border-0 shadow-sm flex items-center gap-1">
                     <Tag className="w-3 h-3" /> -{discount}%
                 </Badge>
             )}
         </div>
 
-        {/* Imagen del Producto */}
+        {/* ❤️ BOTÓN FAVORITOS (DERECHA) */}
+        <button 
+            onClick={handleFavorite}
+            className="absolute top-2 right-2 z-20 p-2 rounded-full bg-white/90 shadow-sm hover:shadow-md transition-all hover:scale-110 active:scale-95 group/heart"
+        >
+            <Heart 
+                className={cn(
+                    "w-4 h-4 transition-colors duration-300", 
+                    isFavorite 
+                        ? "fill-rose-500 text-rose-500" // Activo
+                        : "text-slate-400 group-hover/heart:text-rose-500" // Inactivo
+                )} 
+            />
+        </button>
+
+        {/* Imagen */}
         {product.images[0] ? (
             <Image
                 src={product.images[0]}
@@ -112,52 +127,36 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
       </Link>
 
-      {/* --- SECCIÓN CONTENIDO --- */}
+      {/* CONTENIDO */}
       <CardContent className="flex flex-col flex-1 p-3 gap-2">
-        
-        {/* Marca Pequeña */}
         <div className="flex items-center justify-between">
-            <span className={cn("text-[9px] font-extrabold uppercase tracking-widest opacity-80", theme.text)}>
+            <span className={cn("text-[10px] font-extrabold uppercase tracking-widest opacity-80", theme.text)}>
                 {isFestamas ? 'Festamas' : 'FiestasYa'}
             </span>
-            {/* Stock bajo alerta */}
             {!isOutOfStock && product.stock < 5 && (
-                <span className="text-[9px] text-orange-500 font-medium">
-                    ¡Quedan {product.stock}!
-                </span>
+                <span className="text-[10px] text-orange-500 font-medium">¡Quedan {product.stock}!</span>
             )}
         </div>
 
-        {/* Título */}
         <Link href={`/product/${product.slug}`} title={product.title}>
-            <h3 className="text-xs sm:text-sm font-medium text-slate-700 leading-tight line-clamp-2 h-[2.5em] group-hover:text-black transition-colors">
+            <h3 className="text-sm font-medium text-slate-700 leading-tight line-clamp-2 h-[2.5em] group-hover:text-black transition-colors">
                 {product.title}
             </h3>
         </Link>
 
-        {/* Bloque de Precios */}
         <div className="mt-auto pt-1">
             <div className="flex items-end gap-2 flex-wrap">
-                <span className="text-lg font-bold text-slate-900 leading-none">
-                    S/ {finalPrice.toFixed(2)}
-                </span>
+                <span className="text-lg font-bold text-slate-900 leading-none">S/ {finalPrice.toFixed(2)}</span>
                 {hasDiscount && (
-                    <span className="text-xs text-slate-400 line-through mb-[2px]">
-                        S/ {price.toFixed(2)}
-                    </span>
+                    <span className="text-xs text-slate-400 line-through mb-[2px]">S/ {price.toFixed(2)}</span>
                 )}
             </div>
 
-            {/* Bloque Mayorista */}
             {hasWholesale && !isOutOfStock && (
                  <div className={cn("mt-2 flex items-center justify-between rounded px-2 py-1.5 border", theme.wholesaleBg, theme.wholesaleBorder)}>
                     <div className="flex flex-col leading-none">
-                        <span className={cn("text-[9px] font-bold uppercase mb-0.5", theme.wholesaleText)}>
-                            Mayorista
-                        </span>
-                        <span className="text-xs font-bold text-slate-900">
-                            S/ {wholesalePrice.toFixed(2)}
-                        </span>
+                        <span className={cn("text-[9px] font-bold uppercase mb-0.5", theme.wholesaleText)}>Mayorista</span>
+                        <span className="text-xs font-bold text-slate-900">S/ {wholesalePrice.toFixed(2)}</span>
                     </div>
                     <div className="text-[9px] font-semibold text-slate-600 bg-white/50 px-1.5 py-0.5 rounded">
                         Min. {product.wholesaleMinCount || 3} un.
@@ -167,12 +166,10 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </CardContent>
 
-      {/* --- BOTÓN DE ACCIÓN --- */}
       <CardFooter className="p-3 pt-0">
         <AddToCartButton 
             product={product as any} 
             disabled={isOutOfStock}
-            // El botón ya sabe qué color usar, solo definimos layout
             className="w-full h-9 text-xs font-bold shadow-none transition-transform active:scale-95"
         />
       </CardFooter>

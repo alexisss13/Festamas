@@ -245,13 +245,16 @@ export async function deleteProduct(id: string) {
 // =====================================================================
 // 5. GET PRODUCTS BY TAG (Para la Home Dinámica)
 // =====================================================================
-export const getProductsByTag = async (tag: string, take: number = 4) => {
+// FIX: Agregamos 'division' opcional para filtrar estrictamente por tienda
+export const getProductsByTag = async (tag: string, take: number = 8, division?: Division) => {
   try {
     const products = await prisma.product.findMany({
       take: take,
       where: {
         tags: { has: tag },
         isAvailable: true,
+        // Si nos pasan division, filtramos. Si no, trae de ambas (para mix).
+        division: division ? { equals: division } : undefined,
       },
       include: {
         category: {
