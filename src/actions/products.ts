@@ -287,3 +287,35 @@ export const getProductsByTag = async (tag: string, take: number = 8, division?:
     return { products: [] };
   }
 };
+
+// =====================================================================
+// 6. GET SIMILAR PRODUCTS (Misma categoría)
+// =====================================================================
+export const getSimilarProducts = async (categoryId: string, currentProductId: string, take = 8) => {
+  try {
+    const products = await prisma.product.findMany({
+      take,
+      where: {
+        categoryId,
+        isAvailable: true,
+        NOT: { id: currentProductId }, // Excluimos el producto actual
+      },
+      include: {
+        category: {
+            select: { name: true, slug: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return products.map(p => ({
+        ...p,
+        price: Number(p.price),
+        wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
+        category: { name: p.category.name, slug: p.category.slug }
+    }));
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
