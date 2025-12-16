@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers'; // 👈 IMPORTANTE
+import { cookies } from 'next/headers'; 
 import { getHomeData } from '@/actions/home-data';
 import { getProductsByTag } from '@/actions/products';
 import { Hero } from '@/components/ui/Hero';
@@ -11,22 +11,17 @@ import { ArrowRight } from 'lucide-react';
 import { Division } from '@prisma/client';
 
 export default async function Home() {
-  // 1. LEER COOKIE DEL SERVIDOR
   const cookieStore = await cookies();
   const divisionCookie = cookieStore.get('festamas_division')?.value as Division;
   
-  // 2. VALIDAR (Por seguridad, si la cookie está corrupta o vacía, JUGUETERIA por defecto)
   const currentDivision = (divisionCookie === 'FIESTAS' || divisionCookie === 'JUGUETERIA') 
     ? divisionCookie 
     : 'JUGUETERIA';
 
-  // 3. PEDIR DATOS FILTRADOS
   const { newArrivals, categories, middleBanner, sections } = await getHomeData(currentDivision);
 
   const sectionsWithProducts = await Promise.all(
     sections.map(async (section) => {
-      // Nota: Aquí 'section.division' ya debería coincidir con currentDivision si el Action getHomeData filtra bien,
-      // pero pasamos 'section.division' para ser explícitos.
       const { products } = await getProductsByTag(section.tag, 8, section.division);
       return { ...section, products };
     })
@@ -49,7 +44,8 @@ export default async function Home() {
               </div>
               
               <Button variant="link" asChild className="text-slate-500 hover:text-slate-900 font-medium">
-                <Link href="/search?sort=newest">
+                {/* 🔗 FIX: Enlace dinámico a la nueva página */}
+                <Link href={`/new-arrivals?division=${currentDivision}`}>
                   Ver todo <ArrowRight className="ml-1 w-4 h-4" />
                 </Link>
               </Button>
@@ -65,7 +61,7 @@ export default async function Home() {
         {/* 3. BANNER INTERMEDIO */}
         {middleBanner && <PromoBanner banner={middleBanner} />}
 
-        {/* 4. SECCIONES DINÁMICAS (TAGS) */}
+        {/* 4. SECCIONES DINÁMICAS */}
         {sectionsWithProducts.map((section) => {
           if (!section.products || section.products.length === 0) return null;
 

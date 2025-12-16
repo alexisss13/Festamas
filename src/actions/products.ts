@@ -359,3 +359,94 @@ export const getSimilarProducts = async (categoryId: string, currentProductId: s
     return [];
   }
 };
+
+// =====================================================================
+// 7. GET NEW ARRIVALS (Catálogo Completo por División) 🚀
+// =====================================================================
+interface NewArrivalsOptions {
+  page?: number;
+  take?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: string;
+  tag?: string;
+  division: Division; // 👈 OBLIGATORIO: Saber qué tienda es
+}
+
+export const getNewArrivalsProducts = async ({ 
+  page = 1, 
+  take = 12, 
+  minPrice, 
+  maxPrice, 
+  sort = 'newest', 
+  tag,
+  division 
+}: NewArrivalsOptions) => {
+  try {
+    // 1. MINERÍA DE TAGS (De toda la tienda)
+    const allProductsTags = await prisma.product.findMany({
+      where: { 
+        division, // Solo tags de esta tienda
+        isAvailable: true 
+      },
+      select: { tags: true }
+    });
+
+    const uniqueTags = Array.from(new Set(allProductsTags.flatMap(p => p.tags))).sort();
+
+    // 2. FILTRADO
+    const whereClause: Prisma.ProductWhereInput = {
+      division, // 🛡️ BLINDAJE: Nunca mezclar tiendas
+      isAvailable: true,
+      price: {
+        gte: minPrice, 
+        lte: maxPrice, 
+      },
+      tags: tag ? { has: tag } : undefined 
+    };
+
+    const totalCount = await prisma.product.count({ where: whereClause });
+    const totalPages = Math.ceil(totalCount / take);
+
+    const products = await prisma.product.findMany({
+      where: whereClause,
+      include: { category: true },
+      orderBy: getOrderBy(sort),
+      take: take,
+      skip: (page - 1) * take,
+    });
+
+    const cleanProducts = products.map((product) => ({
+      id: product.id,
+      title: product.title,
+      slug: product.slug,
+      price: Number(product.price),
+      stock: product.stock,
+      images: product.images,
+      isAvailable: product.isAvailable,
+      wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
+      wholesaleMinCount: product.wholesaleMinCount,
+      discountPercentage: product.discountPercentage,
+      tags: product.tags,
+      division: product.division,
+      createdAt: product.createdAt,
+      category: {
+        name: product.category.name,
+        slug: product.category.slug,
+      },
+    }));
+
+    return {
+      products: cleanProducts,
+      availableTags: uniqueTags,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount
+      }
+    };
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
