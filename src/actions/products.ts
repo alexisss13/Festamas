@@ -2,8 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { Prisma, Division } from '@prisma/client';
-import { revalidatePath, revalidateTag } from 'next/cache';
-import { unstable_cache } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'; // 👈 Imports fusionados correctamente
 
 // Tipado fuerte para asegurar que el frontend reciba lo que espera
 export type ProductWithCategory = {
@@ -140,13 +139,13 @@ export async function getProducts({
 }
 
 // =====================================================================
-// 2. GET PRODUCT (Detalle Individual) - Renombrado a "getProduct"
+// 2. GET PRODUCT (Detalle Individual)
 // =====================================================================
 export const getProduct = unstable_cache(
   async (slug: string) => {
     try {
       const product = await prisma.product.findFirst({
-        where: { slug: slug, isAvailable: true }, // Usamos findFirst x seguridad
+        where: { slug: slug, isAvailable: true },
         include: { category: true },
       });
 
@@ -157,7 +156,6 @@ export const getProduct = unstable_cache(
         price: Number(product.price),
         wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
         discountPercentage: product.discountPercentage,
-        // Aseguramos que pasen todos los campos necesarios
       };
     } catch (error) {
       console.log(error);
@@ -169,7 +167,7 @@ export const getProduct = unstable_cache(
 );
 
 // =====================================================================
-// 3. GET PRODUCTS BY CATEGORY (¡RESTITUIDA!)
+// 3. GET PRODUCTS BY CATEGORY
 // =====================================================================
 export const getProductsByCategory = unstable_cache(
   async (categorySlug: string, sort = 'newest') => {
@@ -186,7 +184,6 @@ export const getProductsByCategory = unstable_cache(
         orderBy: getOrderBy(sort),
       });
 
-      // Mapeo CRÍTICO: Incluir division y precios para que las Cards funcionen
       const cleanProducts = products.map((product) => ({
         id: product.id,
         title: product.title,
@@ -195,15 +192,12 @@ export const getProductsByCategory = unstable_cache(
         stock: product.stock,
         images: product.images,
         isAvailable: product.isAvailable,
-        
-        // Datos vitales para el nuevo diseño de tarjeta
         wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
         wholesaleMinCount: product.wholesaleMinCount,
         discountPercentage: product.discountPercentage,
         tags: product.tags,
         division: product.division,
         createdAt: product.createdAt,
-
         category: {
           name: product.category.name,
           slug: product.category.slug,
@@ -237,9 +231,9 @@ export async function deleteProduct(id: string) {
       },
     });
     
-    revalidateTag('products'); 
-    revalidatePath('/admin/products');
-    revalidatePath('/');
+    // 👇 SOLUCIÓN: Agregamos 'page' como segundo argumento explícito
+    revalidatePath('/admin/products', 'page'); 
+    revalidatePath('/', 'page');
     
     return { success: true };
   } catch (error) {
@@ -247,3 +241,46 @@ export async function deleteProduct(id: string) {
     return { success: false, message: 'No se pudo eliminar el producto' };
   }
 }
+
+// =====================================================================
+// 5. GET PRODUCTS BY TAG (Para la Home Dinámica)
+// =====================================================================
+export const getProductsByTag = async (tag: string, take: number = 4) => {
+  try {
+    const products = await prisma.product.findMany({
+      take: take,
+      where: {
+        tags: { has: tag },
+        isAvailable: true,
+      },
+      include: {
+        category: {
+            select: {
+                name: true,
+                slug: true
+            }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const mappedProducts = products.map(p => ({
+        ...p,
+        price: Number(p.price),
+        wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
+        category: {
+            name: p.category.name,
+            slug: p.category.slug
+        }
+    }));
+
+    return {
+      products: mappedProducts,
+    };
+  } catch (error) {
+    console.log(error);
+    return { products: [] };
+  }
+};

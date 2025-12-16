@@ -2,7 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Tags, Ticket, Palette } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  Settings, 
+  LogOut, 
+  Tags, 
+  Ticket, 
+  Images,       // Para Banners
+  Store,        // Para Secciones Home
+  Megaphone     // Opción extra si quieres destacar marketing
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { logout } from '@/actions/auth-actions';
@@ -12,8 +23,12 @@ const navItems = [
   { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
   { href: '/admin/products', label: 'Productos', icon: Package },
   { href: '/admin/categories', label: 'Categorías', icon: Tags },
+  
+  // 📢 SECCIONES DE MARKETING Y CONTENIDO
+  { href: '/admin/banners', label: 'Banners', icon: Images },
+  { href: '/admin/sections', label: 'Secciones Home', icon: Store }, // La nueva joya
   { href: '/admin/coupons', label: 'Cupones', icon: Ticket },
-  { href: '/admin/design', label: 'Diseño Web', icon: Palette },
+  
   { href: '/admin/settings', label: 'Configuración', icon: Settings },
 ];
 
@@ -30,13 +45,12 @@ export default function AdminLayout({
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r bg-slate-900 text-white md:flex">
         <div className="flex h-16 items-center border-b border-slate-800 px-6">
           <span className="text-xl font-bold tracking-tighter">
-            FiestasYa <span className="text-slate-400 font-normal text-sm">Admin</span>
+            Festamas <span className="text-slate-400 font-normal text-sm">Admin</span>
           </span>
         </div>
         
         <nav className="flex-1 space-y-1 px-4 py-6">
           {navItems.map((item) => {
-            // Verificamos si la ruta actual coincide con el link
             const isActive = pathname.startsWith(item.href);
 
             return (

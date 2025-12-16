@@ -161,8 +161,9 @@ enum CouponType {
 // schema.prisma
 
 enum BannerPosition {
-  TOP_STRIP // El cintillo delgado de arriba
-  MAIN_HERO // El carrusel grande principal
+  TOP_STRIP      // Cintillo arriba
+  MAIN_HERO      // Carrusel Principal
+  MIDDLE_SECTION // Banner intermedio (Promo cruzada)
 }
 
 model Banner {
@@ -176,6 +177,21 @@ model Banner {
   active      Boolean  @default(true)
   order       Int      @default(0) // Para ordenar (1, 2, 3...)
   
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 👇 PEGA ESTO AL FINAL DEL ARCHIVO
+model HomeSection {
+  id          String   @id @default(uuid())
+  title       String   
+  subtitle    String?  
+  tag         String   
+  division    Division @default(JUGUETERIA)
+  icon        String   @default("star")
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

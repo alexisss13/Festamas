@@ -151,6 +151,7 @@ export function BannersManager({ initialBanners }: Props) {
                     >
                         <option value="MAIN_HERO">Hero Principal</option>
                         <option value="TOP_STRIP">Cintillo Superior</option>
+                        <option value="TOP_STRIP">Cintillo Superior</option>
                     </select>
                 </div>
             </div>
