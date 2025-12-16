@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState, Suspense, useRef } from 'react';
+import { useEffect, useState, useRef, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, ShoppingCart, ChevronDown, Menu, MapPin, Heart, User, Home } from 'lucide-react';
+import { Search, ShoppingCart, ChevronDown, Menu, MapPin, Heart, User, Home, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useCartStore } from '@/store/cart';
 import { useUIStore, Division } from '@/store/ui';
 import { CartSidebar } from '@/components/features/CartSidebar';
+import { setCookie } from 'cookies-next';
 
 interface Category {
   id: string; 
@@ -22,6 +23,7 @@ interface Category {
 
 interface NavbarClientProps {
   categories: Category[];
+  defaultDivision: Division;
 }
 
 // --- BUSCADOR ---
@@ -53,7 +55,6 @@ function SearchInput({ onSearch, className, btnBgColor, iconColor, isTransparent
         placeholder="Buscar productos..."
         className={cn(
             "h-11 w-full pl-6 pr-14 border-0 rounded-full transition-all duration-300 text-[15px] font-normal shadow-sm group-hover:shadow-md focus-visible:ring-2",
-            // FiestasYa: Input gris suave para contraste. Festamas: Blanco puro.
             isTransparent 
                 ? "bg-slate-100 focus-visible:ring-slate-200 text-slate-600 placeholder:text-slate-400" 
                 : "!bg-white focus-visible:ring-white/50 text-slate-900 placeholder:text-slate-400"
@@ -73,34 +74,40 @@ function SearchInput({ onSearch, className, btnBgColor, iconColor, isTransparent
   );
 }
 
-export function NavbarClient({ categories }: NavbarClientProps) {
+export function NavbarClient({ categories, defaultDivision }: NavbarClientProps) {
+  const router = useRouter();
   const { getTotalItems } = useCartStore();
-  const { currentDivision, setDivision } = useUIStore();
+  const { setDivision } = useUIStore();
   
-  // FIX: Estado inicializado correctamente
+  // 1. ESTADO OPTIMISTA
+  const [optimisticDivision, setOptimisticDivision] = useState<Division>(defaultDivision);
+  
+  // ⏳ HOOK DE TRANSICIÓN
+  const [isPending, startTransition] = useTransition();
+
+  // 2. SINCRONIZACIÓN
+  useEffect(() => {
+     setOptimisticDivision(defaultDivision);
+     setDivision(defaultDivision);
+  }, [defaultDivision, setDivision]);
+  
   const [loaded, setLoaded] = useState(false);
-  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  // FIX ERROR REACT: Solo actualizamos si no está cargado
   useEffect(() => {
-    if (!loaded) {
-        setLoaded(true);
-    }
+    if (!loaded) setLoaded(true);
   }, [loaded]);
 
-  // FIX ERROR REACT: Verificamos antes de actualizar estado al navegar
   useEffect(() => {
     if (isMenuOpen) setIsMenuOpen(false);
     if (isMobileMenuOpen) setIsMobileMenuOpen(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  // Cerrar al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -113,51 +120,51 @@ export function NavbarClient({ categories }: NavbarClientProps) {
     };
   }, [menuRef]);
 
-  const filteredCategories = categories.filter(cat => cat.division === currentDivision);
+  // 🔄 CAMBIO INSTANTÁNEO + SPINNER
+  const handleDivisionChange = (newDivision: Division) => {
+    if (optimisticDivision === newDivision) return;
+    
+    setOptimisticDivision(newDivision); 
+    setDivision(newDivision);
+
+    setCookie('festamas_division', newDivision, { maxAge: 60 * 60 * 24 * 30, path: '/' }); 
+
+    startTransition(() => {
+        router.refresh(); 
+    });
+  };
+
+  const currentDivision = optimisticDivision; 
   const isToys = currentDivision === 'JUGUETERIA';
+  const filteredCategories = categories.filter(cat => cat.division === currentDivision);
   const brandName = isToys ? 'Festamas' : 'FiestasYa';
   
-  // --- 🎨 DEFINICIÓN DE COLORES ---
+  // --- COLORES ---
   const festamasPink = '#fc4b65';
-  const fiestasBrandPink = '#ec4899'; // Rosa FiestasYa
+  const fiestasBrandPink = '#ec4899'; 
 
-  // 1. Fondo Navbar
-  // FiestasYa: Glassmorphism (Blanco translúcido + Blur)
   const navbarStyleClass = isToys 
     ? "bg-[#fc4b65]" 
     : "bg-white/95 backdrop-blur-md border-b border-slate-200";
 
-  // 2. Textos Generales
   const navTextClass = isToys ? "text-white" : "text-slate-600";
   
-  // 3. Botones Hover (AJUSTADO PARA FIESTASYA)
-  // Festamas: Borde blanco, Hover Blanco, Texto Rosa.
-  // FiestasYa: Borde transparente, Hover Rosa Pálido (bg-pink-50), Texto Rosa Fuerte.
   const buttonHoverClass = isToys 
     ? "border-white/40 hover:bg-white hover:text-[#fc4b65] hover:border-white text-white" 
     : `border-transparent text-slate-600 hover:bg-pink-50 hover:text-[${fiestasBrandPink}] hover:border-pink-100`;
 
-  // 4. Menu Activo (Dropdown abierto)
+  // 🛡️ FIX HOVER: Agregamos estilos hover explícitos para que NO cambie a negro
   const activeMenuClass = isToys 
-    ? "bg-white text-[#fc4b65] border-white shadow-md"
-    : `bg-pink-50 text-[${fiestasBrandPink}] border-pink-100 shadow-md`;
+    ? "bg-white text-[#fc4b65] border-white shadow-md hover:bg-white hover:text-[#fc4b65]" 
+    : `bg-pink-50 text-[${fiestasBrandPink}] border-pink-100 shadow-md hover:bg-pink-50 hover:text-[${fiestasBrandPink}]`;
 
-  // 5. Badge Carrito (CORREGIDO FINAL)
-  // Festamas: Fondo Blanco, Texto Rosa.
-  // FiestasYa: Fondo Rosa Fuerte, Texto Blanco.
   const badgeClass = isToys 
     ? "bg-white text-[#fc4b65]" 
     : "bg-[#ec4899] text-white";
 
-  // 6. Buscador
   const searchBtnColor = isToys ? '#be123c' : 'transparent';
-  const searchIconColor = isToys ? '#ffffff' : '#64748b'; // Lupa Gris (Slate-500)
+  const searchIconColor = isToys ? '#ffffff' : '#64748b'; 
 
-  // 7. Icono Carrito Base
-  // En FiestasYa siempre es Rosa para destacar.
-  const cartIconClass = isToys ? "text-white" : "text-[#ec4899]";
-
-  // 8. Menú Desplegable Links
   const dropdownBrandColor = isToys ? "text-[#fc4b65]" : `text-[${fiestasBrandPink}]`;
   const dropdownHoverColor = isToys ? "hover:text-[#fc4b65]" : `hover:text-[${fiestasBrandPink}]`;
 
@@ -167,15 +174,35 @@ export function NavbarClient({ categories }: NavbarClientProps) {
 
   return (
     <>
+      {/* 🛡️ OVERLAY SÓLIDO */}
+      {isPending && (
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-in duration-200">
+            <Loader2 
+                className={cn(
+                    "h-16 w-16 animate-spin mb-4", 
+                    isToys ? "text-[#fc4b65]" : "text-[#ec4899]"
+                )} 
+            />
+            <div className="flex flex-col items-center gap-2 animate-pulse">
+                <p className="text-lg font-bold text-slate-700">
+                    Cambiando a {isToys ? 'Festamas' : 'FiestasYa'}...
+                </p>
+                <p className="text-xs text-slate-400">Preparando los mejores productos para ti</p>
+            </div>
+        </div>
+      )}
+
       {/* 1. SUPER HEADER */}
       <div className="w-full h-9 bg-white border-b border-slate-100 flex items-center z-[60] relative text-[11px]">
         <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 flex items-center justify-between h-full">
             <div className="flex h-full mr-auto">
                  <button 
-                    onClick={() => setDivision('JUGUETERIA')}
+                    disabled={isPending} 
+                    onClick={() => handleDivisionChange('JUGUETERIA')} 
                     className={cn(
                         "relative h-full px-4 flex items-center justify-center gap-2 transition-all duration-300 border-b-[3px]",
-                        isToys ? "bg-slate-50" : "bg-transparent opacity-60 hover:opacity-100 grayscale hover:grayscale-0"
+                        isToys ? "bg-slate-50" : "bg-transparent opacity-60 hover:opacity-100 grayscale hover:grayscale-0",
+                        isPending && "opacity-50 cursor-not-allowed"
                     )}
                     style={{ borderColor: isToys ? festamasPink : 'transparent' }} 
                 >
@@ -184,10 +211,12 @@ export function NavbarClient({ categories }: NavbarClientProps) {
                     </div>
                 </button>
                 <button 
-                    onClick={() => setDivision('FIESTAS')}
+                    disabled={isPending} 
+                    onClick={() => handleDivisionChange('FIESTAS')} 
                     className={cn(
                         "relative h-full px-4 flex items-center justify-center gap-2 transition-all duration-300 border-b-[3px]",
-                        !isToys ? "bg-slate-50" : "bg-transparent opacity-60 hover:opacity-100 grayscale hover:grayscale-0"
+                        !isToys ? "bg-slate-50" : "bg-transparent opacity-60 hover:opacity-100 grayscale hover:grayscale-0",
+                        isPending && "opacity-50 cursor-not-allowed"
                     )}
                     style={{ borderColor: !isToys ? '#eab308' : 'transparent' }} 
                 >
@@ -205,7 +234,6 @@ export function NavbarClient({ categories }: NavbarClientProps) {
       </div>
 
       {/* 2. NAVBAR PRINCIPAL */}
-      {/* Sticky: top-0 y z-50 asegurados */}
       <header 
         className={cn(
             "w-full py-4 shadow-sm sticky top-0 z-50 transition-all duration-300", 
@@ -274,12 +302,15 @@ export function NavbarClient({ categories }: NavbarClientProps) {
           </div>
 
           {/* MENÚ MÓVIL */}
+          <Button 
+            variant="ghost" 
+            className={cn("md:hidden flex items-center p-2", navTextClass)}
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+             <Menu className="h-8 w-8" />
+          </Button>
+
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-                <Button variant="ghost" className={cn("md:hidden flex items-center p-2", navTextClass)}>
-                    <Menu className="h-8 w-8" />
-                </Button>
-            </SheetTrigger>
             <SheetContent side="left" className="w-[300px] p-0 z-[100]"> 
                 <div className="flex flex-col h-full bg-white">
                     <div className="px-6 py-6 border-b bg-slate-50">
@@ -312,48 +343,46 @@ export function NavbarClient({ categories }: NavbarClientProps) {
 
           {/* ICONOS DERECHA */}
           <div className="flex items-center gap-2 md:gap-3 ml-auto md:ml-0">
-             
-             {/* LOGIN */}
-             <Button 
+              
+              {/* LOGIN */}
+              <Button 
                 variant="ghost" 
                 className={cn(
                     "hidden lg:flex flex-row items-center gap-2 h-11 px-3 text-left border rounded-lg transition-all duration-200",
                     buttonHoverClass
                 )}
-             >
+              >
                 <User className="h-6 w-6" />
                 <div className="flex flex-col leading-none">
                     <span className="text-[10px] opacity-80 font-normal">Hola,</span>
                     <span className="text-sm font-bold">Inicia Sesión</span>
                 </div>
                 <ChevronDown className="h-3 w-3 opacity-70 ml-1" />
-             </Button>
+              </Button>
 
-             <div className={cn("hidden lg:block h-8 w-px mx-1", isToys ? "bg-white/30" : "bg-slate-300")}></div>
+              <div className={cn("hidden lg:block h-8 w-px mx-1", isToys ? "bg-white/30" : "bg-slate-300")}></div>
 
-             {/* FAVORITOS */}
-             <Button 
+              {/* FAVORITOS */}
+              <Button 
                 variant="ghost" 
                 size="icon"
                 className={cn("hidden md:flex h-11 w-11 border rounded-lg transition-all duration-200", buttonHoverClass)}
-             >
-                 <Heart className="h-6 w-6" />
-             </Button>
+              >
+                  <Heart className="h-6 w-6" />
+              </Button>
 
-             {/* CARRITO */}
-             <CartSidebar>
+              {/* CARRITO */}
+              <CartSidebar>
                 <Button 
                     variant="ghost" 
                     className={cn(
                         "relative flex items-center gap-2 h-11 px-4 group border rounded-lg transition-all duration-200",
                         buttonHoverClass,
-                        // En FiestasYa forzamos icono rosa si no hay hover
                         !isToys && "text-[#ec4899] group-hover:text-[#ec4899]"
                     )}
                 >
                 <div className="relative">
                     <ShoppingCart className="h-6 w-6" />
-                    {/* Badge Sólido: Círculo Rosa, Texto Blanco */}
                     {loaded && getTotalItems() > 0 && (
                         <span className={cn(
                             "absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold shadow-sm ring-1 ring-white animate-in zoom-in",
@@ -364,10 +393,10 @@ export function NavbarClient({ categories }: NavbarClientProps) {
                     )}
                 </div>
                 <div className="hidden xl:flex flex-col items-start leading-none ml-1">
-                     <span className="text-sm font-bold">Carrito</span>
+                      <span className="text-sm font-bold">Carrito</span>
                 </div>
                 </Button>
-            </CartSidebar>
+              </CartSidebar>
           </div>
         </div>
 

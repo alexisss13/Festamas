@@ -1,40 +1,40 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { getProducts } from './products';
+import { Division } from '@prisma/client'; // Importamos el Enum real
 import { getHomeSections } from './home-sections';
 
-export const getHomeData = async () => {
+// 🛡️ FIX: La función ahora exige saber en qué división estamos
+export const getHomeData = async (division: Division) => {
   try {
-    // 1. Novedades (Últimos 8 productos)
+    // 1. Novedades (Últimos 8 productos DE LA DIVISIÓN ACTUAL)
     const newArrivals = await prisma.product.findMany({
       take: 8,
-      where: { isAvailable: true },
+      where: { 
+        isAvailable: true,
+        division: division // 👈 ¡Faltaba esto!
+      },
       orderBy: { createdAt: 'desc' },
-      include: { category: true } // Necesario para la Card
+      include: { category: true } 
     });
 
-    // 2. Categorías Destacadas (Para el Bento Grid)
-    // Solo traemos las que tienen productos y (idealmente) imagen
-    // 2. Categorías: Agregamos ordenamiento o filtro si quisieras
-    // Por ahora traemos las que tienen más productos, sin importar tienda para dar variedad
-    // Si quieres filtrar, agrega: where: { division: 'JUGUETERIA' } (o lo que aplique)
+    // 2. Categorías Destacadas (Solo de esta división)
     const categories = await prisma.category.findMany({
-      take: 5, 
+      take: 6, 
       where: { 
-        products: { some: {} } 
-        // Si quieres separar tiendas estrictamente, aquí deberías filtrar.
-        // Pero en la Home Unificada, es mejor mostrar un mix de las top categorías.
+        division: division, // 👈 ¡Faltaba esto!
+        products: { some: {} } // Que tengan al menos un producto
       },
       orderBy: {
-        products: { _count: 'desc' } // Las categorías con más productos primero
+        products: { _count: 'desc' } 
       },
       include: {
         _count: { select: { products: true } }
       }
     });
 
-    // 3. Banner Intermedio (Middle Section)
+    // 3. Banner Intermedio (Opcional: Si tus banners tienen división, fíltralos también)
+    // Asumo que el banner "MIDDLE_SECTION" es global por ahora, si no, agrega el where.
     const middleBanner = await prisma.banner.findFirst({
       where: { 
         position: 'MIDDLE_SECTION',
@@ -43,8 +43,8 @@ export const getHomeData = async () => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // 4. Secciones por Tag (Configuradas en Admin)
-    const { sections } = await getHomeSections(true);
+    // 4. Secciones por Tag (Le pasamos la división)
+    const { sections } = await getHomeSections(division, true);
 
     return {
       newArrivals: newArrivals.map(p => ({

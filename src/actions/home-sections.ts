@@ -13,11 +13,14 @@ export interface HomeSectionInput {
   order: number;
 }
 
-// Obtener todas las secciones (Público + Admin)
-export const getHomeSections = async (onlyActive = true) => {
+// 🛡️ FIX: Agregamos 'division' como parámetro obligatorio
+export const getHomeSections = async (division: Division, onlyActive = true) => {
   try {
     const sections = await prisma.homeSection.findMany({
-      where: onlyActive ? { isActive: true } : {},
+      where: {
+        division: division, // 👈 FILTRO CRÍTICO
+        isActive: onlyActive ? true : undefined, 
+      },
       orderBy: { order: 'asc' },
     });
     return { ok: true, sections };
@@ -35,7 +38,7 @@ export const saveHomeSection = async (data: HomeSectionInput, id?: string) => {
     } else {
       await prisma.homeSection.create({ data });
     }
-    revalidatePath('/'); // Actualizar la Home
+    revalidatePath('/'); 
     revalidatePath('/admin/sections');
     return { ok: true, message: 'Sección guardada' };
   } catch (error) {
@@ -44,7 +47,6 @@ export const saveHomeSection = async (data: HomeSectionInput, id?: string) => {
   }
 };
 
-// Eliminar Sección
 export const deleteHomeSection = async (id: string) => {
   try {
     await prisma.homeSection.delete({ where: { id } });

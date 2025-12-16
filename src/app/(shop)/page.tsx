@@ -1,5 +1,4 @@
-export const revalidate = 60; 
-
+import { cookies } from 'next/headers'; // 👈 IMPORTANTE
 import { getHomeData } from '@/actions/home-data';
 import { getProductsByTag } from '@/actions/products';
 import { Hero } from '@/components/ui/Hero';
@@ -9,12 +8,25 @@ import { ProductCarousel } from '@/components/features/ProductCarousel';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { Division } from '@prisma/client';
 
 export default async function Home() {
-  const { newArrivals, categories, middleBanner, sections } = await getHomeData();
+  // 1. LEER COOKIE DEL SERVIDOR
+  const cookieStore = await cookies();
+  const divisionCookie = cookieStore.get('festamas_division')?.value as Division;
+  
+  // 2. VALIDAR (Por seguridad, si la cookie está corrupta o vacía, JUGUETERIA por defecto)
+  const currentDivision = (divisionCookie === 'FIESTAS' || divisionCookie === 'JUGUETERIA') 
+    ? divisionCookie 
+    : 'JUGUETERIA';
+
+  // 3. PEDIR DATOS FILTRADOS
+  const { newArrivals, categories, middleBanner, sections } = await getHomeData(currentDivision);
 
   const sectionsWithProducts = await Promise.all(
     sections.map(async (section) => {
+      // Nota: Aquí 'section.division' ya debería coincidir con currentDivision si el Action getHomeData filtra bien,
+      // pero pasamos 'section.division' para ser explícitos.
       const { products } = await getProductsByTag(section.tag, 8, section.division);
       return { ...section, products };
     })
@@ -31,7 +43,6 @@ export default async function Home() {
           <section>
             <div className="flex items-center justify-between mb-2 px-2">
               <div className="flex items-center gap-2">
-                {/* TÍTULO LIMPIO (Sin emojis) */}
                 <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-700">
                   Recién Llegados
                 </h2>
@@ -44,7 +55,6 @@ export default async function Home() {
               </Button>
             </div>
             
-            {/* Carrusel Automático */}
             <ProductCarousel products={newArrivals as any} autoPlay={true} />
           </section>
         )}
@@ -83,9 +93,9 @@ export default async function Home() {
               <ProductCarousel products={section.products as any} autoPlay={true} />
               
               <div className="mt-4 px-2 sm:hidden">
-                 <Button variant="outline" className="w-full" asChild>
+                  <Button variant="outline" className="w-full" asChild>
                     <Link href={`/search?tag=${section.tag}`}>Ver colección</Link>
-                 </Button>
+                  </Button>
               </div>
             </section>
           );
