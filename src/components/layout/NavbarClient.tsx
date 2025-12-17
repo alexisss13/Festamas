@@ -4,15 +4,17 @@ import { useEffect, useState, useRef, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, ShoppingCart, ChevronDown, Menu, MapPin, Heart, User, Home, Loader2 } from 'lucide-react';
+import { Search, ShoppingCart, ChevronDown, Menu, MapPin, Heart, User, Home, Loader2, LogOut, Settings, UserPlus, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useCartStore } from '@/store/cart';
 import { useUIStore, Division } from '@/store/ui';
 import { CartSidebar } from '@/components/features/CartSidebar';
 import { setCookie } from 'cookies-next';
+import { logout } from '@/actions/auth-actions';
 
 interface Category {
   id: string; 
@@ -21,9 +23,18 @@ interface Category {
   division: Division;
 }
 
+interface UserSession {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+}
+
 interface NavbarClientProps {
   categories: Category[];
   defaultDivision: Division;
+  user?: UserSession | null;
 }
 
 // --- BUSCADOR ---
@@ -74,7 +85,7 @@ function SearchInput({ onSearch, className, btnBgColor, iconColor, isTransparent
   );
 }
 
-export function NavbarClient({ categories, defaultDivision }: NavbarClientProps) {
+export function NavbarClient({ categories, defaultDivision, user }: NavbarClientProps) {
   const router = useRouter();
   const { getTotalItems } = useCartStore();
   const { setDivision } = useUIStore();
@@ -93,9 +104,11 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
   
   const [loaded, setLoaded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -104,6 +117,7 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
 
   useEffect(() => {
     if (isMenuOpen) setIsMenuOpen(false);
+    if (isUserMenuOpen) setIsUserMenuOpen(false);
     if (isMobileMenuOpen) setIsMobileMenuOpen(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
@@ -113,14 +127,17 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [menuRef]);
+  }, [menuRef, userMenuRef]);
 
-  // 🔄 CAMBIO INSTANTÁNEO + SPINNER
+  // 🔄 CAMBIO INSTANTÁNEO
   const handleDivisionChange = (newDivision: Division) => {
     if (optimisticDivision === newDivision) return;
     
@@ -134,15 +151,19 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
     });
   };
 
+  const handleLogout = async () => {
+    await logout();
+    window.location.reload();
+  };
+
   const currentDivision = optimisticDivision; 
   const isToys = currentDivision === 'JUGUETERIA';
   const filteredCategories = categories.filter(cat => cat.division === currentDivision);
   const brandName = isToys ? 'Festamas' : 'FiestasYa';
   
-  // --- COLORES ---
+  // --- COLORES & ESTILOS DINÁMICOS ---
   const festamasPink = '#fc4b65';
-  const fiestasBrandPink = '#ec4899'; 
-
+  
   const navbarStyleClass = isToys 
     ? "bg-[#fc4b65]" 
     : "bg-white/95 backdrop-blur-md border-b border-slate-200";
@@ -151,12 +172,11 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
   
   const buttonHoverClass = isToys 
     ? "border-white/40 hover:bg-white hover:text-[#fc4b65] hover:border-white text-white" 
-    : `border-transparent text-slate-600 hover:bg-pink-50 hover:text-[${fiestasBrandPink}] hover:border-pink-100`;
+    : "border-transparent text-slate-600 hover:bg-pink-50 hover:text-[#ec4899] hover:border-pink-100";
 
-  // 🛡️ FIX HOVER: Agregamos estilos hover explícitos para que NO cambie a negro
   const activeMenuClass = isToys 
     ? "bg-white text-[#fc4b65] border-white shadow-md hover:bg-white hover:text-[#fc4b65]" 
-    : `bg-pink-50 text-[${fiestasBrandPink}] border-pink-100 shadow-md hover:bg-pink-50 hover:text-[${fiestasBrandPink}]`;
+    : "bg-pink-50 text-[#ec4899] border-pink-100 shadow-md hover:bg-pink-50 hover:text-[#ec4899]";
 
   const badgeClass = isToys 
     ? "bg-white text-[#fc4b65]" 
@@ -165,8 +185,14 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
   const searchBtnColor = isToys ? '#be123c' : 'transparent';
   const searchIconColor = isToys ? '#ffffff' : '#64748b'; 
 
-  const dropdownBrandColor = isToys ? "text-[#fc4b65]" : `text-[${fiestasBrandPink}]`;
-  const dropdownHoverColor = isToys ? "hover:text-[#fc4b65]" : `hover:text-[${fiestasBrandPink}]`;
+  const dropdownBrandColor = isToys ? "text-[#fc4b65]" : "text-[#ec4899]";
+  const dropdownHoverColor = isToys ? "hover:text-[#fc4b65]" : "hover:text-[#ec4899]";
+  
+  // 🔥 NUEVOS: Variables de color explícitas para evitar 'text-primary'
+  const textPrimaryClass = isToys ? "text-[#fc4b65]" : "text-[#ec4899]";
+  const hoverPrimaryTextClass = isToys ? "hover:text-[#fc4b65]" : "hover:text-[#ec4899]";
+  const groupHoverPrimaryTextClass = isToys ? "group-hover:text-[#fc4b65]" : "group-hover:text-[#ec4899]";
+  const bgPrimaryLightClass = isToys ? "bg-[#fc4b65]/10" : "bg-[#ec4899]/10";
 
   const iconFestamas = '/images/IconoFestamas.png';
   const iconFiestasYa = '/images/IconoFiestasYa.png';
@@ -174,7 +200,7 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
 
   return (
     <>
-      {/* 🛡️ OVERLAY SÓLIDO */}
+      {/* 🛡️ OVERLAY DE CARGA */}
       {isPending && (
         <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-in duration-200">
             <Loader2 
@@ -192,7 +218,7 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
         </div>
       )}
 
-      {/* 1. SUPER HEADER */}
+      {/* 1. SUPER HEADER (SELECTOR DIVISIÓN) */}
       <div className="w-full h-9 bg-white border-b border-slate-100 flex items-center z-[60] relative text-[11px]">
         <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 flex items-center justify-between h-full">
             <div className="flex h-full mr-auto">
@@ -269,7 +295,7 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
                 <ChevronDown className={cn("h-5 w-5 stroke-[3] transition-transform duration-300", isMenuOpen && "rotate-180")} />
             </Button>
 
-            {/* MENÚ DESPLEGABLE */}
+            {/* MENÚ DESPLEGABLE CATEGORIAS */}
             {isMenuOpen && (
                 <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 origin-top-left z-60">
                     <nav className="flex flex-col py-1">
@@ -318,6 +344,31 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
                             <Image src={activeIconPath} alt={brandName} fill className="object-contain object-left" />
                         </div>
                     </div>
+                    
+                    {/* Usuario en Móvil */}
+                    <div className="p-4 bg-slate-50 border-b border-slate-100">
+                      {user ? (
+                         <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border border-white shadow-sm">
+                                <AvatarImage src={user.image || ''} />
+                                <AvatarFallback className={cn("font-bold", bgPrimaryLightClass, textPrimaryClass)}>
+                                    {user.name?.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col overflow-hidden">
+                                <span className="font-bold text-slate-800 truncate">{user.name}</span>
+                                <span className="text-xs text-slate-500 truncate">{user.email}</span>
+                            </div>
+                         </div>
+                      ) : (
+                        <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button className={cn("w-full text-white", isToys ? "bg-[#fc4b65] hover:bg-[#e11d48]" : "bg-[#ec4899] hover:bg-[#be185d]")}>
+                                Iniciar Sesión / Registrarse
+                            </Button>
+                        </Link>
+                      )}
+                    </div>
+
                     <nav className="flex-1 p-4 overflow-y-auto">
                         <Link 
                             href="/" 
@@ -327,8 +378,20 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
                             Inicio
                         </Link>
                         {filteredCategories.map((cat) => (
-                            <Link key={cat.id} href={`/category/${cat.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="block p-3 border-b border-slate-50 text-slate-700 text-lg capitalize hover:text-primary">{cat.name}</Link>
+                            <Link key={cat.id} href={`/category/${cat.slug}`} onClick={() => setIsMobileMenuOpen(false)} className={cn("block p-3 border-b border-slate-50 text-slate-700 text-lg capitalize transition-colors", hoverPrimaryTextClass)}>{cat.name}</Link>
                         ))}
+                        
+                        {/* Links extra para usuario móvil */}
+                        {user && (
+                            <>
+                                <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className={cn("flex items-center gap-2 p-3 border-b border-slate-50 text-slate-600 transition-colors", hoverPrimaryTextClass)}>
+                                    <User className="h-4 w-4" /> Mi Perfil
+                                </Link>
+                                <button onClick={handleLogout} className="w-full flex items-center gap-2 p-3 text-red-500 hover:bg-red-50 text-left">
+                                    <LogOut className="h-4 w-4" /> Cerrar Sesión
+                                </button>
+                            </>
+                        )}
                     </nav>
                 </div>
             </SheetContent>
@@ -344,21 +407,99 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
           {/* ICONOS DERECHA */}
           <div className="flex items-center gap-2 md:gap-3 ml-auto md:ml-0">
               
-              {/* LOGIN */}
-              <Button 
-                variant="ghost" 
-                className={cn(
-                    "hidden lg:flex flex-row items-center gap-2 h-11 px-3 text-left border rounded-lg transition-all duration-200",
-                    buttonHoverClass
+              {/* 👤 USUARIO DROPDOWN */}
+              <div className="relative hidden lg:block" ref={userMenuRef}>
+                <Button 
+                    variant="ghost" 
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className={cn(
+                        "flex flex-row items-center gap-2 h-11 px-3 text-left border rounded-lg transition-all duration-200",
+                        isUserMenuOpen ? activeMenuClass : buttonHoverClass
+                    )}
+                >
+                    {user ? (
+                        // Si está logueado: Avatar + Nombre
+                        <>
+                           <Avatar className="h-7 w-7 border border-white/20">
+                                <AvatarImage src={user.image || ''} />
+                                <AvatarFallback className={cn("text-[10px] font-bold", isToys ? "text-[#fc4b65] bg-white" : "text-white bg-[#ec4899]")}>
+                                    {user.name?.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                           </Avatar>
+                           <div className="flex flex-col leading-none max-w-[100px]">
+                                <span className="text-[10px] opacity-80 font-normal truncate">Hola,</span>
+                                <span className="text-sm font-bold truncate">{user.name?.split(' ')[0]}</span>
+                           </div>
+                        </>
+                    ) : (
+                        // Si NO está logueado: Icono + "Inicia Sesión"
+                        <>
+                            <User className="h-6 w-6" />
+                            <div className="flex flex-col leading-none">
+                                <span className="text-[10px] opacity-80 font-normal">Hola,</span>
+                                <span className="text-sm font-bold">Inicia Sesión</span>
+                            </div>
+                        </>
+                    )}
+                    <ChevronDown className={cn("h-3 w-3 opacity-70 ml-1 transition-transform", isUserMenuOpen && "rotate-180")} />
+                </Button>
+
+                {/* MENÚ DESPLEGABLE USUARIO */}
+                {isUserMenuOpen && (
+                    <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 z-60">
+                        {user ? (
+                            // Opciones Logueado
+                            <div className="flex flex-col py-1">
+                                <div className="px-4 py-3 border-b border-slate-50 bg-slate-50/50">
+                                    <p className="text-sm font-bold text-slate-800 truncate">{user.name}</p>
+                                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                                </div>
+                                <Link 
+                                    href="/profile" 
+                                    onClick={() => setIsUserMenuOpen(false)}
+                                    className={cn("flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors", hoverPrimaryTextClass)}
+                                >
+                                    <User className="h-4 w-4" /> Mi Perfil
+                                </Link>
+                                {user.role === 'ADMIN' && (
+                                    <Link 
+                                        href="/admin/dashboard" 
+                                        onClick={() => setIsUserMenuOpen(false)}
+                                        className={cn("flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors", hoverPrimaryTextClass)}
+                                    >
+                                        <Settings className="h-4 w-4" /> Panel Admin
+                                    </Link>
+                                )}
+                                <div className="h-px bg-slate-100 my-1"></div>
+                                <button 
+                                    onClick={handleLogout}
+                                    className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 w-full text-left transition-colors"
+                                >
+                                    <LogOut className="h-4 w-4" /> Cerrar Sesión
+                                </button>
+                            </div>
+                        ) : (
+                            // Opciones Guest
+                            <div className="flex flex-col py-1">
+                                <Link 
+                                    href="/auth/login" 
+                                    onClick={() => setIsUserMenuOpen(false)}
+                                    className={cn("flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors font-medium", hoverPrimaryTextClass)}
+                                >
+                                    <LogIn className="h-4 w-4" /> Iniciar Sesión
+                                </Link>
+                                <Link 
+                                    href="/auth/new-account" 
+                                    onClick={() => setIsUserMenuOpen(false)}
+                                    className={cn("flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors font-medium", hoverPrimaryTextClass)}
+                                >
+                                    <UserPlus className="h-4 w-4" /> Crear Cuenta
+                                </Link>
+                            </div>
+                        )}
+                    </div>
                 )}
-              >
-                <User className="h-6 w-6" />
-                <div className="flex flex-col leading-none">
-                    <span className="text-[10px] opacity-80 font-normal">Hola,</span>
-                    <span className="text-sm font-bold">Inicia Sesión</span>
-                </div>
-                <ChevronDown className="h-3 w-3 opacity-70 ml-1" />
-              </Button>
+              </div>
 
               <div className={cn("hidden lg:block h-8 w-px mx-1", isToys ? "bg-white/30" : "bg-slate-300")}></div>
 
@@ -408,10 +549,10 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
       </header>
 
       {/* BACKDROP */}
-      {isMenuOpen && (
+      {(isMenuOpen || isUserMenuOpen) && (
         <div 
             className="fixed inset-0 bg-black/50 backdrop-blur-[1px] z-40 transition-opacity duration-300"
-            onClick={() => setIsMenuOpen(false)}
+            onClick={() => { setIsMenuOpen(false); setIsUserMenuOpen(false); }}
         />
       )}
 
@@ -419,8 +560,8 @@ export function NavbarClient({ categories, defaultDivision }: NavbarClientProps)
       <div className="hidden md:block w-full bg-white border-b border-slate-200 py-2 relative z-30">
         <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 flex items-center justify-between text-sm">
             <div className="flex items-center gap-6">
-                <button className="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors group">
-                    <MapPin className="h-5 w-5 text-slate-400 group-hover:text-primary" />
+                <button className={cn("flex items-center gap-2 text-slate-600 transition-colors group", hoverPrimaryTextClass)}>
+                    <MapPin className={cn("h-5 w-5 text-slate-400", groupHoverPrimaryTextClass)} />
                     <span className="font-medium">Ingresa tu ubicación</span>
                 </button>
                 <Link href="/tiendas" className="text-slate-500 hover:text-slate-800 transition-colors">Nuestras Tiendas</Link>

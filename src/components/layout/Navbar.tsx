@@ -1,7 +1,8 @@
 import prisma from '@/lib/prisma';
 import { NavbarClient } from './NavbarClient';
-import { cookies } from 'next/headers'; // 👈 Importamos esto
+import { cookies } from 'next/headers';
 import { Division } from '@prisma/client';
+import { auth } from '@/auth'; // 👈 Importamos auth
 
 export async function Navbar() {
   const categories = await prisma.category.findMany({
@@ -14,17 +15,23 @@ export async function Navbar() {
     }
   });
 
-  // 1. Leemos la cookie del servidor (Verdad Absoluta)
   const cookieStore = await cookies();
   const rawDivision = cookieStore.get('festamas_division')?.value;
   
-  // 2. Validamos que sea correcta (JUGUETERIA o FIESTAS)
   const defaultDivision: Division = (rawDivision === 'FIESTAS' || rawDivision === 'JUGUETERIA') 
     ? rawDivision 
     : 'JUGUETERIA';
 
-  // 3. Se la pasamos al cliente
-  return <NavbarClient categories={categories} defaultDivision={defaultDivision} />;
+  // 🔐 4. Obtenemos la sesión del usuario
+  const session = await auth();
+
+  return (
+    <NavbarClient 
+      categories={categories} 
+      defaultDivision={defaultDivision}
+      user={session?.user} // 👈 Se la pasamos al cliente
+    />
+  );
 }
 
 export const revalidate = 60;

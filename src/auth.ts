@@ -1,7 +1,8 @@
+// src/auth.ts
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import Google from 'next-auth/providers/google'; // 1. Importar Google
-import { PrismaAdapter } from '@auth/prisma-adapter'; // 2. Importar Adaptador
+import Google from 'next-auth/providers/google';
+import { PrismaAdapter } from '@auth/prisma-adapter';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
@@ -9,19 +10,20 @@ import { authConfig } from './auth.config';
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
-  // 3. CONECTAR LA BASE DE DATOS (IMPORTANTE: castear a 'any' para evitar error de tipos)
-  adapter: PrismaAdapter(prisma) as any, 
+  adapter: PrismaAdapter(prisma) as any,
+  session: { strategy: 'jwt' },
   
-  session: { strategy: 'jwt' }, // Usamos JWT para que sea rápido
-  
+  // 🔍 Activa esto para ver los logs en la terminal si algo falla
+  debug: true,
+
   providers: [
-    // 4. Configurar Google
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // 🚨 IMPORTANTE: Esto permite unir cuentas si el email ya existe
+      allowDangerousEmailAccountLinking: true, 
     }),
-    
-    // Configurar Credenciales (Correo y Clave)
+
     Credentials({
       async authorize(credentials) {
         const parsedCredentials = z
@@ -30,12 +32,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
-          
           const user = await prisma.user.findUnique({ where: { email } });
-          if (!user) return null;
-
-          // Si el usuario no tiene password (es de Google), no puede entrar por aquí
-          if (!user.password) return null;
+          
+          if (!user || !user.password) return null;
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
           if (passwordsMatch) {
@@ -44,8 +43,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             return userWithoutPassword as any;
           }
         }
-
-        console.log('Credenciales inválidas');
         return null;
       },
     }),
