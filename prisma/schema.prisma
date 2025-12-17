@@ -10,11 +10,107 @@ datasource db {
 }
 
 // 🌍 ENUM DIVISIÓN
-// JUGUETERIA = Festamas (Marca Principal)
-// FIESTAS = FiestasYa (División Secundaria)
 enum Division {
   JUGUETERIA
   FIESTAS
+}
+
+enum Role {
+  ADMIN
+  SELLER
+  USER
+}
+
+// 👤 USUARIOS (Modificado para Google)
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? // 👈 Requerido por Google
+  image         String?   // 👈 Foto de Google
+  password      String?   // 👈 OJO: Ahora es opcional (?)
+  role          Role      @default(USER)
+  
+  accounts      Account[] // 👈 Relación obligatoria
+  sessions      Session[]
+  
+  // Tus relaciones existentes
+  orders        Order[]     
+  addresses     Address[]   
+  favorites     Favorite[]  
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// 🔐 TABLAS DE NEXTAUTH (OBLIGATORIAS PARA GOOGLE)
+model Account {
+  id                 String  @id @default(uuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}    
+
+// ... EL RESTO DE TU SCHEMA SIGUE IGUAL ...
+// (Pego el resto para asegurar que no se pierda nada)
+
+// 📍 DIRECCIONES
+model Address {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  phone     String
+  address   String   
+  address2  String?  
+  city      String   
+  province  String?  
+  
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ❤️ FAVORITOS
+model Favorite {
+  id        String   @id @default(uuid())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+
+  @@unique([userId, productId])
 }
 
 // 📦 PRODUCTOS
@@ -29,15 +125,13 @@ model Product {
   
   isAvailable Boolean  @default(true)
   
-  // --- NUEVOS CAMPOS ---
-  wholesalePrice     Decimal? @db.Decimal(10, 2) // Precio por mayor (Opcional)
-  wholesaleMinCount  Int?     // Cantidad mínima para aplicar precio mayorista
+  wholesalePrice     Decimal? @db.Decimal(10, 2) 
+  wholesaleMinCount  Int?     
   
-  discountPercentage Int      @default(0) // Descuento porcentual (0 = sin descuento)
+  discountPercentage Int      @default(0) 
   
-  tags               String[] // Etiquetas: ["niño", "verano", "oferta"]
+  tags               String[] 
   
-  // Variantes (existentes)
   color       String?
   groupTag    String?
 
@@ -47,6 +141,7 @@ model Product {
   categoryId  String
 
   orderItems  OrderItem[]
+  favorites   Favorite[] 
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -58,9 +153,7 @@ model Category {
   name      String
   slug      String   @unique
   division  Division @default(JUGUETERIA)
-
-  // 👇 AGREGAMOS ESTO:
-  image     String?  // URL de la imagen (Opcional por si alguna no tiene)
+  image     String?  
 
   products  Product[]
 
@@ -70,24 +163,25 @@ model Category {
 
 // 🛍️ PEDIDOS
 model Order {
-  id            String      @id @default(uuid())
-  
-  totalAmount   Decimal     @db.Decimal(10, 2)
-  totalItems    Int
-  status        OrderStatus @default(PENDING)
-  isPaid        Boolean     @default(false)
-  
-  clientName    String
-  clientPhone   String
-  deliveryMethod String   @default("PICKUP") 
+  id             String      @id @default(uuid())
+  totalAmount    Decimal     @db.Decimal(10, 2)
+  totalItems     Int
+  status         OrderStatus @default(PENDING)
+  isPaid         Boolean     @default(false)
+  clientName     String
+  clientPhone    String
+  deliveryMethod String      @default("PICKUP") 
   shippingAddress String?
-  shippingCost    Decimal  @default(0) @db.Decimal(10, 2)
-  notes           String?
+  shippingCost   Decimal     @default(0) @db.Decimal(10, 2)
+  notes          String?
   
-  orderItems    OrderItem[]
+  user           User?       @relation(fields: [userId], references: [id])
+  userId         String?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  orderItems     OrderItem[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model OrderItem {
@@ -109,38 +203,18 @@ enum OrderStatus {
   CANCELLED
 }
 
-// 👤 USUARIOS
-model User {
-  id            String    @id @default(uuid())
-  name          String
-  email         String    @unique
-  password      String
-  role          Role      @default(USER)
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
-enum Role {
-  ADMIN
-  USER
-}
-
 model StoreConfig {
   id             String   @id @default(uuid())
   whatsappPhone  String   @default("51999999999")
   welcomeMessage String   @default("Hola Festamas, quiero confirmar mi pedido...")
   localDeliveryPrice Decimal @default(10.00) @db.Decimal(10, 2)
-
-  // HERO CONFIG
   heroImage       String?
   heroTitle       String   @default("Juguetes y Alegría")
   heroSubtitle    String   @default("Encuentra el regalo perfecto en Festamas")
   heroButtonText  String   @default("Ver Juguetes")
   heroButtonLink  String   @default("#catalogo")
   heroBtnColor    String   @default("#fb3099")
-  
-  updatedAt      DateTime @updatedAt
+  updatedAt       DateTime @updatedAt
 }
 
 model Coupon {
@@ -149,7 +223,6 @@ model Coupon {
   discount  Decimal  @db.Decimal(10, 2)
   type      CouponType @default(FIXED)
   isActive  Boolean  @default(true)
-  
   createdAt DateTime @default(now())
 }
 
@@ -158,30 +231,26 @@ enum CouponType {
   PERCENTAGE
 }
 
-// schema.prisma
-
 enum BannerPosition {
-  TOP_STRIP      // Cintillo arriba
-  MAIN_HERO      // Carrusel Principal
-  MIDDLE_SECTION // Banner intermedio (Promo cruzada)
+  TOP_STRIP      
+  MAIN_HERO      
+  MIDDLE_SECTION 
 }
 
 model Banner {
   id          String   @id @default(uuid())
-  title       String   // Nombre interno para que lo ubiques
-  imageUrl    String   // URL de Cloudinary/S3
-  mobileUrl   String?  // Opcional: URL versión móvil (recomendado)
-  link        String?  // A donde te lleva si das clic (/category/lego)
+  title       String   
+  imageUrl    String   
+  mobileUrl   String?  
+  link        String?  
   position    BannerPosition
-  division    Division // 'JUGUETERIA' o 'FIESTAS' (Importado de tu enum existente)
+  division    Division 
   active      Boolean  @default(true)
-  order       Int      @default(0) // Para ordenar (1, 2, 3...)
-  
+  order       Int      @default(0) 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
-// 👇 PEGA ESTO AL FINAL DEL ARCHIVO
 model HomeSection {
   id          String   @id @default(uuid())
   title       String   
@@ -191,7 +260,6 @@ model HomeSection {
   icon        String   @default("star")
   order       Int      @default(0)
   isActive    Boolean  @default(true)
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
