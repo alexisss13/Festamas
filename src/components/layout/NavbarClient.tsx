@@ -11,12 +11,14 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useCartStore } from '@/store/cart';
-import { useUIStore, Division } from '@/store/ui';
+import { useUIStore } from '@/store/ui';
 import { useFavoritesStore } from '@/store/favorites'; 
 import { CartSidebar } from '@/components/features/CartSidebar';
 import { setCookie } from 'cookies-next';
 import { logout } from '@/actions/auth-actions';
+import { Division } from '@prisma/client'; // 👈 Importamos el tipo real desde Prisma
 
+// --- TYPES ---
 interface Category {
   id: string; 
   name: string; 
@@ -86,6 +88,7 @@ function SearchInput({ onSearch, className, btnBgColor, iconColor, isTransparent
   );
 }
 
+// --- COMPONENTE PRINCIPAL ---
 export function NavbarClient({ categories, defaultDivision, user }: NavbarClientProps) {
   const router = useRouter();
   const { getTotalItems } = useCartStore();
@@ -101,7 +104,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   // ⏳ HOOK DE TRANSICIÓN
   const [isPending, startTransition] = useTransition();
 
-  // 2. SINCRONIZACIÓN
+  // 2. SINCRONIZACIÓN INICIAL
   useEffect(() => {
      setOptimisticDivision(defaultDivision);
      setDivision(defaultDivision);
@@ -142,7 +145,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
     };
   }, [menuRef, userMenuRef]);
 
-  // 🔄 CAMBIO INSTANTÁNEO
+  // 🔄 CAMBIO INSTANTÁNEO DE TIENDA (LÓGICA CRÍTICA)
   const handleDivisionChange = (newDivision: Division) => {
     if (optimisticDivision === newDivision) return;
     
@@ -152,7 +155,13 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
     setCookie('festamas_division', newDivision, { maxAge: 60 * 60 * 24 * 30, path: '/' }); 
 
     startTransition(() => {
-        router.refresh(); 
+        // 🛠️ FIX: Si no estamos en el Home, redirigir al Home de la nueva tienda
+        // para evitar errores 404 en productos que no existen en la otra división.
+        if (pathname !== '/') {
+            router.push('/');
+        } else {
+            router.refresh(); 
+        }
     });
   };
 
