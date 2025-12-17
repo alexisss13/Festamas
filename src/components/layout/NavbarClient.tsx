@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, ShoppingCart, ChevronDown, Menu, MapPin, Heart, User, Home, Loader2, LogOut, Settings, UserPlus, LogIn } from 'lucide-react';
+import { Search, ShoppingCart, ChevronDown, Menu, MapPin, Heart, User, Home, Loader2, LogOut, Settings, UserPlus, LogIn, MapPinned } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useCartStore } from '@/store/cart';
 import { useUIStore, Division } from '@/store/ui';
-import { useFavoritesStore } from '@/store/favorites'; // 👈 IMPORTAR STORE
+import { useFavoritesStore } from '@/store/favorites'; 
 import { CartSidebar } from '@/components/features/CartSidebar';
 import { setCookie } from 'cookies-next';
 import { logout } from '@/actions/auth-actions';
@@ -36,7 +36,6 @@ interface NavbarClientProps {
   categories: Category[];
   defaultDivision: Division;
   user?: UserSession | null;
-  // favoritesCount ya no es necesario como prop porque lo leemos del store
 }
 
 // --- BUSCADOR ---
@@ -92,7 +91,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   const { getTotalItems } = useCartStore();
   const { setDivision } = useUIStore();
   
-  // 🧠 CONECTAR AL STORE DE FAVORITOS (Para contador en tiempo real)
+  // 🧠 CONECTAR AL STORE DE FAVORITOS
   const favorites = useFavoritesStore(state => state.favorites);
   const favoritesCount = favorites.length;
   
@@ -385,22 +384,22 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                         <Link href="/favorites" onClick={() => setIsMobileMenuOpen(false)} className={cn("flex items-center gap-2 p-3 border-b border-slate-50 text-slate-600 transition-colors", hoverPrimaryTextClass)}>
                             <Heart className="h-4 w-4" /> Favoritos {favoritesCount > 0 && `(${favoritesCount})`}
                         </Link>
-
-                        {filteredCategories.map((cat) => (
-                            <Link key={cat.id} href={`/category/${cat.slug}`} onClick={() => setIsMobileMenuOpen(false)} className={cn("block p-3 border-b border-slate-50 text-slate-700 text-lg capitalize transition-colors", hoverPrimaryTextClass)}>{cat.name}</Link>
-                        ))}
-                        
-                        {/* Links extra para usuario móvil */}
                         {user && (
                             <>
                                 <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className={cn("flex items-center gap-2 p-3 border-b border-slate-50 text-slate-600 transition-colors", hoverPrimaryTextClass)}>
                                     <User className="h-4 w-4" /> Mi Perfil
+                                </Link>
+                                <Link href="/profile/address" onClick={() => setIsMobileMenuOpen(false)} className={cn("flex items-center gap-2 p-3 border-b border-slate-50 text-slate-600 transition-colors", hoverPrimaryTextClass)}>
+                                    <MapPinned className="h-4 w-4" /> Mis Direcciones
                                 </Link>
                                 <button onClick={handleLogout} className="w-full flex items-center gap-2 p-3 text-red-500 hover:bg-red-50 text-left">
                                     <LogOut className="h-4 w-4" /> Cerrar Sesión
                                 </button>
                             </>
                         )}
+                        {filteredCategories.map((cat) => (
+                            <Link key={cat.id} href={`/category/${cat.slug}`} onClick={() => setIsMobileMenuOpen(false)} className={cn("block p-3 border-b border-slate-50 text-slate-700 text-lg capitalize transition-colors", hoverPrimaryTextClass)}>{cat.name}</Link>
+                        ))}
                     </nav>
                 </div>
             </SheetContent>
@@ -427,7 +426,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     )}
                 >
                     {user ? (
-                        // Si está logueado: Avatar + Nombre
                         <>
                            <Avatar className="h-7 w-7 border border-white/20">
                                 <AvatarImage src={user.image || ''} />
@@ -441,7 +439,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                            </div>
                         </>
                     ) : (
-                        // Si NO está logueado: Icono + "Inicia Sesión"
                         <>
                             <User className="h-6 w-6" />
                             <div className="flex flex-col leading-none">
@@ -457,7 +454,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 {isUserMenuOpen && (
                     <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 z-60">
                         {user ? (
-                            // Opciones Logueado
                             <div className="flex flex-col py-1">
                                 <div className="px-4 py-3 border-b border-slate-50 bg-slate-50/50">
                                     <p className="text-sm font-bold text-slate-800 truncate">{user.name}</p>
@@ -469,6 +465,13 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                     className={cn("flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors", hoverPrimaryTextClass)}
                                 >
                                     <User className="h-4 w-4" /> Mi Perfil
+                                </Link>
+                                <Link 
+                                    href="/profile/address" 
+                                    onClick={() => setIsUserMenuOpen(false)}
+                                    className={cn("flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors", hoverPrimaryTextClass)}
+                                >
+                                    <MapPinned className="h-4 w-4" /> Mis Direcciones
                                 </Link>
                                 <Link 
                                     href="/favorites" 
@@ -495,7 +498,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                 </button>
                             </div>
                         ) : (
-                            // Opciones Guest
                             <div className="flex flex-col py-1">
                                 <Link 
                                     href="/auth/login" 
@@ -519,7 +521,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
 
               <div className={cn("hidden lg:block h-8 w-px mx-1", isToys ? "bg-white/30" : "bg-slate-300")}></div>
 
-              {/* ❤️ FAVORITOS (CORREGIDO: Usando wrapper relativo para el badge) */}
+              {/* ❤️ FAVORITOS */}
               <Link href="/favorites">
                 <Button 
                     variant="ghost" 
@@ -528,7 +530,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                         buttonHoverClass
                     )}
                 >
-                    <div className="relative"> {/* 👈 WRAPPER CLAVE */}
+                    <div className="relative">
                         <Heart className="h-6 w-6" />
                         {loaded && favoritesCount > 0 && (
                             <span className={cn(
@@ -590,10 +592,11 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
       <div className="hidden md:block w-full bg-white border-b border-slate-200 py-2 relative z-30">
         <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 flex items-center justify-between text-sm">
             <div className="flex items-center gap-6">
-                <button className={cn("flex items-center gap-2 text-slate-600 transition-colors group", hoverPrimaryTextClass)}>
+                {/* 👇 ENLACE CORREGIDO AQUÍ */}
+                <Link href="/profile/address" className={cn("flex items-center gap-2 text-slate-600 transition-colors group", hoverPrimaryTextClass)}>
                     <MapPin className={cn("h-5 w-5 text-slate-400", groupHoverPrimaryTextClass)} />
                     <span className="font-medium">Ingresa tu ubicación</span>
-                </button>
+                </Link>
                 <Link href="/tiendas" className="text-slate-500 hover:text-slate-800 transition-colors">Nuestras Tiendas</Link>
             </div>
         </div>
