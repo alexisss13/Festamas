@@ -1,75 +1,86 @@
 import Link from 'next/link';
-import { Plus, Pencil } from 'lucide-react';
+import Image from 'next/image';
+import { Plus, Pencil, Tag, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { getCategories } from '@/actions/categories';
 import { DeleteCategoryBtn } from './DeleteCategoryBtn';
+import { getAdminDivision } from '@/actions/admin-settings';
+import { cn } from '@/lib/utils';
 
 export default async function CategoriesPage() {
-  // Obtenemos las categorías (incluyendo el conteo de productos)
-  const { data: categories } = await getCategories();
+  const selectedDivision = await getAdminDivision();
+  const { data: categories } = await getCategories(selectedDivision);
+  const isFestamas = selectedDivision === 'JUGUETERIA';
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-slate-900">Categorías</h1>
-        <Button asChild className="bg-slate-900 hover:bg-slate-800">
+    <div className="p-8 w-full max-w-7xl mx-auto">
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Categorías</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Organización del menú para <span className={cn(
+              "font-bold px-2 py-0.5 rounded-md text-xs uppercase",
+              isFestamas ? "bg-festamas-primary/10 text-festamas-primary" : "bg-fiestasya-accent/10 text-fiestasya-accent"
+            )}>{selectedDivision}</span>
+          </p>
+        </div>
+        
+        <Button asChild variant="outline" className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-sm h-11 px-6">
           <Link href="/admin/categories/new">
-            <Plus className="mr-2 h-4 w-4" /> Nueva
+            <Plus className="mr-2 h-5 w-5 text-slate-400" />
+            <span className="font-semibold">Nueva Categoría</span>
           </Link>
         </Button>
       </div>
 
-      <div className="rounded-md border bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Tienda</TableHead>
-              <TableHead className="text-center">Productos</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories?.map((cat) => (
-              <TableRow key={cat.id}>
-                <TableCell className="font-medium flex items-center gap-2">
-                    {/* Si tiene imagen, podrías mostrar una miniatura aquí si quisieras */}
-                    {cat.name}
-                </TableCell>
-                <TableCell className="text-slate-500 font-mono text-sm">{cat.slug}</TableCell>
-                <TableCell>
-                    <Badge variant="outline" className={cat.division === 'JUGUETERIA' ? 'text-pink-600 border-pink-200 bg-pink-50' : 'text-purple-600 border-purple-200 bg-purple-50'}>
-                        {cat.division === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa'}
-                    </Badge>
-                </TableCell>
-                <TableCell className="text-center">
-                  {/* 🛡️ FIX: Acceso seguro a _count */}
-                  <Badge variant="secondary">{cat._count?.products || 0}</Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/admin/categories/${cat.id}`}>
-                        <Pencil className="h-4 w-4 text-slate-500" />
-                      </Link>
-                    </Button>
-                    <DeleteCategoryBtn id={cat.id} />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {(!categories || categories.length === 0) && (
-                <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-slate-500">
-                        No hay categorías creadas.
-                    </TableCell>
-                </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {categories?.map((cat) => (
+          <div key={cat.id} className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300">
+            {/* 🖼️ ÁREA DE IMAGEN / BACKGROUND */}
+            <div className="relative h-40 w-full bg-slate-100 overflow-hidden">
+              {cat.image ? (
+                <Image 
+                  src={cat.image} 
+                  alt={cat.name} 
+                  fill 
+                  className="object-cover group-hover:scale-110 transition-transform duration-500" 
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-300 bg-slate-50">
+                  <ImageIcon className="h-10 w-10 mb-2 opacity-20" />
+                  <span className="text-[10px] uppercase font-bold tracking-tighter opacity-40">Sin Imagen</span>
+                </div>
+              )}
+              {/* Overlay gradiente para que el texto resalte */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              
+              <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                <h3 className="font-bold text-white text-xl capitalize drop-shadow-md">
+                  {cat.name}
+                </h3>
+                <Badge className="bg-white/20 backdrop-blur-md text-white border-none text-[10px]">
+                  {cat._count?.products || 0} ITEMS
+                </Badge>
+              </div>
+            </div>
+
+            {/* 🛠️ ACCIONES */}
+            <div className="p-4 flex items-center justify-between bg-white">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-widest">
+                /{cat.slug}
+              </span>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="icon" asChild className="h-9 w-9 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full">
+                  <Link href={`/admin/categories/${cat.id}`}>
+                    <Pencil className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <DeleteCategoryBtn id={cat.id} />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

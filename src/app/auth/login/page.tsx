@@ -13,14 +13,15 @@ export default function LoginPage() {
   const [errorMessage, formAction, isPending] = useActionState(authenticate, undefined);
   const [isVisible, setIsVisible] = useState(false);
 
+  // 🧠 Lógica de Redirección Inteligente
   useEffect(() => {
-    if (errorMessage === 'Success') {
-      window.location.href = '/';
+    if (errorMessage === 'Redirect:Home') {
+      window.location.replace('/'); // Clientes al Home
+    } else if (errorMessage === 'Redirect:Admin') {
+      window.location.replace('/admin/dashboard'); // Admins a su cueva
     }
   }, [errorMessage]);
 
-  // NOTA: No usamos <div> contenedor con min-h-screen porque el AuthLayout ya lo maneja.
-  // Usamos <> (Fragment) o un div simple para agrupar el contenido.
   return (
     <>
       <div className="space-y-2 text-center lg:text-left">
@@ -72,8 +73,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {errorMessage && errorMessage !== 'Success' && (
-          <div className="p-3 rounded-md bg-red-50 text-sm text-red-600 border border-red-100 font-medium text-center">
+        {/* 🔴 FIX: Solo mostramos la alerta si NO es una redirección */}
+        {errorMessage && !errorMessage.startsWith('Redirect:') && (
+          <div className="p-3 rounded-md bg-red-50 text-sm text-red-600 border border-red-100 font-medium text-center animate-in fade-in slide-in-from-top-1">
             {errorMessage}
           </div>
         )}

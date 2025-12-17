@@ -10,21 +10,33 @@ export async function loginWithGoogle() {
   await signIn('google', { redirectTo: '/' });
 }
 
-// --- LOGIN CREDENCIALES (Existente) ---
+// --- LOGIN CREDENCIALES (INTELIGENTE) ---
 export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {
+    // 1. Intentamos loguear
     await signIn('credentials', {
       ...Object.fromEntries(formData),
       redirect: false,
     });
 
-    return 'Success';
+    // 2. Si pasa (no da error), verificamos el Rol para redirección
+    const email = formData.get('email') as string;
+    const user = await prisma.user.findUnique({ 
+        where: { email: email.toLowerCase() },
+        select: { role: true } // Solo traemos el rol por eficiencia
+    });
+
+    if (user?.role === 'ADMIN' || user?.role === 'SELLER') {
+        return 'Redirect:Admin';
+    }
+
+    return 'Redirect:Home';
 
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          return 'Credenciales inválidas.';
+          return 'Credenciales inválidas. Verifica tu contraseña.';
         default:
           return 'Algo salió mal.';
       }
@@ -33,7 +45,7 @@ export async function authenticate(prevState: string | undefined, formData: Form
   }
 }
 
-// --- REGISTRO DE USUARIO (Existente) ---
+// --- REGISTRO DE USUARIO ---
 export async function registerUser(name: string, email: string, password: string) {
   try {
     const user = await prisma.user.findUnique({
@@ -51,7 +63,7 @@ export async function registerUser(name: string, email: string, password: string
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
-        role: 'USER',
+        role: 'USER', // Por defecto todos son usuarios
       },
     });
 
@@ -65,5 +77,5 @@ export async function registerUser(name: string, email: string, password: string
 
 // --- LOGOUT ---
 export async function logout() {
-  await signOut();
+  await signOut({ redirectTo: '/' });
 }
