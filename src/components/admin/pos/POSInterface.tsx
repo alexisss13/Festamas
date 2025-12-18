@@ -6,11 +6,12 @@ import { Division } from '@prisma/client';
 import { usePOSStore } from '@/store/pos-store';
 import { consultDni } from '@/actions/reniec';
 import { searchProductsPOS } from '@/actions/products';
+import { processPOSSale } from '@/actions/pos'; // 👈 IMPORTANTE
 import { useDebouncedCallback } from 'use-debounce';
 import { 
   Search, ScanBarcode, Trash2, Plus, Minus, 
   CreditCard, User, ShoppingCart, Loader2, Eraser, 
-  Banknote, QrCode 
+  Banknote, QrCode, CheckCircle2 
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'YAPE' | 'PLIN' | 'EFECTIVO' | 'TARJETA'>('EFECTIVO');
   const [loadingDni, setLoadingDni] = useState(false);
+  const [processingSale, setProcessingSale] = useState(false); // 👈 Nuevo estado de carga
 
   const { cart, customer, addToCart, removeFromCart, updateQuantity, setCustomer, clearCart, clearCustomer, getTotal, getItemsCount, getItemActivePrice } = usePOSStore();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -71,21 +73,26 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
 
   useEffect(() => { handleSearch(query); }, [query, handleSearch]);
 
+  // Lógica de Scanner (Buffer de teclado)
   useEffect(() => {
     let buffer = '';
     let lastKeyTime = Date.now();
     const handleKeyDown = async (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      
       const char = e.key;
       const currentTime = Date.now();
+      
       if (currentTime - lastKeyTime > 50) buffer = ''; 
       lastKeyTime = currentTime;
+      
       if (char === 'Enter') {
         if (buffer.length > 3) { 
           setLoadingSearch(true);
           const results = await searchProductsPOS(buffer, division);
           setLoadingSearch(false);
+          
           if (results.length > 0) {
              const product = results[0];
              if (product.stock > 0) {
@@ -102,6 +109,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
         }
       } else if (char.length === 1) buffer += char;
     };
+    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [addToCart, division]);
@@ -122,12 +130,51 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
     setLoadingDni(false);
   };
 
-  const handleProcessSale = () => {
-      console.log("Procesando venta...", { cart, customer, paymentMethod, total: getTotal() });
-      toast.success(`Venta registrada con ${paymentMethod}`);
-      clearCart();
-      clearCustomer();
-      setIsCheckoutOpen(false);
+  // ⚡ LÓGICA DE PROCESAR VENTA
+  const handleProcessSale = async () => {
+    if (cart.length === 0) return;
+    
+    setProcessingSale(true);
+
+    try {
+      // Preparamos los items con su precio real activo (considerando descuentos/mayorista)
+      const itemsPayload = cart.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+        price: getItemActivePrice(item)
+      }));
+
+      const result = await processPOSSale({
+        items: itemsPayload,
+        total: getTotal(),
+        paymentMethod,
+        customer: {
+          name: customer.name,
+          dni: customer.dni,
+          address: customer.address // Si lo añadieras en el futuro
+        }
+      });
+
+      if (result.success) {
+        toast.success(result.message, {
+            icon: <CheckCircle2 className="h-5 w-5 text-green-500" />
+        });
+        clearCart();
+        clearCustomer();
+        setIsCheckoutOpen(false);
+        setQuery(''); // Limpiar búsqueda
+        // Opcional: Recargar productos locales para ver el stock bajar visualmente
+        handleSearch(''); 
+      } else {
+        toast.error(result.message || 'Error al procesar la venta');
+      }
+
+    } catch (error) {
+      console.error(error);
+      toast.error('Error de conexión');
+    } finally {
+      setProcessingSale(false);
+    }
   };
 
   if (!isMounted) return null;
@@ -144,7 +191,6 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input 
                     ref={searchInputRef}
-                    // 👇 FIX PLACEHOLDER: Texto corto en móvil para que no se corte
                     placeholder="Buscar por nombre o código" 
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -315,7 +361,19 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
                     <span className="text-sm font-medium text-slate-500">Total a Cobrar</span>
                     <span className="text-3xl font-black text-slate-900">{formatCurrency(getTotal())}</span>
                 </div>
-                <Button className={cn("w-full h-14 text-lg font-bold shadow-lg hover:scale-[1.01] transition-transform", brandBg)} onClick={handleProcessSale} disabled={cart.length === 0}>Confirmar Pago</Button>
+                <Button 
+                  className={cn("w-full h-14 text-lg font-bold shadow-lg hover:scale-[1.01] transition-transform", brandBg)} 
+                  onClick={handleProcessSale} 
+                  disabled={cart.length === 0 || processingSale}
+                >
+                  {processingSale ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Procesando...
+                    </>
+                  ) : (
+                    "Confirmar Pago"
+                  )}
+                </Button>
             </div>
         </DialogContent>
       </Dialog>
