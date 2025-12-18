@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import prisma from '@/lib/prisma';
-import { Plus, Pencil, Package, Layers, Users, Tag as TagIcon, TrendingDown, FileSpreadsheet } from 'lucide-react'; // 👈 Cambiado Zap por FileSpreadsheet
+import { Plus, Pencil, Package, Layers, Users, Tag as TagIcon, TrendingDown, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getProducts } from '@/actions/products';
@@ -10,6 +10,7 @@ import { getAdminDivision } from '@/actions/admin-settings';
 import { cn, formatCurrency } from '@/lib/utils';
 import { AdminProductToolbar } from '@/components/admin/AdminProductToolbar';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { BarcodeControl } from '@/components/admin/BarcodeControl';
 
 interface Props {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -135,6 +136,13 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                   </div>
                   
                   <div className="flex gap-2">
+                  <BarcodeControl 
+                      barcode={product.barcode} 
+                      title={product.title} 
+                      price={Number(product.price)}
+                      variant="ghost"
+                      className="h-10 w-10 hover:bg-slate-100 rounded-xl border border-transparent hover:border-slate-200"
+                  />
                   <Button variant="ghost" size="icon" asChild className="h-10 w-10 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl border border-transparent hover:border-slate-200"><Link href={`/admin/products/${product.slug}`}><Pencil className="h-5 w-5" /></Link></Button>
                   {product.isAvailable && <DeleteProductBtn id={product.id} />}
                   </div>

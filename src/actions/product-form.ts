@@ -4,6 +4,11 @@ import prisma from '@/lib/prisma';
 import { productSchema } from '@/lib/zod';
 import { revalidatePath } from 'next/cache';
 
+// Helper simple
+const generateBarcode = () => {
+  return Math.floor(100000000000 + Math.random() * 900000000000).toString();
+};
+
 export async function createOrUpdateProduct(formData: FormData, id?: string) {
   const data = Object.fromEntries(formData.entries());
   
@@ -12,8 +17,10 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
 
   // 🧹 SANITIZACIÓN DE DATOS (NUEVO)
   // Convertimos groupTag a Mayúsculas y quitamos espacios para asegurar coincidencia
+  const rawBarcode = data.barcode?.toString().trim();
   const rawGroupTag = data.groupTag?.toString().trim().toUpperCase();
   const groupTag = rawGroupTag && rawGroupTag.length > 0 ? rawGroupTag : null;
+  const barcode = (rawBarcode && rawBarcode.length > 0) ? rawBarcode : generateBarcode();
 
   // Limpiamos el color
   const rawColor = data.color?.toString().trim();
@@ -35,6 +42,7 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
     // Inyectamos los valores limpios
     groupTag: groupTag ?? undefined, // undefined para que Zod lo tome como opcional si es null
     color: color ?? undefined,
+    barcode, // Agregar al objeto raw para Zod (si lo agregas al schema) o directo abajo
   };
 
   const parsed = productSchema.safeParse(rawData);
@@ -69,7 +77,8 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
       wholesalePrice,
       wholesaleMinCount,
       discountPercentage,
-      tags: tagsArray
+      tags: tagsArray,
+      barcode,
     };
 
     if (id) {
