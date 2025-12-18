@@ -55,11 +55,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
   const [paymentMethod, setPaymentMethod] = useState<'YAPE' | 'PLIN' | 'EFECTIVO' | 'TARJETA'>('EFECTIVO');
   const [loadingDni, setLoadingDni] = useState(false);
 
-  const { 
-    cart, customer, addToCart, removeFromCart, updateQuantity, 
-    setCustomer, clearCart, clearCustomer, getTotal, getItemsCount, getItemActivePrice 
-  } = usePOSStore();
-
+  const { cart, customer, addToCart, removeFromCart, updateQuantity, setCustomer, clearCart, clearCustomer, getTotal, getItemsCount, getItemActivePrice } = usePOSStore();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = useDebouncedCallback(async (term: string) => {
@@ -78,22 +74,18 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
   useEffect(() => {
     let buffer = '';
     let lastKeyTime = Date.now();
-
     const handleKeyDown = async (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-
       const char = e.key;
       const currentTime = Date.now();
       if (currentTime - lastKeyTime > 50) buffer = ''; 
       lastKeyTime = currentTime;
-
       if (char === 'Enter') {
         if (buffer.length > 3) { 
           setLoadingSearch(true);
           const results = await searchProductsPOS(buffer, division);
           setLoadingSearch(false);
-          
           if (results.length > 0) {
              const product = results[0];
              if (product.stock > 0) {
@@ -108,11 +100,8 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
           }
           buffer = '';
         }
-      } else if (char.length === 1) {
-        buffer += char;
-      }
+      } else if (char.length === 1) buffer += char;
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [addToCart, division]);
@@ -153,7 +142,15 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
         <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex gap-3 items-center shrink-0 mb-4">
             <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <Input ref={searchInputRef} placeholder="Buscar por nombre o código..." value={query} onChange={(e) => setQuery(e.target.value)} className={cn("pl-10 h-11 text-lg bg-slate-50 border-slate-200", brandRing)} autoFocus />
+                <Input 
+                    ref={searchInputRef}
+                    // 👇 FIX PLACEHOLDER: Texto corto en móvil para que no se corte
+                    placeholder="Buscar por nombre o código" 
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className={cn("pl-10 h-11 text-lg bg-slate-50 border-slate-200 placeholder:text-sm md:placeholder:text-base", brandRing)}
+                    autoFocus
+                />
             </div>
             <Button size="icon" variant="outline" className="md:hidden shrink-0 h-11 w-11" onClick={() => toast.info("Cámara pronto")}>
                 <ScanBarcode className="h-6 w-6 text-slate-600" />
@@ -162,7 +159,6 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
 
         {/* GRID PRODUCTOS */}
         <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-20 lg:mb-0 relative">
-            {/* Usamos absolute inset-0 para asegurar scroll en el grid también */}
             <ScrollArea className="h-full w-full absolute inset-0">
                 <div className="p-4"> 
                     {products.length === 0 ? (
@@ -211,7 +207,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
                                                     {formatCurrency(Number(product.price) * (1 - (product.discountPercentage || 0) / 100))}
                                                 </span>
                                             </div>
-                                            {(product.wholesalePrice && product.wholesalePrice > 0) && (
+                                            {(Number(product.wholesalePrice) > 0) && (
                                                 <span className="text-[9px] text-slate-400 bg-slate-100 px-1 rounded" title={`Mínimo: ${product.wholesaleMinCount}`}>
                                                     May: {formatCurrency(Number(product.wholesalePrice))}
                                                 </span>
@@ -229,8 +225,6 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
 
       {/* 👉 DERECHA: TICKET Y CLIENTE (Fijo Web) */}
       <div className="hidden lg:flex flex-col w-[380px] xl:w-[420px] shrink-0 h-full border-l border-slate-200 bg-white z-10 shadow-xl">
-        
-        {/* 1. SECCIÓN CLIENTE (Altura Fija) */}
         <div className="p-4 border-b border-slate-100 bg-white space-y-3 shrink-0 z-20">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-2 text-slate-800 font-bold">
@@ -242,221 +236,139 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
             </div>
             <div className="flex gap-2">
                 <div className="relative flex-1">
-                    <Input 
-                        placeholder="DNI (8 dígitos)" 
-                        value={customer.dni}
-                        onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '').slice(0, 8);
-                            setCustomer({ dni: val });
-                        }}
-                        className="font-mono bg-slate-50 border-slate-200"
-                        maxLength={8}
-                    />
+                    <Input placeholder="DNI (8 dígitos)" value={customer.dni} onChange={(e) => setCustomer({ dni: e.target.value.replace(/\D/g, '').slice(0, 8) })} className="font-mono bg-slate-50 border-slate-200" maxLength={8} />
                     {loadingDni && <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-slate-400" />}
                 </div>
-                <Button onClick={handleDniSearch} disabled={loadingDni || customer.dni.length !== 8} size="icon" variant="secondary" className="border border-slate-200 shadow-sm">
-                    <Search className="h-4 w-4" />
-                </Button>
+                <Button onClick={handleDniSearch} disabled={loadingDni || customer.dni.length !== 8} size="icon" variant="secondary" className="border border-slate-200 shadow-sm"><Search className="h-4 w-4" /></Button>
             </div>
-            <Input 
-                placeholder="Nombre del Cliente" 
-                value={customer.name}
-                onChange={(e) => setCustomer({ name: e.target.value })}
-                className="bg-slate-50 border-slate-200"
-            />
+            <Input placeholder="Nombre del Cliente" value={customer.name} onChange={(e) => setCustomer({ name: e.target.value })} className="bg-slate-50 border-slate-200" />
         </div>
 
-        {/* 2. AREA CENTRAL (Flexible) */}
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-50/30">
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-50/30 relative">
             <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-white/50 shrink-0">
                 <div className="flex items-center gap-2 font-bold text-slate-700 text-sm">
                     <ShoppingCart className="h-4 w-4" /> Items <Badge variant="secondary" className="h-5 px-1.5 min-w-[20px] justify-center bg-white border border-slate-200 text-slate-600">{getItemsCount()}</Badge>
                 </div>
-                <Button variant="ghost" size="sm" onClick={clearCart} className="text-red-400 hover:text-red-600 hover:bg-red-50 h-7 text-xs px-2">
-                    <Trash2 className="h-3 w-3 mr-1"/> Vaciar
-                </Button>
+                <Button variant="ghost" size="sm" onClick={clearCart} className="text-red-400 hover:text-red-600 hover:bg-red-50 h-7 text-xs px-2"><Trash2 className="h-3 w-3 mr-1"/> Vaciar</Button>
             </div>
-
-            {/* 👇 CONTENEDOR RELATIVO + SCROLL ABSOLUTO (La Solución) */}
             <div className="flex-1 relative w-full overflow-hidden">
                 <ScrollArea className="h-full w-full absolute inset-0">
-                    <div className="p-3 pb-4"> 
-                        <CartList 
-                            cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} 
-                            getItemActivePrice={getItemActivePrice}
-                        />
+                    <div className="p-3"> 
+                        <CartList cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} getItemActivePrice={getItemActivePrice} />
                     </div>
                 </ScrollArea>
             </div>
         </div>
 
-        {/* 3. TOTALES (Fijo Abajo) */}
         <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0 z-20">
             <div className="space-y-1 mb-4">
-                <div className="flex justify-between text-xs text-slate-500">
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(getTotal() / 1.18)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-slate-500">
-                    <span>IGV (18%)</span>
-                    <span>{formatCurrency(getTotal() - (getTotal() / 1.18))}</span>
-                </div>
+                <div className="flex justify-between text-xs text-slate-500"><span>Subtotal</span><span>{formatCurrency(getTotal() / 1.18)}</span></div>
+                <div className="flex justify-between text-xs text-slate-500"><span>IGV (18%)</span><span>{formatCurrency(getTotal() - (getTotal() / 1.18))}</span></div>
                 <div className="h-px bg-slate-100 my-2"/>
-                <div className="flex justify-between text-2xl font-black text-slate-900 items-end">
-                    <span className="text-sm font-medium text-slate-500 mb-1">Total</span>
-                    <span>{formatCurrency(getTotal())}</span>
-                </div>
+                <div className="flex justify-between text-2xl font-black text-slate-900 items-end"><span className="text-sm font-medium text-slate-500 mb-1">Total</span><span>{formatCurrency(getTotal())}</span></div>
             </div>
-
-            <Button 
-                className={cn("w-full h-12 text-base font-bold shadow-lg transition-all active:scale-[0.98]", brandBg)} 
-                onClick={() => setIsCheckoutOpen(true)}
-                disabled={cart.length === 0}
-            >
-                <CreditCard className="mr-2 h-5 w-5" /> 
-                Cobrar
-            </Button>
+            <Button className={cn("w-full h-12 text-base font-bold shadow-lg transition-all active:scale-[0.98]", brandBg)} onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0}><CreditCard className="mr-2 h-5 w-5" /> Cobrar</Button>
         </div>
       </div>
 
-      {/* ... MOBILE & MODAL IGUAL QUE ANTES ... */}
-      {/* 📱 BOTÓN FLOTANTE MÓVIL */}
+      {/* 📱 BOTÓN FLOTANTE */}
       <div className="md:hidden fixed bottom-4 left-4 right-4 z-50">
         {cart.length > 0 && (
-            <Button 
-                onClick={() => setIsCheckoutOpen(true)}
-                className={cn("w-full h-14 shadow-2xl flex justify-between items-center text-lg px-6 rounded-full border border-white/20", brandBg)}
-            >
-                <div className="flex items-center gap-3">
-                    <div className="bg-white text-slate-900 px-2.5 py-0.5 rounded-full text-sm font-bold shadow-sm">{getItemsCount()}</div>
-                    <span className="font-semibold">Ver Carrito</span>
-                </div>
+            <Button onClick={() => setIsCheckoutOpen(true)} className={cn("w-full h-14 shadow-2xl flex justify-between items-center text-lg px-6 rounded-full border border-white/20", brandBg)}>
+                <div className="flex items-center gap-3"><div className="bg-white text-slate-900 px-2.5 py-0.5 rounded-full text-sm font-bold shadow-sm">{getItemsCount()}</div><span className="font-semibold">Ver Carrito</span></div>
                 <span className="font-black tracking-tight">{formatCurrency(getTotal())}</span>
             </Button>
         )}
       </div>
 
-      {/* 🧾 MODAL DE CHECKOUT */}
+      {/* 🧾 MODAL */}
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
         <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden gap-0 border-none shadow-2xl">
             <DialogHeader className={cn("p-4 text-white", brandBg)}>
-                <DialogTitle className="flex items-center gap-2 text-lg">
-                    <ShoppingCart className="h-5 w-5" /> Resumen de Venta
-                </DialogTitle>
+                <DialogTitle className="flex items-center gap-2 text-lg"><ShoppingCart className="h-5 w-5" /> Resumen de Venta</DialogTitle>
             </DialogHeader>
-            
             <div className="p-4 bg-white border-b border-slate-100 lg:hidden space-y-3">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Datos del Cliente</p>
                 <div className="flex gap-2">
                     <div className="relative w-32 shrink-0">
-                        <Input 
-                            placeholder="DNI" 
-                            value={customer.dni}
-                            onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, '').slice(0, 8);
-                                setCustomer({ dni: val });
-                            }}
-                            className="font-mono h-9 text-sm"
-                            maxLength={8}
-                        />
+                        <Input placeholder="DNI" value={customer.dni} onChange={(e) => setCustomer({ dni: e.target.value.replace(/\D/g, '').slice(0, 8) })} className="font-mono h-9 text-sm" maxLength={8} />
                         {loadingDni && <Loader2 className="absolute right-2 top-2.5 h-3 w-3 animate-spin text-slate-400" />}
                     </div>
-                    <Button onClick={handleDniSearch} disabled={loadingDni || customer.dni.length < 8} size="sm" variant="secondary" className="h-9 px-3">
-                        <Search className="h-4 w-4" />
-                    </Button>
-                    <Input 
-                        placeholder="Nombre" 
-                        value={customer.name}
-                        onChange={(e) => setCustomer({ name: e.target.value })}
-                        className="h-9 text-sm flex-1"
-                    />
+                    <Button onClick={handleDniSearch} disabled={loadingDni || customer.dni.length < 8} size="sm" variant="secondary" className="h-9 px-3"><Search className="h-4 w-4" /></Button>
+                    <Input placeholder="Nombre" value={customer.name} onChange={(e) => setCustomer({ name: e.target.value })} className="h-9 text-sm flex-1" />
                 </div>
             </div>
-
             <div className="max-h-[30vh] overflow-y-auto p-4 bg-slate-50">
-                <CartList 
-                    cart={cart} 
-                    updateQuantity={updateQuantity} 
-                    removeFromCart={removeFromCart} 
-                    getItemActivePrice={getItemActivePrice}
-                />
+                <CartList cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} getItemActivePrice={getItemActivePrice} />
             </div>
-
             <div className="p-5 bg-white border-t border-slate-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Método de Pago</p>
                 <Tabs defaultValue="EFECTIVO" onValueChange={(v) => setPaymentMethod(v as any)} className="w-full mb-6">
                     <TabsList className="grid grid-cols-4 h-auto p-1 bg-slate-100 border border-slate-200 rounded-lg">
-                        <TabsTrigger value="EFECTIVO" className="flex flex-col gap-1 py-3 text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md transition-all">
-                            <Banknote className="h-5 w-5 text-emerald-600"/> Efectivo
-                        </TabsTrigger>
-                        <TabsTrigger value="YAPE" className="flex flex-col gap-1 py-3 text-[10px] data-[state=active]:bg-[#742284] data-[state=active]:text-white rounded-md transition-all">
-                            <QrCode className="h-5 w-5"/> Yape
-                        </TabsTrigger>
-                        <TabsTrigger value="PLIN" className="flex flex-col gap-1 py-3 text-[10px] data-[state=active]:bg-[#00d3eb] data-[state=active]:text-white rounded-md transition-all">
-                            <QrCode className="h-5 w-5"/> Plin
-                        </TabsTrigger>
-                        <TabsTrigger value="TARJETA" className="flex flex-col gap-1 py-3 text-[10px] data-[state=active]:bg-slate-800 data-[state=active]:text-white rounded-md transition-all">
-                            <CreditCard className="h-5 w-5"/> Tarjeta
-                        </TabsTrigger>
+                        <TabsTrigger value="EFECTIVO" className="flex flex-col gap-1 py-3 text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md transition-all"><Banknote className="h-5 w-5 text-emerald-600"/> Efectivo</TabsTrigger>
+                        <TabsTrigger value="YAPE" className="flex flex-col gap-1 py-3 text-[10px] data-[state=active]:bg-[#742284] data-[state=active]:text-white rounded-md transition-all"><QrCode className="h-5 w-5"/> Yape</TabsTrigger>
+                        <TabsTrigger value="PLIN" className="flex flex-col gap-1 py-3 text-[10px] data-[state=active]:bg-[#00d3eb] data-[state=active]:text-white rounded-md transition-all"><QrCode className="h-5 w-5"/> Plin</TabsTrigger>
+                        <TabsTrigger value="TARJETA" className="flex flex-col gap-1 py-3 text-[10px] data-[state=active]:bg-slate-800 data-[state=active]:text-white rounded-md transition-all"><CreditCard className="h-5 w-5"/> Tarjeta</TabsTrigger>
                     </TabsList>
                 </Tabs>
-
                 <div className="flex justify-between items-end mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
                     <span className="text-sm font-medium text-slate-500">Total a Cobrar</span>
                     <span className="text-3xl font-black text-slate-900">{formatCurrency(getTotal())}</span>
                 </div>
-
-                <Button 
-                    className={cn("w-full h-14 text-lg font-bold shadow-lg hover:scale-[1.01] transition-transform", brandBg)} 
-                    onClick={handleProcessSale}
-                    disabled={cart.length === 0}
-                >
-                    Confirmar Pago
-                </Button>
+                <Button className={cn("w-full h-14 text-lg font-bold shadow-lg hover:scale-[1.01] transition-transform", brandBg)} onClick={handleProcessSale} disabled={cart.length === 0}>Confirmar Pago</Button>
             </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };
 
+// --- COMPONENTE LISTA CARRITO MEJORADO ---
 const CartList = ({ cart, updateQuantity, removeFromCart, getItemActivePrice }: any) => (
     <div className="space-y-2">
         {cart.length === 0 && <p className="text-center text-slate-400 text-sm py-8">El carrito está vacío</p>}
         {cart.map((item: any) => {
             const activePrice = getItemActivePrice(item);
-            const isWholesale = activePrice === Number(item.wholesalePrice);
+            
+            const hasWholesalePrice = Number(item.wholesalePrice) > 0;
+            const isWholesale = hasWholesalePrice && activePrice === Number(item.wholesalePrice);
             const isDiscounted = item.discountPercentage > 0 && !isWholesale;
 
             return (
-                <div key={item.id} className="flex items-center gap-3 p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div key={item.id} className="flex items-start justify-between gap-2 p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
                     {/* Indicador de Tipo de Precio */}
                     {isWholesale && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400" title="Precio Mayorista"/>}
                     {isDiscounted && <div className="absolute left-0 top-0 bottom-0 w-1 bg-pink-500" title="Oferta"/>}
 
-                    <div className="h-11 w-11 relative rounded-md overflow-hidden bg-slate-100 shrink-0 border border-slate-100">
-                        {item.images[0] && <Image src={item.images[0]} alt="" fill className="object-cover" />}
-                    </div>
-                    <div className="flex-1 min-w-0 pl-1">
-                        <p className="text-xs font-bold text-slate-700 truncate mb-0.5">{item.title}</p>
-                        <div className="flex items-center gap-2">
-                            <p className="text-[11px] font-medium text-slate-600">{formatCurrency(activePrice)}</p>
-                            {isWholesale && <Badge variant="secondary" className="px-1 py-0 h-4 text-[9px] bg-amber-100 text-amber-700 hover:bg-amber-100 border-none">Mayorista</Badge>}
-                            {isDiscounted && <Badge variant="secondary" className="px-1 py-0 h-4 text-[9px] bg-pink-100 text-pink-700 hover:bg-pink-100 border-none">-{item.discountPercentage}%</Badge>}
+                    {/* LADO IZQUIERDO: Imagen + Info */}
+                    <div className="flex gap-2 flex-1 min-w-0">
+                        <div className="h-11 w-11 relative rounded-md overflow-hidden bg-slate-100 shrink-0 border border-slate-100">
+                            {item.images[0] && <Image src={item.images[0]} alt="" fill className="object-cover" />}
+                        </div>
+                        <div className="flex flex-col justify-center min-w-0 pr-1">
+                            <p className="text-xs font-bold text-slate-700 truncate mb-0.5 leading-tight">{item.title}</p>
+                            
+                            {/* Tags Flexibles */}
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <p className="text-[11px] font-medium text-slate-500">Unit: {formatCurrency(activePrice)}</p>
+                                {isWholesale && <Badge variant="secondary" className="px-1 py-0 h-4 text-[9px] bg-amber-100 text-amber-700 border-none whitespace-nowrap">Mayorista</Badge>}
+                                {isDiscounted && <Badge variant="secondary" className="px-1 py-0 h-4 text-[9px] bg-pink-100 text-pink-700 border-none whitespace-nowrap">-{item.discountPercentage}%</Badge>}
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <p className="font-bold text-sm text-slate-900 tabular-nums w-14 text-right">
+
+                    {/* LADO DERECHO: Precio Total + Controles (Apilados) */}
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <p className="font-bold text-sm text-slate-900 tabular-nums leading-none">
                             {formatCurrency(activePrice * item.quantity)}
                         </p>
-                        <div className="flex items-center bg-slate-100 border border-slate-200 rounded-md h-8">
-                            <button className="w-8 h-full flex items-center justify-center hover:bg-white text-slate-500 rounded-l-md active:bg-slate-200 transition-colors" onClick={() => item.quantity > 1 ? updateQuantity(item.id, item.quantity - 1) : removeFromCart(item.id)}>
-                                <Minus className="h-3.5 w-3.5" />
+                        <div className="flex items-center bg-slate-100 border border-slate-200 rounded-md h-7 w-20">
+                            <button className="flex-1 h-full flex items-center justify-center hover:bg-white text-slate-500 rounded-l-md active:bg-slate-200 transition-colors" onClick={() => item.quantity > 1 ? updateQuantity(item.id, item.quantity - 1) : removeFromCart(item.id)}>
+                                <Minus className="h-3 w-3" />
                             </button>
-                            <span className="w-8 text-center text-xs font-bold tabular-nums bg-white h-full flex items-center justify-center border-x border-slate-200">{item.quantity}</span>
-                            <button className="w-8 h-full flex items-center justify-center hover:bg-white text-slate-500 rounded-r-md active:bg-slate-200 transition-colors disabled:opacity-50" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock}>
-                                <Plus className="h-3.5 w-3.5" />
+                            <span className="w-6 text-center text-xs font-bold tabular-nums bg-white h-full flex items-center justify-center border-x border-slate-200">{item.quantity}</span>
+                            <button className="flex-1 h-full flex items-center justify-center hover:bg-white text-slate-500 rounded-r-md active:bg-slate-200 transition-colors disabled:opacity-50" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock}>
+                                <Plus className="h-3 w-3" />
                             </button>
                         </div>
                     </div>
