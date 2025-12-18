@@ -6,9 +6,27 @@ import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz'; 
 import { es } from 'date-fns/locale';      
 import PrintButton from './PrintButton';
+import { Metadata } from 'next';
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+// 1. 🧠 METADATA DINÁMICA (Esto define el nombre del archivo PDF al guardar)
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const order = await prisma.order.findUnique({ where: { id } });
+
+  if (!order) return { title: 'Boleta no encontrada' };
+
+  // Detectamos la marca igual que en el componente
+  const isFestamas = order.notes?.includes('Tienda: Festamas') || order.notes?.includes('JUGUETERIA') || false;
+  const brandName = isFestamas ? 'Festamas' : 'FiestasYa';
+  const receiptNum = order.receiptNumber || 'PENDIENTE';
+
+  return {
+    title: `Boleta ${receiptNum} - ${brandName}`, // Ej: Boleta B001-000045 - Festamas
+  };
 }
 
 export default async function InvoicePage({ params }: Props) {
@@ -25,16 +43,30 @@ export default async function InvoicePage({ params }: Props) {
 
   if (!order) notFound();
 
-  const isFestamas = order.notes?.includes('Festamas') || false;
+  // 2. 🏷️ LÓGICA DE MARCA (Detección robusta)
+  // Buscamos explícitamente "Tienda: Festamas" que guardamos en el backend
+  const isFestamas = order.notes?.includes('Tienda: Festamas') || order.notes?.includes('JUGUETERIA') || false;
   
-  const logoSrc = isFestamas 
-    ? "/images/IconoFestamas.png" 
-    : "/images/IconoFiestasYa.png";
+  // Configuración dinámica
+  const brandConfig = isFestamas 
+    ? {
+        name: 'FESTAMÁS',
+        logo: '/images/IconoFestamas.png',
+        color: '#fc4b65' // Rojo Festamas (opcional para bordes)
+      }
+    : {
+        name: 'FIESTASYA',
+        logo: '/images/IconoFiestasYa.png',
+        color: '#fb3099' // Rosa FiestasYa
+      };
 
-  const companyName = "FiestasYa SAC";
-  const ruc = "20610153756";
-  const address = "Trujillo, Perú";
-  const email = "festamastrujillo@gmail.com";
+  // Datos fiscales (Fijos para ambos según pediste)
+  const companyInfo = {
+    razonSocial: "FiestasYa SAC",
+    ruc: "20610153756",
+    address: "Trujillo, Perú",
+    email: "festamastrujillo@gmail.com"
+  };
 
   const subtotal = Number(order.totalAmount) / 1.18;
   const igv = Number(order.totalAmount) - subtotal;
@@ -47,21 +79,15 @@ export default async function InvoicePage({ params }: Props) {
 
   return (
     <>
-      {/* Estilos específicos para esta boleta */}
+      {/* Estilos específicos de impresión */}
       <style>{`
         @media print {
-            /* Contenido con margen interno seguro para impresoras */
             .invoice-container {
                 padding: 1.5cm !important; 
             }
         }
       `}</style>
 
-      {/* Clases explicadas:
-         - bg-slate-100: Fondo gris en pantalla para distinguir la hoja.
-         - print:bg-white: Fondo blanco al imprimir.
-         - min-h-screen NO: Lo quitamos para evitar la hoja fantasma.
-      */}
       <div className="bg-slate-100 flex items-start justify-center py-10 print:py-0 print:bg-white print:block">
         
         <div className="invoice-container bg-white w-full max-w-[21cm] p-8 md:p-12 shadow-2xl rounded-sm print:shadow-none print:w-full print:max-w-none print:p-0">
@@ -69,13 +95,21 @@ export default async function InvoicePage({ params }: Props) {
           {/* HEADER */}
           <div className="flex justify-between items-start mb-8 border-b pb-8 border-slate-100">
             <div className="flex flex-col gap-1">
-               <div className="relative w-32 h-12 mb-2">
-                  <Image src={logoSrc} alt="Logo" fill className="object-contain object-left" />
+               {/* LOGO DINÁMICO */}
+               <div className="relative w-40 h-16 mb-2">
+                  <Image 
+                    src={brandConfig.logo} 
+                    alt={brandConfig.name} 
+                    fill 
+                    className="object-contain object-left" 
+                    priority
+                  />
                </div>
-               <h1 className="text-xl font-bold text-slate-900 uppercase tracking-wide">{companyName}</h1>
-               <p className="text-sm text-slate-500">RUC: {ruc}</p>
-               <p className="text-sm text-slate-500">{address}</p>
-               <p className="text-sm text-slate-500">{email}</p>
+               {/* DATOS FISCALES */}
+               <h1 className="text-xl font-bold text-slate-900 uppercase tracking-wide mt-1">{companyInfo.razonSocial}</h1>
+               <p className="text-sm text-slate-500">RUC: {companyInfo.ruc}</p>
+               <p className="text-sm text-slate-500">{companyInfo.address}</p>
+               <p className="text-sm text-slate-500">{companyInfo.email}</p>
             </div>
             
             <div className="text-right">
@@ -92,6 +126,10 @@ export default async function InvoicePage({ params }: Props) {
                   <p className="text-sm text-slate-700 capitalize">
                       {format(zonedDate, "dd 'de' MMMM, yyyy", { locale: es })}
                   </p>
+                  <p className="text-xs text-slate-400 font-bold uppercase mt-2">Hora</p>
+                  <p className="text-sm text-slate-700">
+                      {format(zonedDate, "hh:mm a", { locale: es })}
+                  </p>
               </div>
             </div>
           </div>
@@ -102,7 +140,7 @@ export default async function InvoicePage({ params }: Props) {
               <div className="grid grid-cols-2 gap-4">
                   <div>
                       <p className="text-xs text-slate-400">Nombre / Razón Social:</p>
-                      <p className="font-bold text-slate-800">{order.clientName}</p>
+                      <p className="font-bold text-slate-800 uppercase">{order.clientName}</p>
                   </div>
                   <div>
                       <p className="text-xs text-slate-400">DNI / RUC:</p>
@@ -167,9 +205,11 @@ export default async function InvoicePage({ params }: Props) {
               </div>
           </div>
 
-          {/* FOOTER */}
+          {/* FOOTER DINÁMICO */}
           <div className="text-center text-xs text-slate-400 mt-auto pt-8 border-t border-slate-100 print:pb-0 pb-10">
-              <p className="font-medium text-slate-500 mb-1">Gracias por su compra en {isFestamas ? 'FESTAMAS' : 'FIESTASYA'}!</p>
+              <p className="font-bold text-slate-600 mb-1 text-sm uppercase">
+                Gracias por su compra en {brandConfig.name}!
+              </p>
               <p>Representación impresa de la Boleta de Venta Electrónica.</p>
               <p className="mt-2 font-mono text-[10px] text-slate-300">ID: {order.id}</p>
           </div>
