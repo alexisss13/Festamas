@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createOrUpdateProduct } from '@/actions/product-form';
 import { Product, Category, Division } from '@prisma/client';
@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ui/image-upload';
 import { cn } from '@/lib/utils';
-// 👇 Importamos Barcode
 import Barcode from 'react-barcode';
 import { BarcodeControl } from '@/components/admin/BarcodeControl';
 
@@ -29,12 +28,72 @@ interface Props {
 export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA' }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  
+  // ESTADOS DEL FORMULARIO
   const [images, setImages] = useState<string[]>(product?.images || []);
   const [isAvailable, setIsAvailable] = useState(product?.isAvailable ?? true);
   const [color, setColor] = useState(product?.color || '');
-  
-  // Estado para el código de barras
   const [barcode, setBarcode] = useState(product?.barcode || '');
+  const [title, setTitle] = useState(product?.title || '');
+  const [slug, setSlug] = useState(product?.slug || '');
+  const [categoryId, setCategoryId] = useState(product?.categoryId || '');
+  const [description, setDescription] = useState(product?.description || '');
+  const [price, setPrice] = useState(String(product?.price || ''));
+  const [discount, setDiscount] = useState(product?.discountPercentage || 0);
+  const [stock, setStock] = useState(product?.stock || 0);
+  const [wholesalePrice, setWholesalePrice] = useState(String(product?.wholesalePrice || ''));
+  const [wholesaleMin, setWholesaleMin] = useState(String(product?.wholesaleMinCount || ''));
+  const [groupTag, setGroupTag] = useState(product?.groupTag || '');
+  const [tags, setTags] = useState(product?.tags.join(', ') || '');
+
+  // ESTADO INICIAL (SNAPSHOT) PARA DETECTAR CAMBIOS
+  const [initialData, setInitialData] = useState({
+    images: product?.images || [],
+    isAvailable: product?.isAvailable ?? true,
+    color: product?.color || '',
+    barcode: product?.barcode || '',
+    title: product?.title || '',
+    slug: product?.slug || '',
+    categoryId: product?.categoryId || '',
+    description: product?.description || '',
+    price: String(product?.price || ''),
+    discount: product?.discountPercentage || 0,
+    stock: product?.stock || 0,
+    wholesalePrice: String(product?.wholesalePrice || ''),
+    wholesaleMin: String(product?.wholesaleMinCount || ''),
+    groupTag: product?.groupTag || '',
+    tags: product?.tags.join(', ') || ''
+  });
+
+  // LÓGICA IS DIRTY (Comparación profunda simple)
+  const isDirty = 
+    JSON.stringify(images) !== JSON.stringify(initialData.images) ||
+    isAvailable !== initialData.isAvailable ||
+    color !== initialData.color ||
+    barcode !== initialData.barcode ||
+    title !== initialData.title ||
+    slug !== initialData.slug ||
+    categoryId !== initialData.categoryId ||
+    description !== initialData.description ||
+    price !== initialData.price ||
+    discount !== initialData.discount ||
+    stock !== initialData.stock ||
+    wholesalePrice !== initialData.wholesalePrice ||
+    wholesaleMin !== initialData.wholesaleMin ||
+    groupTag !== initialData.groupTag ||
+    tags !== initialData.tags;
+
+  // EFECTO: Advertencia de salida (Navegador)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = ''; // Estándar moderno
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   const currentDivision = product?.division || defaultDivision;
   const isFestamas = currentDivision === 'JUGUETERIA';
@@ -46,19 +105,25 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    
+    // Agregamos manualmente los estados controlados que no son inputs directos o necesitan formato
     images.forEach(img => formData.append('images', img));
     if (isAvailable) formData.set('isAvailable', 'on');
     formData.set('division', currentDivision);
     formData.set('color', color);
-    
-    // Si el usuario dejó vacío el barcode, el server generará uno, 
-    // pero si puso uno manual, lo enviamos.
     if (barcode) formData.set('barcode', barcode);
 
     const result = await createOrUpdateProduct(formData, product?.id);
 
     if (result.success) {
       toast.success(product ? 'Producto actualizado' : 'Producto creado');
+      
+      // Actualizamos el snapshot inicial para que deje de estar sucio
+      setInitialData({
+        images, isAvailable, color, barcode, title, slug, categoryId, description,
+        price, discount, stock, wholesalePrice, wholesaleMin, groupTag, tags
+      });
+      
       router.push('/admin/products');
       router.refresh();
     } else {
@@ -67,33 +132,17 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
     setLoading(false);
   };
 
-  // Función para imprimir etiqueta (básica)
-  const printBarcode = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        // Obtenemos el SVG del código de barras
-        const svg = document.getElementById('barcode-svg')?.outerHTML;
-        
-        printWindow.document.write(`
-            <html>
-            <head><title>Imprimir Etiqueta</title></head>
-            <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
-                <h2 style="margin-bottom:0; font-family:sans-serif;">${product?.title || 'Nuevo Producto'}</h2>
-                <div style="transform: scale(1.5); margin: 20px 0;">
-                    ${svg || 'Guarda el producto primero'}
-                </div>
-                <p style="margin-top:0; font-family:monospace;">${barcode}</p>
-                <script>window.print(); window.close();</script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-    }
-  };
-
   const generateRandomBarcode = () => {
       const code = Math.floor(100000000000 + Math.random() * 900000000000).toString();
       setBarcode(code);
+  };
+
+  // Auto-generar slug al escribir título (solo si es nuevo)
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!product) {
+        setSlug(val.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''));
+    }
   };
 
   return (
@@ -107,13 +156,23 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                 <span className={cn("text-xs px-2 py-1 rounded-md bg-slate-100 uppercase font-extrabold tracking-wide", brandTextClass)}>
                     {isFestamas ? 'Festamas' : 'FiestasYa'}
                 </span>
+                {/* 🚨 AVISO VISUAL DE CAMBIOS */}
+                {isDirty && (
+                    <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full animate-pulse border border-amber-200 font-medium">
+                        Cambios sin guardar
+                    </span>
+                )}
             </h2>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
             <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="flex-1 md:flex-none">
                 Cancelar
             </Button>
-            <Button type="submit" className={cn("text-white flex-1 md:flex-none min-w-[140px]", isFestamas ? "bg-festamas-primary hover:bg-festamas-primary/90" : "bg-fiestasya-accent hover:bg-fiestasya-accent/90")} disabled={loading}>
+            <Button 
+                type="submit" 
+                className={cn("text-white flex-1 md:flex-none min-w-[140px]", isFestamas ? "bg-festamas-primary hover:bg-festamas-primary/90" : "bg-fiestasya-accent hover:bg-fiestasya-accent/90")} 
+                disabled={loading || !isDirty} // 🔒 Deshabilitado si no hay cambios
+            >
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Guardar
             </Button>
@@ -136,8 +195,11 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                             <span className="text-xs text-slate-400 hidden sm:inline">Etiqueta:</span>
                             <BarcodeControl 
                                 barcode={barcode} 
-                                title={product.title} 
-                                price={Number(product.price)}
+                                title={title} 
+                                price={Number(price)}
+                                wholesalePrice={Number(wholesalePrice)}
+                                wholesaleMinCount={Number(wholesaleMin)}
+                                discountPercentage={discount}
                                 variant="outline"
                                 className="h-9 w-9 border-slate-200"
                             />
@@ -148,7 +210,11 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="title">Nombre del Producto</Label>
-                        <Input id="title" name="title" defaultValue={product?.title} required className={brandFocusClass} />
+                        <Input 
+                            id="title" name="title" 
+                            value={title} onChange={(e) => handleTitleChange(e.target.value)} 
+                            required className={brandFocusClass} 
+                        />
                     </div>
 
                     {/* SECCIÓN CÓDIGO DE BARRAS */}
@@ -159,10 +225,8 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                             </Label>
                             <div className="flex gap-2">
                                 <Input 
-                                    id="barcode" 
-                                    name="barcode" 
-                                    value={barcode} 
-                                    onChange={(e) => setBarcode(e.target.value)}
+                                    id="barcode" name="barcode" 
+                                    value={barcode} onChange={(e) => setBarcode(e.target.value)}
                                     placeholder="Generar o escanear..." 
                                     className="font-mono tracking-widest bg-white"
                                 />
@@ -173,15 +237,11 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                             <p className="text-xs text-slate-400">Déjalo vacío para autogenerar al guardar.</p>
                         </div>
                         
-                        {/* VISTA PREVIA DEL CÓDIGO */}
-                        <div className="flex-shrink-0 bg-white p-2 rounded border border-slate-200 min-h-[80px] flex items-center justify-center">
+                        {/* VISTA PREVIA */}
+                        <div className="flex-shrink-0 bg-white p-2 rounded border border-slate-200 min-h-[80px] flex items-center justify-center overflow-hidden">
                             {barcode ? (
-                                <div id="barcode-container">
-                                    {/* Componente React-Barcode. Usamos ID para buscar el SVG al imprimir */}
+                                <div className="max-w-[200px]">
                                     <Barcode value={barcode} width={1.5} height={40} fontSize={14} format="CODE128" />
-                                    {/* Truco: Asignamos ID al SVG renderizado via prop renderer si fuera posible, 
-                                        pero react-barcode renderiza directo. 
-                                        Para imprimir, buscaremos el svg dentro de este div. */}
                                 </div>
                             ) : (
                                 <span className="text-xs text-slate-300 italic">Vista previa</span>
@@ -192,15 +252,18 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <div className="space-y-2">
                             <Label htmlFor="slug">Slug (URL)</Label>
-                            <Input id="slug" name="slug" defaultValue={product?.slug} required className="font-mono text-sm bg-slate-50" />
+                            <Input 
+                                id="slug" name="slug" 
+                                value={slug} onChange={(e) => setSlug(e.target.value)}
+                                required className="font-mono text-sm bg-slate-50" 
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="categoryId">Categoría</Label>
                             <select 
-                                id="categoryId" 
-                                name="categoryId" 
+                                id="categoryId" name="categoryId" 
+                                value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
                                 className={cn("flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", brandFocusClass)}
-                                defaultValue={product?.categoryId}
                                 required
                             >
                                 <option value="">Seleccionar Categoría...</option>
@@ -213,50 +276,73 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
 
                     <div className="space-y-2">
                         <Label htmlFor="description">Descripción</Label>
-                        <Textarea id="description" name="description" defaultValue={product?.description} required rows={6} className={brandFocusClass} />
+                        <Textarea 
+                            id="description" name="description" 
+                            value={description} onChange={(e) => setDescription(e.target.value)}
+                            required rows={6} className={brandFocusClass} 
+                        />
                     </div>
                 </div>
             </div>
 
-            {/* RESTO DE LOS COMPONENTES (Precios, Variantes) IGUAL QUE ANTES... */}
-            {/* ... (Copiar bloques de Precios y Variantes del mensaje anterior) ... */}
+            {/* 2. PRECIOS E INVENTARIO */}
             <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-base text-slate-900 mb-4 flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-slate-400" /> Estrategia de Precios
                 </h3>
-                {/* ... inputs de precio ... */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="price">Precio Regular (S/)</Label>
-                        <Input type="number" id="price" name="price" defaultValue={String(product?.price || '')} required step="0.01" min="0" className={brandFocusClass} />
+                        <Input 
+                            type="number" id="price" name="price" 
+                            value={price} onChange={(e) => setPrice(e.target.value)}
+                            required step="0.01" min="0" className={brandFocusClass} 
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="discountPercentage" className={brandTextClass + " font-semibold"}>Descuento (%)</Label>
                         <div className="relative">
                             <Percent className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                            <Input type="number" id="discountPercentage" name="discountPercentage" defaultValue={product?.discountPercentage || 0} min="0" max="100" className={`pl-9 ${brandFocusClass}`} />
+                            <Input 
+                                type="number" id="discountPercentage" name="discountPercentage" 
+                                value={discount} onChange={(e) => setDiscount(Number(e.target.value))}
+                                min="0" max="100" className={`pl-9 ${brandFocusClass}`} 
+                            />
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="stock">Stock Disponible</Label>
                         <div className="relative">
                             <Layers className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                            <Input type="number" id="stock" name="stock" defaultValue={product?.stock || 0} required min="0" className={`pl-9 ${brandFocusClass}`} />
+                            <Input 
+                                type="number" id="stock" name="stock" 
+                                value={stock} onChange={(e) => setStock(Number(e.target.value))}
+                                required min="0" className={`pl-9 ${brandFocusClass}`} 
+                            />
                         </div>
                     </div>
                 </div>
                 <div className="mt-6 p-4 bg-slate-50/50 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="wholesalePrice" className="text-slate-600">Precio Mayorista (S/)</Label>
-                        <Input type="number" id="wholesalePrice" name="wholesalePrice" defaultValue={product?.wholesalePrice ? String(product.wholesalePrice) : ''} step="0.01" min="0" className="bg-white" />
+                        <Input 
+                            type="number" id="wholesalePrice" name="wholesalePrice" 
+                            value={wholesalePrice} onChange={(e) => setWholesalePrice(e.target.value)}
+                            step="0.01" min="0" className="bg-white" 
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="wholesaleMinCount" className="text-slate-600">Cantidad Mínima Mayorista</Label>
-                        <Input type="number" id="wholesaleMinCount" name="wholesaleMinCount" defaultValue={product?.wholesaleMinCount || ''} min="1" className="bg-white" />
+                        <Input 
+                            type="number" id="wholesaleMinCount" name="wholesaleMinCount" 
+                            value={wholesaleMin} onChange={(e) => setWholesaleMin(e.target.value)}
+                            min="1" className="bg-white" 
+                        />
                     </div>
                 </div>
             </div>
 
+            {/* 3. VARIANTES */}
             <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-base text-slate-900 mb-4 flex items-center gap-2">
                     <BoxSelect className="h-4 w-4 text-slate-400" /> Variantes y Agrupación
@@ -268,10 +354,19 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                         </Label>
                         <div className="flex gap-3">
                             <div className="relative shrink-0 overflow-hidden w-11 h-11 rounded-lg border border-slate-200 shadow-sm">
-                                <input type="color" className="absolute -top-2 -left-2 w-[200%] h-[200%] p-0 cursor-pointer border-0 outline-none" value={color.startsWith('#') && color.length === 7 ? color : '#000000'} onChange={(e) => setColor(e.target.value)} />
+                                <input 
+                                    type="color" 
+                                    className="absolute -top-2 -left-2 w-[200%] h-[200%] p-0 cursor-pointer border-0 outline-none" 
+                                    value={color.startsWith('#') && color.length === 7 ? color : '#000000'} 
+                                    onChange={(e) => setColor(e.target.value)} 
+                                />
                             </div>
                             <div className="flex-1">
-                                <Input id="color" name="color" value={color} onChange={(e) => setColor(e.target.value)} placeholder="#RRGGBB" className={`${brandFocusClass} font-mono uppercase`} />
+                                <Input 
+                                    id="color" name="color" 
+                                    value={color} onChange={(e) => setColor(e.target.value)} 
+                                    placeholder="#RRGGBB" className={`${brandFocusClass} font-mono uppercase`} 
+                                />
                             </div>
                         </div>
                     </div>
@@ -279,7 +374,11 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                         <Label htmlFor="groupTag" className="flex items-center gap-2">
                             <Tag className="h-4 w-4 text-slate-500" /> Group Tag (Agrupador)
                         </Label>
-                        <Input id="groupTag" name="groupTag" defaultValue={product?.groupTag || ''} placeholder="Ej. CAMISETA-VERANO-2025" className="uppercase font-mono text-sm bg-slate-50" />
+                        <Input 
+                            id="groupTag" name="groupTag" 
+                            value={groupTag} onChange={(e) => setGroupTag(e.target.value)}
+                            placeholder="Ej. CAMISETA-VERANO-2025" className="uppercase font-mono text-sm bg-slate-50" 
+                        />
                     </div>
                 </div>
             </div>
@@ -293,7 +392,11 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                         <Label className="text-base font-semibold">Estado del Producto</Label>
                         <p className="text-xs text-slate-500">¿Visible para los clientes?</p>
                     </div>
-                    <Switch id="isAvailable" checked={isAvailable} onCheckedChange={setIsAvailable} className={isFestamas ? "data-[state=checked]:bg-festamas-primary" : "data-[state=checked]:bg-fiestasya-accent"} />
+                    <Switch 
+                        id="isAvailable" 
+                        checked={isAvailable} onCheckedChange={setIsAvailable} 
+                        className={isFestamas ? "data-[state=checked]:bg-festamas-primary" : "data-[state=checked]:bg-fiestasya-accent"} 
+                    />
                 </div>
             </div>
             <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -304,7 +407,11 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                 <h3 className="font-bold text-base text-slate-900 mb-4">Etiquetas de Búsqueda</h3>
                 <div className="space-y-2">
                     <Label htmlFor="tags">Tags (Separados por coma)</Label>
-                    <Input id="tags" name="tags" defaultValue={product?.tags.join(', ')} placeholder="verano, niños, oferta" className={brandFocusClass} />
+                    <Input 
+                        id="tags" name="tags" 
+                        value={tags} onChange={(e) => setTags(e.target.value)}
+                        placeholder="verano, niños, oferta" className={brandFocusClass} 
+                    />
                 </div>
             </div>
         </div>

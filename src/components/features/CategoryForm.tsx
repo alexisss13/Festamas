@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createCategory, updateCategory } from '@/actions/categories';
 import { Category, Division } from '@prisma/client';
@@ -21,9 +21,31 @@ export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
-  const [name, setName] = useState(category?.name || '');
-  const [slug, setSlug] = useState(category?.slug || '');
-  const [image, setImage] = useState(category?.image || '');
+  // Estado inicial para comparar cambios
+  const [initialData, setInitialData] = useState({
+    name: category?.name || '',
+    slug: category?.slug || '',
+    image: category?.image || ''
+  });
+
+  const [name, setName] = useState(initialData.name);
+  const [slug, setSlug] = useState(initialData.slug);
+  const [image, setImage] = useState(initialData.image);
+  
+  // Detectar si hay cambios sin guardar
+  const isDirty = name !== initialData.name || slug !== initialData.slug || image !== initialData.image;
+
+  // Advertencia al intentar cerrar la pestaña
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
   
   const currentDivision = category?.division || defaultDivision;
   const isFestamas = currentDivision === 'JUGUETERIA';
@@ -47,6 +69,8 @@ export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props
 
     if (result.success) {
       toast.success(category ? 'Categoría actualizada' : 'Categoría creada');
+      // Actualizamos estado inicial para que no salga alerta
+      setInitialData({ name, slug, image }); 
       router.push('/admin/categories');
       router.refresh();
     } else {
@@ -74,16 +98,27 @@ export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props
                 <span className={cn("text-xs px-2 py-1 rounded-md bg-slate-100 uppercase font-extrabold tracking-wide", brandTextClass)}>
                     {isFestamas ? 'Festamas' : 'FiestasYa'}
                 </span>
+                {isDirty && (
+                    <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full animate-pulse border border-amber-200">
+                        Cambios sin guardar
+                    </span>
+                )}
             </h2>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-            <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="flex-1 md:flex-none">
+            <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => router.back()} 
+                disabled={loading} 
+                className="flex-1 md:flex-none"
+            >
                 Cancelar
             </Button>
             <Button 
                 type="submit" 
                 className={cn("text-white flex-1 md:flex-none min-w-[140px]", isFestamas ? "bg-festamas-primary hover:bg-festamas-primary/90" : "bg-fiestasya-accent hover:bg-fiestasya-accent/90")}
-                disabled={loading}
+                disabled={loading || !isDirty} // Deshabilitado si no hay cambios
             >
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Guardar

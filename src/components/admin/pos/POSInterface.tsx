@@ -6,12 +6,12 @@ import { Division } from '@prisma/client';
 import { usePOSStore } from '@/store/pos-store';
 import { consultDni } from '@/actions/reniec';
 import { searchProductsPOS } from '@/actions/products';
-import { processPOSSale } from '@/actions/pos'; // 👈 IMPORTANTE
+import { processPOSSale } from '@/actions/pos';
 import { useDebouncedCallback } from 'use-debounce';
 import { 
   Search, ScanBarcode, Trash2, Plus, Minus, 
   CreditCard, User, ShoppingCart, Loader2, Eraser, 
-  Banknote, QrCode, CheckCircle2 
+  Banknote, QrCode, CheckCircle2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,6 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { cn, formatCurrency } from '@/lib/utils';
 
-// Tipos
 type POSProduct = {
     id: string;
     title: string;
@@ -55,10 +54,16 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'YAPE' | 'PLIN' | 'EFECTIVO' | 'TARJETA'>('EFECTIVO');
   const [loadingDni, setLoadingDni] = useState(false);
-  const [processingSale, setProcessingSale] = useState(false); // 👈 Nuevo estado de carga
+  const [processingSale, setProcessingSale] = useState(false);
 
   const { cart, customer, addToCart, removeFromCart, updateQuantity, setCustomer, clearCart, clearCustomer, getTotal, getItemsCount, getItemActivePrice } = usePOSStore();
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Sincronizar productos si cambian las props
+  useEffect(() => {
+    setProducts(initialProducts);
+    setQuery('');
+  }, [initialProducts]);
 
   const handleSearch = useDebouncedCallback(async (term: string) => {
     if (!term) {
@@ -73,7 +78,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
 
   useEffect(() => { handleSearch(query); }, [query, handleSearch]);
 
-  // Lógica de Scanner (Buffer de teclado)
+  // Scanner
   useEffect(() => {
     let buffer = '';
     let lastKeyTime = Date.now();
@@ -109,7 +114,6 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
         }
       } else if (char.length === 1) buffer += char;
     };
-    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [addToCart, division]);
@@ -130,12 +134,9 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
     setLoadingDni(false);
   };
 
-  // ⚡ LÓGICA DE PROCESAR VENTA
   const handleProcessSale = async () => {
     if (cart.length === 0) return;
-    
     setProcessingSale(true);
-
     try {
       const itemsPayload = cart.map(item => ({
         productId: item.id,
@@ -143,44 +144,21 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
         price: getItemActivePrice(item)
       }));
 
-      // Determinar la "división" actual para el logo (basado en lo que el usuario está viendo)
-      // Si `division` es 'JUGUETERIA' -> Festamas, sino FiestasYa.
-      // O puedes pasar el prop `division` que ya recibes en el componente.
-      
       const result = await processPOSSale({
         items: itemsPayload,
         total: getTotal(),
         paymentMethod,
-        division: division === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa', // 👈 Enviamos la marca
-        customer: {
-          name: customer.name,
-          dni: customer.dni,
-          address: customer.address 
-        }
+        division: division === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa',
+        customer: { name: customer.name, dni: customer.dni, address: customer.address }
       });
 
       if (result.success) {
-        toast.success(result.message, {
-            icon: <CheckCircle2 className="h-5 w-5 text-green-500" />
-        });
-        
-        // 🧾 ABRIR BOLETA AUTOMÁTICAMENTE (MODO POPUP FORZADO)
+        toast.success(result.message, { icon: <CheckCircle2 className="h-5 w-5 text-green-500" /> });
         setTimeout(() => {
-            const width = 800;
-            const height = 800; // Un poco más alto para A4
-            const left = (window.screen.width - width) / 2;
-            const top = (window.screen.height - height) / 2;
-            
-            // 🔥 El truco: 'toolbar=no,menubar=no,status=no,location=no' fuerza el popup
+            const width = 800, height = 800, left = (window.screen.width - width) / 2, top = (window.screen.height - height) / 2;
             const features = `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no,location=no`;
-            
-            window.open(
-                `/admin/orders/${result.orderId}/invoice`, 
-                '_blank', // Usar _blank con features suele forzar ventana
-                features
-            );
+            window.open(`/admin/orders/${result.orderId}/invoice`, '_blank', features);
         }, 500);
-
         clearCart();
         clearCustomer();
         setIsCheckoutOpen(false);
@@ -189,7 +167,6 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
       } else {
         toast.error(result.message || 'Error al procesar la venta');
       }
-
     } catch (error) {
       console.error(error);
       toast.error('Error de conexión');
@@ -202,11 +179,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
 
   return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-slate-50/50">
-      
-      {/* 👈 IZQUIERDA: CATÁLOGO */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden p-4">
-        
-        {/* HEADER */}
         <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex gap-3 items-center shrink-0 mb-4">
             <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -219,12 +192,8 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
                     autoFocus
                 />
             </div>
-            <Button size="icon" variant="outline" className="md:hidden shrink-0 h-11 w-11" onClick={() => toast.info("Cámara pronto")}>
-                <ScanBarcode className="h-6 w-6 text-slate-600" />
-            </Button>
+            <Button size="icon" variant="outline" className="md:hidden shrink-0 h-11 w-11" onClick={() => toast.info("Cámara pronto")}><ScanBarcode className="h-6 w-6 text-slate-600" /></Button>
         </div>
-
-        {/* GRID PRODUCTOS */}
         <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-20 lg:mb-0 relative">
             <ScrollArea className="h-full w-full absolute inset-0">
                 <div className="p-4"> 
@@ -239,46 +208,23 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
                                 <button 
                                     key={product.id}
                                     onClick={() => product.stock > 0 ? addToCart(product as any) : toast.error("Sin stock")}
-                                    className={cn(
-                                        "flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden active:scale-[0.98] transition-all hover:shadow-md text-left relative h-full group",
-                                        product.stock <= 0 && "opacity-60 grayscale"
-                                    )}
+                                    className={cn("flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden active:scale-[0.98] transition-all hover:shadow-md text-left relative h-full group", product.stock <= 0 && "opacity-60 grayscale")}
                                 >
                                     <div className="aspect-square relative bg-slate-100 border-b border-slate-100 group-hover:opacity-90 transition-opacity">
-                                        {product.images[0] ? (
-                                            <Image src={product.images[0]} alt="" fill className="object-cover" />
-                                        ) : (
-                                            <div className="flex items-center justify-center h-full"><ScanBarcode className="h-8 w-8 text-slate-300"/></div>
-                                        )}
+                                        {product.images[0] ? <Image src={product.images[0]} alt="" fill className="object-cover" /> : <div className="flex items-center justify-center h-full"><ScanBarcode className="h-8 w-8 text-slate-300"/></div>}
                                         <div className="absolute top-1 right-1 flex flex-col items-end gap-1">
-                                            <Badge className={cn("px-1.5 py-0 text-[10px] shadow-sm", product.stock > 0 ? "bg-white text-slate-700 hover:bg-white" : "bg-red-500 text-white")}>
-                                                {product.stock}
-                                            </Badge>
-                                            {(product.discountPercentage ?? 0) > 0 && (
-                                                <Badge className={cn("px-1.5 py-0 text-[10px] text-white border-none", isFestamas ? "bg-red-500" : "bg-pink-500")}>
-                                                    -{product.discountPercentage}%
-                                                </Badge>
-                                            )}
+                                            <Badge className={cn("px-1.5 py-0 text-[10px] shadow-sm", product.stock > 0 ? "bg-white text-slate-700 hover:bg-white" : "bg-red-500 text-white")}>{product.stock}</Badge>
+                                            {(product.discountPercentage ?? 0) > 0 && <Badge className={cn("px-1.5 py-0 text-[10px] text-white border-none", isFestamas ? "bg-red-500" : "bg-pink-500")}>-{product.discountPercentage}%</Badge>}
                                         </div>
                                     </div>
                                     <div className="p-2.5 flex flex-col justify-between flex-1 gap-1">
                                         <p className="text-xs font-semibold text-slate-700 line-clamp-2 leading-tight min-h-[2.5em]">{product.title}</p>
                                         <div className="flex items-end justify-between">
                                             <div className="flex flex-col">
-                                                {(product.discountPercentage ?? 0) > 0 && (
-                                                    <span className="text-[10px] text-slate-400 line-through">
-                                                        {formatCurrency(Number(product.price))}
-                                                    </span>
-                                                )}
-                                                <span className={cn("font-bold text-sm", brandText)}>
-                                                    {formatCurrency(Number(product.price) * (1 - (product.discountPercentage || 0) / 100))}
-                                                </span>
+                                                {(product.discountPercentage ?? 0) > 0 && <span className="text-[10px] text-slate-400 line-through">{formatCurrency(Number(product.price))}</span>}
+                                                <span className={cn("font-bold text-sm", brandText)}>{formatCurrency(Number(product.price) * (1 - (product.discountPercentage || 0) / 100))}</span>
                                             </div>
-                                            {(Number(product.wholesalePrice) > 0) && (
-                                                <span className="text-[9px] text-slate-400 bg-slate-100 px-1 rounded" title={`Mínimo: ${product.wholesaleMinCount}`}>
-                                                    May: {formatCurrency(Number(product.wholesalePrice))}
-                                                </span>
-                                            )}
+                                            {(Number(product.wholesalePrice) > 0) && <span className="text-[9px] text-slate-400 bg-slate-100 px-1 rounded">May: {formatCurrency(Number(product.wholesalePrice))}</span>}
                                         </div>
                                     </div>
                                 </button>
@@ -289,17 +235,11 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
             </ScrollArea>
         </div>
       </div>
-
-      {/* 👉 DERECHA: TICKET Y CLIENTE (Fijo Web) */}
       <div className="hidden lg:flex flex-col w-[380px] xl:w-[420px] shrink-0 h-full border-l border-slate-200 bg-white z-10 shadow-xl">
         <div className="p-4 border-b border-slate-100 bg-white space-y-3 shrink-0 z-20">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2 text-slate-800 font-bold">
-                    <User className={cn("h-5 w-5", brandText)} /> Cliente
-                </div>
-                <Button variant="ghost" size="sm" onClick={clearCustomer} className="h-6 text-slate-400 hover:text-red-500 text-xs px-2">
-                    <Eraser className="h-3 w-3 mr-1"/> Limpiar
-                </Button>
+                <div className="flex items-center gap-2 text-slate-800 font-bold"><User className={cn("h-5 w-5", brandText)} /> Cliente</div>
+                <Button variant="ghost" size="sm" onClick={clearCustomer} className="h-6 text-slate-400 hover:text-red-500 text-xs px-2"><Eraser className="h-3 w-3 mr-1"/> Limpiar</Button>
             </div>
             <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -310,23 +250,17 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
             </div>
             <Input placeholder="Nombre del Cliente" value={customer.name} onChange={(e) => setCustomer({ name: e.target.value })} className="bg-slate-50 border-slate-200" />
         </div>
-
         <div className="flex-1 flex flex-col min-h-0 bg-slate-50/30 relative">
             <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-white/50 shrink-0">
-                <div className="flex items-center gap-2 font-bold text-slate-700 text-sm">
-                    <ShoppingCart className="h-4 w-4" /> Items <Badge variant="secondary" className="h-5 px-1.5 min-w-[20px] justify-center bg-white border border-slate-200 text-slate-600">{getItemsCount()}</Badge>
-                </div>
+                <div className="flex items-center gap-2 font-bold text-slate-700 text-sm"><ShoppingCart className="h-4 w-4" /> Items <Badge variant="secondary" className="h-5 px-1.5 min-w-[20px] justify-center bg-white border border-slate-200 text-slate-600">{getItemsCount()}</Badge></div>
                 <Button variant="ghost" size="sm" onClick={clearCart} className="text-red-400 hover:text-red-600 hover:bg-red-50 h-7 text-xs px-2"><Trash2 className="h-3 w-3 mr-1"/> Vaciar</Button>
             </div>
             <div className="flex-1 relative w-full overflow-hidden">
                 <ScrollArea className="h-full w-full absolute inset-0">
-                    <div className="p-3"> 
-                        <CartList cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} getItemActivePrice={getItemActivePrice} />
-                    </div>
+                    <div className="p-3"><CartList cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} getItemActivePrice={getItemActivePrice} /></div>
                 </ScrollArea>
             </div>
         </div>
-
         <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0 z-20">
             <div className="space-y-1 mb-4">
                 <div className="flex justify-between text-xs text-slate-500"><span>Subtotal</span><span>{formatCurrency(getTotal() / 1.18)}</span></div>
@@ -337,8 +271,6 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
             <Button className={cn("w-full h-12 text-base font-bold shadow-lg transition-all active:scale-[0.98]", brandBg)} onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0}><CreditCard className="mr-2 h-5 w-5" /> Cobrar</Button>
         </div>
       </div>
-
-      {/* 📱 BOTÓN FLOTANTE */}
       <div className="md:hidden fixed bottom-4 left-4 right-4 z-50">
         {cart.length > 0 && (
             <Button onClick={() => setIsCheckoutOpen(true)} className={cn("w-full h-14 shadow-2xl flex justify-between items-center text-lg px-6 rounded-full border border-white/20", brandBg)}>
@@ -347,8 +279,6 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
             </Button>
         )}
       </div>
-
-      {/* 🧾 MODAL */}
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
         <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden gap-0 border-none shadow-2xl">
             <DialogHeader className={cn("p-4 text-white", brandBg)}>
@@ -365,9 +295,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
                     <Input placeholder="Nombre" value={customer.name} onChange={(e) => setCustomer({ name: e.target.value })} className="h-9 text-sm flex-1" />
                 </div>
             </div>
-            <div className="max-h-[30vh] overflow-y-auto p-4 bg-slate-50">
-                <CartList cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} getItemActivePrice={getItemActivePrice} />
-            </div>
+            <div className="max-h-[30vh] overflow-y-auto p-4 bg-slate-50"><CartList cart={cart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} getItemActivePrice={getItemActivePrice} /></div>
             <div className="p-5 bg-white border-t border-slate-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Método de Pago</p>
                 <Tabs defaultValue="EFECTIVO" onValueChange={(v) => setPaymentMethod(v as any)} className="w-full mb-6">
@@ -382,19 +310,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
                     <span className="text-sm font-medium text-slate-500">Total a Cobrar</span>
                     <span className="text-3xl font-black text-slate-900">{formatCurrency(getTotal())}</span>
                 </div>
-                <Button 
-                  className={cn("w-full h-14 text-lg font-bold shadow-lg hover:scale-[1.01] transition-transform", brandBg)} 
-                  onClick={handleProcessSale} 
-                  disabled={cart.length === 0 || processingSale}
-                >
-                  {processingSale ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Procesando...
-                    </>
-                  ) : (
-                    "Confirmar Pago"
-                  )}
-                </Button>
+                <Button className={cn("w-full h-14 text-lg font-bold shadow-lg hover:scale-[1.01] transition-transform", brandBg)} onClick={handleProcessSale} disabled={cart.length === 0 || processingSale}>{processingSale ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Procesando...</> : "Confirmar Pago"}</Button>
             </div>
         </DialogContent>
       </Dialog>
@@ -402,32 +318,24 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
   );
 };
 
-// --- COMPONENTE LISTA CARRITO MEJORADO ---
 const CartList = ({ cart, updateQuantity, removeFromCart, getItemActivePrice }: any) => (
     <div className="space-y-2">
         {cart.length === 0 && <p className="text-center text-slate-400 text-sm py-8">El carrito está vacío</p>}
         {cart.map((item: any) => {
             const activePrice = getItemActivePrice(item);
-            
             const hasWholesalePrice = Number(item.wholesalePrice) > 0;
             const isWholesale = hasWholesalePrice && activePrice === Number(item.wholesalePrice);
             const isDiscounted = item.discountPercentage > 0 && !isWholesale;
-
             return (
                 <div key={item.id} className="flex items-start justify-between gap-2 p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
-                    {/* Indicador de Tipo de Precio */}
                     {isWholesale && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400" title="Precio Mayorista"/>}
                     {isDiscounted && <div className="absolute left-0 top-0 bottom-0 w-1 bg-pink-500" title="Oferta"/>}
-
-                    {/* LADO IZQUIERDO: Imagen + Info */}
                     <div className="flex gap-2 flex-1 min-w-0">
                         <div className="h-11 w-11 relative rounded-md overflow-hidden bg-slate-100 shrink-0 border border-slate-100">
                             {item.images[0] && <Image src={item.images[0]} alt="" fill className="object-cover" />}
                         </div>
                         <div className="flex flex-col justify-center min-w-0 pr-1">
                             <p className="text-xs font-bold text-slate-700 truncate mb-0.5 leading-tight">{item.title}</p>
-                            
-                            {/* Tags Flexibles */}
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                 <p className="text-[11px] font-medium text-slate-500">Unit: {formatCurrency(activePrice)}</p>
                                 {isWholesale && <Badge variant="secondary" className="px-1 py-0 h-4 text-[9px] bg-amber-100 text-amber-700 border-none whitespace-nowrap">Mayorista</Badge>}
@@ -435,20 +343,12 @@ const CartList = ({ cart, updateQuantity, removeFromCart, getItemActivePrice }: 
                             </div>
                         </div>
                     </div>
-
-                    {/* LADO DERECHO: Precio Total + Controles (Apilados) */}
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <p className="font-bold text-sm text-slate-900 tabular-nums leading-none">
-                            {formatCurrency(activePrice * item.quantity)}
-                        </p>
+                        <p className="font-bold text-sm text-slate-900 tabular-nums leading-none">{formatCurrency(activePrice * item.quantity)}</p>
                         <div className="flex items-center bg-slate-100 border border-slate-200 rounded-md h-7 w-20">
-                            <button className="flex-1 h-full flex items-center justify-center hover:bg-white text-slate-500 rounded-l-md active:bg-slate-200 transition-colors" onClick={() => item.quantity > 1 ? updateQuantity(item.id, item.quantity - 1) : removeFromCart(item.id)}>
-                                <Minus className="h-3 w-3" />
-                            </button>
+                            <button className="flex-1 h-full flex items-center justify-center hover:bg-white text-slate-500 rounded-l-md active:bg-slate-200 transition-colors" onClick={() => item.quantity > 1 ? updateQuantity(item.id, item.quantity - 1) : removeFromCart(item.id)}><Minus className="h-3 w-3" /></button>
                             <span className="w-6 text-center text-xs font-bold tabular-nums bg-white h-full flex items-center justify-center border-x border-slate-200">{item.quantity}</span>
-                            <button className="flex-1 h-full flex items-center justify-center hover:bg-white text-slate-500 rounded-r-md active:bg-slate-200 transition-colors disabled:opacity-50" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock}>
-                                <Plus className="h-3 w-3" />
-                            </button>
+                            <button className="flex-1 h-full flex items-center justify-center hover:bg-white text-slate-500 rounded-r-md active:bg-slate-200 transition-colors disabled:opacity-50" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock}><Plus className="h-3 w-3" /></button>
                         </div>
                     </div>
                 </div>

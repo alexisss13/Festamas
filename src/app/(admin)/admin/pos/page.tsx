@@ -2,9 +2,12 @@ import prisma from '@/lib/prisma';
 import { getAdminDivision } from '@/actions/admin-settings';
 import { POSInterface } from '@/components/admin/pos/POSInterface';
 
+export const dynamic = 'force-dynamic'; // Asegurar que no cachee estáticamente
+
 export default async function POSPage() {
   const division = await getAdminDivision();
 
+  // Obtenemos productos de la división actual
   const products = await prisma.product.findMany({
     where: { 
         division,
@@ -34,9 +37,10 @@ export default async function POSPage() {
   }));
 
   return (
-    // 👇 FIX: h-screen para altura exacta y -m-8 para romper el padding del AdminLayout
+    // 👇 FIX LAYOUT: h-screen y márgenes negativos para llenar la pantalla
     <div className="w-auto h-screen -m-4 md:-m-8 bg-slate-50 overflow-hidden">
       <POSInterface 
+        key={division} // 🔑 TRUCAZO: Esto fuerza a React a reiniciar todo al cambiar tienda
         initialProducts={formattedProducts} 
         division={division} 
       />

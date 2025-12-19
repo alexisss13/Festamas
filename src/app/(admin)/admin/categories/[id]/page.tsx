@@ -11,10 +11,9 @@ export default async function EditCategoryPage({ params }: Props) {
   
   if (!category) notFound();
 
-  // 🛡️ FIX: Pasamos la prop correcta 'category' en lugar de 'initialData'
   return (
-    <div className="p-8">
-        <h1 className="text-2xl font-bold mb-6">Editar Categoría</h1>
+    <div className="p-6 md:p-8">
+        {/* 👇 ELIMINADO EL H1 QUE ESTABA AQUÍ PARA NO DUPLICAR */}
         <CategoryForm category={category} />
     </div>
   );
