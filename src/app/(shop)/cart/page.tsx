@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Loader2, Tag, MapPin, Truck, Store, MessageSquarePlus, Package } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Loader2, Tag, MapPin, Truck, Store, MessageSquarePlus, Package, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useCartStore, getEffectivePrice, CartProduct } from '@/store/cart';
 import { useUIStore } from '@/store/ui';
-import { createOrder } from '@/actions/order';
+// import { createOrder } from '@/actions/order'; // 👈 YA NO USAMOS ESTO DIRECTAMENTE AQUÍ
+import { createPreference } from '@/actions/payments'; // 👈 USAMOS EL NUEVO ACTION DE MP
 import { getStoreConfig } from '@/actions/settings';
 import { validateCoupon } from '@/actions/coupon';
 import { getProducts } from '@/actions/products'; 
@@ -22,6 +23,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Division } from '@prisma/client';
+import { useSession } from 'next-auth/react'; // Para validar sesión en cliente
 
 export default function CartPage() {
   const { 
@@ -29,7 +31,7 @@ export default function CartPage() {
     removeProduct: removeItem, 
     updateProductQuantity: updateQuantity, 
     getSubtotalPrice, 
-    clearCart, 
+    // clearCart, // No limpiamos carrito aquí, se limpia en la página de éxito
     applyCoupon, 
     removeCoupon, 
     getDiscountAmount, 
@@ -37,7 +39,8 @@ export default function CartPage() {
     coupon 
   } = useCartStore();
 
-  const { currentDivision } = useUIStore(); 
+  const { currentDivision } = useUIStore();
+  const { data: session } = useSession(); // Hook de sesión 
   
   const [isMounted, setIsMounted] = useState(false);
   const [recommended, setRecommended] = useState<any[]>([]);
@@ -67,6 +70,11 @@ export default function CartPage() {
       setIsMounted(true);
     }, 100);
 
+    // Pre-llenar datos si hay sesión
+    if (session?.user) {
+        setName(session.user.name || '');
+    }
+
     getStoreConfig().then((config) => {
       if (config) {
         setStoreConfig({
@@ -78,9 +86,9 @@ export default function CartPage() {
     });
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [session]);
 
-  // 🛡️ Cargar Recomendaciones (FIX: No depende de 'items' para evitar re-render al agregar)
+  // Cargar Recomendaciones
   useEffect(() => {
     async function loadRecommended() {
         if (items.length === 0) return;
@@ -90,7 +98,6 @@ export default function CartPage() {
             division: currentDivision as Division 
         });
         if (res.success) {
-            // Filtramos solo al inicio. Si el usuario agrega uno, NO desaparece del carrusel (evita lagueo visual)
             const cartIds = items.map(i => i.id);
             const filtered = res.data.filter((p: any) => !cartIds.includes(p.id)).slice(0, 10);
             setRecommended(filtered);
@@ -98,7 +105,7 @@ export default function CartPage() {
     }
     if (isMounted) loadRecommended();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDivision, isMounted]); // 👈 Quitamos 'items' de las dependencias intencionalmente
+  }, [currentDivision, isMounted]);
 
   useEffect(() => {
       if (!coupon) {
@@ -138,6 +145,7 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
+    // 1. Validaciones
     const newErrors: typeof errors = {};
     if (!name.trim()) newErrors.name = ["El nombre es obligatorio"];
     if (!phone.trim() || phone.length < 9) newErrors.phone = ["Celular inválido"];
@@ -149,79 +157,42 @@ export default function CartPage() {
         return;
     }
 
+    if (!session) {
+        toast.error("Debes iniciar sesión para proceder al pago");
+        // Aquí podrías redirigir al login
+        return;
+    }
+
     setIsSubmitting(true);
 
-    const result = await createOrder({
-      name,
-      phone,
-      total: getGrandTotal(),
-      items: items.map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-        price: getEffectivePrice(item), 
-      })),
-      deliveryMethod, 
-      shippingAddress: address,
-      shippingCost: getShippingCost(),
-      notes: notes 
-    });
+    try {
+        // 2. Llamada a MercadoPago (Backend Action)
+        const result = await createPreference({
+            items: items.map(item => ({
+                ...item,
+                price: getEffectivePrice(item) // Enviamos el precio calculado
+            })),
+            deliveryMethod,
+            shippingAddress: address,
+            shippingCost: getShippingCost(),
+            contactName: name,
+            contactPhone: phone,
+            notes: notes,
+            total: getGrandTotal()
+        });
 
-    if (!result.success) {
-      setIsSubmitting(false);
-      toast.error(result.message || 'Error desconocido');
-      return;
-    }
-
-    const shortId = result.orderId!.split('-')[0].toUpperCase();
-
-    let message = `${storeConfig.welcomeMessage}\n\n`; 
-    message += `🆔 *Pedido:* #${shortId}\n`;
-    message += `👤 *Cliente:* ${name}\n`;
-    
-    let deliveryText = "Recojo en Tienda";
-    if (deliveryMethod === 'DELIVERY') deliveryText = `Delivery Local (${address})`;
-    if (deliveryMethod === 'PROVINCE') deliveryText = "Envío a Provincia (Agencia)";
-    
-    message += `🚚 *Entrega:* ${deliveryText}\n`;
-    message += `--------------------------------\n`;
-    
-    if (notes.trim()) {
-        message += `📝 *Notas:* ${notes}\n`;
-        message += `--------------------------------\n`;
-    }
-    
-    items.forEach((item) => {
-      const price = getEffectivePrice(item);
-      message += `• ${item.quantity}x ${item.title} (S/ ${price.toFixed(2)})\n`;
-    });
-    
-    const realSubtotal = getSubtotalPrice();
-
-    if (coupon) {
-        message += `\nSubtotal: ${formatPrice(realSubtotal)}`;
-        message += `\nDescuento (${coupon.code}): -${formatPrice(getDiscountAmount())}`;
-    }
-
-    if (getShippingCost() > 0) {
-        message += `\nEnvío: ${formatPrice(getShippingCost())}`;
-    }
-    
-    message += `\n💰 *TOTAL A PAGAR: ${formatPrice(getGrandTotal())}*`;
-    message += `\n\nQuedo atento a los datos de pago.`;
-
-    const url = `https://wa.me/${storeConfig.whatsappPhone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-
-    setTimeout(() => {
-        clearCart();
-        removeCoupon();
-        setName('');
-        setPhone('');
-        setAddress('');
-        setNotes('');
-        setDeliveryMethod('PICKUP');
+        if (result.success && result.url) {
+            // 3. Redirección exitosa a MercadoPago
+            window.location.href = result.url;
+        } else {
+            toast.error(result.message || 'Error al generar el pago');
+            setIsSubmitting(false);
+        }
+    } catch (error) {
+        console.error(error);
+        toast.error('Ocurrió un error inesperado');
         setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   if (!isMounted) return <div className="min-h-[60vh] flex items-center justify-center text-slate-500"><Loader2 className="h-8 w-8 animate-spin text-slate-300" /></div>;
@@ -515,10 +486,14 @@ export default function CartPage() {
                         Procesando...
                     </>
                 ) : (
-                    'Completar pedido por WhatsApp'
+                    <>
+                        Pagar con MercadoPago <CreditCard className="ml-2 h-5 w-5" />
+                    </>
                 )}
               </Button>
-              {/* Texto de seguridad ELIMINADO aquí */}
+              <p className="text-xs text-center text-slate-400 mt-4 flex justify-center gap-2 items-center">
+                🔒 Pagos procesados seguramente por MercadoPago
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -531,7 +506,6 @@ export default function CartPage() {
           <h2 className="text-2xl font-bold text-slate-700">
             Agrega más productos a tu carrito
           </h2>
-          {/* FIX: Carrusel girando automáticamente */}
           <ProductCarousel products={recommended} autoPlay={true} />
         </div>
       )}
