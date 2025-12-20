@@ -444,7 +444,12 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
             </div>
             <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-base text-slate-900 mb-4">Galería de Imágenes</h3>
-                <ImageUpload value={images} onChange={(urls) => setImages(urls)} />
+                <ImageUpload 
+                    value={images} 
+                    onChange={(urls) => setImages(urls)} // Aquí recibes el array completo
+                    disabled={loading}
+                    maxFiles={5} // O lo que permitas
+                />
             </div>
             <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-base text-slate-900 mb-4">Etiquetas de Búsqueda</h3>

@@ -5,17 +5,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Package, ShoppingCart, Settings, LogOut, 
-  Tags, Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, Calculator 
+  Tags, Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, Calculator, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet'; // 👈 Importamos SheetTitle y SheetHeader
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { logout } from '@/actions/auth-actions';
 import { AdminStoreSwitcher } from './AdminStoreSwitcher';
 import { Division } from '@prisma/client';
 
+// 👇 AQUÍ AGREGAMOS LA RUTA DE USUARIOS
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/users', label: 'Usuarios y Roles', icon: Users }, // 👈 NUEVO
   { href: '/admin/pos', label: 'Punto de Venta', icon: Calculator },
   { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
   { href: '/admin/products', label: 'Productos', icon: Package },
@@ -45,7 +47,6 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
   useEffect(() => {
     const mainContent = document.getElementById('admin-main-content');
     if (mainContent) {
-      // En móvil el margen siempre debe ser 0, en desktop depende del collapse
       if (window.innerWidth >= 768) {
          mainContent.style.marginLeft = isCollapsed ? '80px' : '256px';
       } else {
@@ -135,7 +136,6 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-72">
-                    {/* 🔴 FIX ACCESIBILIDAD: Título Oculto pero presente */}
                     <SheetHeader className="sr-only">
                         <SheetTitle>Menú de Navegación</SheetTitle>
                     </SheetHeader>

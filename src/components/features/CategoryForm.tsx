@@ -205,6 +205,8 @@ export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props
                     value={image ? [image] : []}
                     disabled={loading}
                     onChange={(urlArray) => setImage(urlArray[0] || '')}
+                    maxFiles={1}       // 👈 AGREGAR ESTO VITAL
+                    sizing="cover"
                 />
                 <p className="text-xs text-slate-400 mt-3 text-center">
                     Idealmente imagen cuadrada o rectangular pequeña.

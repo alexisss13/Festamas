@@ -79,9 +79,6 @@ model VerificationToken {
   @@unique([identifier, token])
 }    
 
-// ... EL RESTO DE TU SCHEMA SIGUE IGUAL ...
-// (Pego el resto para asegurar que no se pierda nada)
-
 // 📍 DIRECCIONES
 model Address {
   id        String   @id @default(uuid())

@@ -168,11 +168,12 @@ export function BannerForm({ banner, defaultDivision = 'JUGUETERIA' }: Props) {
                 <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                     <Monitor className="w-4 h-4 text-slate-500" /> Imagen Desktop
                 </h3>
-                {/* 🛠️ FIX AQUÍ: onChange maneja el borrado si llega array vacío */}
                 <ImageUpload 
                     value={imageUrl ? [imageUrl] : []}
+                    onChange={(urls) => setImageUrl(urls[0] || '')}
                     disabled={loading}
-                    onChange={(url) => setImageUrl(url[0] || '')}
+                    maxFiles={1} 
+                    sizing="banner"    // Para formato panorámico 16:9
                 />
             </div>
 
@@ -180,11 +181,12 @@ export function BannerForm({ banner, defaultDivision = 'JUGUETERIA' }: Props) {
                 <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                     <Smartphone className="w-4 h-4 text-slate-500" /> Imagen Móvil (Opcional)
                 </h3>
-                {/* 🛠️ FIX AQUÍ TAMBIÉN */}
                 <ImageUpload 
                     value={mobileUrl ? [mobileUrl] : []}
                     disabled={loading}
                     onChange={(url) => setMobileUrl(url[0] || '')}
+                    maxFiles={1}
+                    sizing="mobile" // 👈 ESTO ARREGLA EL BUG VISUAL (9:16 vertical)
                 />
             </div>
         </div>
