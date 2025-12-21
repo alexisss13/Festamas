@@ -27,6 +27,7 @@ export async function createPreference(data: CheckoutData) {
   }
 
   try {
+    // Definimos la URL base (debe ser la de Vercel en producción)
     const rawUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
     const baseUrl = rawUrl.trim().replace(/\/$/, "");
 
@@ -76,7 +77,7 @@ export async function createPreference(data: CheckoutData) {
     // 3. Preparar Body Base
     const preferenceBody: any = {
       items: mpItems,
-      external_reference: newOrder.id,
+      external_reference: newOrder.id, // 👈 CLAVE: Enlaza el pago con tu orden
       payer: {
         email: session.user.email!,
         name: data.contactName,
@@ -86,8 +87,10 @@ export async function createPreference(data: CheckoutData) {
         failure: `${baseUrl}/checkout/failure`,
         pending: `${baseUrl}/checkout/pending`,
       },
-      auto_return: "approved", // 👈 Intentamos esto primero
+      auto_return: "approved",
       statement_descriptor: "FESTAMAS",
+      // 👇 AQUÍ ESTÁ LA MAGIA DESCOMENTADA:
+      notification_url: `${baseUrl}/api/webhooks/mercadopago`,
     };
 
     const preference = new Preference(client);
@@ -97,13 +100,13 @@ export async function createPreference(data: CheckoutData) {
       // INTENTO 1: Con auto_return
       result = await preference.create({ body: preferenceBody });
     } catch (firstError: any) {
-      // 🛡️ REINTENTO: Si falla por auto_return, lo quitamos y probamos de nuevo
+      // 🛡️ REINTENTO: Si falla por auto_return (localhost), lo quitamos
       if (firstError?.message?.includes("auto_return")) {
-        console.warn("⚠️ Falló auto_return (posiblemente por localhost). Reintentando sin él...");
-        delete preferenceBody.auto_return; // Quitamos la propiedad problemática
-        result = await preference.create({ body: preferenceBody }); // Reintentamos
+        console.warn("⚠️ Falló auto_return. Reintentando sin él...");
+        delete preferenceBody.auto_return;
+        result = await preference.create({ body: preferenceBody });
       } else {
-        throw firstError; // Si es otro error, que explote normal
+        throw firstError;
       }
     }
 
