@@ -7,6 +7,7 @@ import { OrderStatus } from '@prisma/client';
 import { Resend } from 'resend';
 import { OrderEmail } from '@/components/email/OrderEmail';
 import * as React from 'react';
+import { auth } from '@/auth'; // Asegúrate de tener este import al inicio
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -278,3 +279,63 @@ export async function updateOrderStatus(id: string, newStatus: OrderStatus, isPa
     return { success: false, message: 'Error al actualizar la orden' };
   }
 }
+
+// 👇 REEMPLAZA SOLO ESTA FUNCIÓN AL FINAL DEL ARCHIVO
+export const getUserOrders = async () => {
+  const session = await auth();
+
+  if (!session?.user) {
+    return { ok: false, message: 'Debe estar autenticado' };
+  }
+
+  try {
+    const orders = await prisma.order.findMany({
+      where: {
+        userId: session.user.id
+      },
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                title: true,
+                slug: true,
+                images: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // 🛡️ SERIALIZACIÓN DE SEGURIDAD (Convertir Decimal a Number)
+    // Esto evita el error de "Plain Object" o fallos de lectura en el cliente
+    const safeOrders = orders.map(order => ({
+      ...order,
+      totalAmount: Number(order.totalAmount),
+      shippingCost: Number(order.shippingCost),
+      // Aseguramos que la fecha sea serializable (aunque Next lo suele manejar, mejor prevenir)
+      createdAt: order.createdAt, 
+      orderItems: order.orderItems.map(item => ({
+        ...item,
+        price: Number(item.price),
+        // No necesitamos convertir producto.price porque no lo seleccionamos en el query de arriba
+      }))
+    }));
+
+    return {
+      ok: true,
+      orders: safeOrders
+    };
+
+  } catch (error) {
+    console.log(error);
+    return {
+      ok: false,
+      message: 'Error al obtener las órdenes'
+    };
+  }
+};

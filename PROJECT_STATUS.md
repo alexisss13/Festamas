@@ -1,45 +1,28 @@
 # PROJECT_STATUS.md
 
-## 1. Funcionalidad Actual
-### 🔐 Seguridad & Auth
-- **NextAuth v5:** Login administrativo protegido.
-- **Roles:** Sistema ADMIN/USER.
+## 🚀 Funcionalidad Actual (Hitos Completados)
+- [x] **Autenticación:** NextAuth v5 (Google Login).
+- [x] **Catálogo:** Productos con variantes y control de stock.
+- [x] **Carrito:** Persistencia con Zustand + Lógica de precios.
+- [x] **Pasarela de Pagos:** MercadoPago Checkout Pro (Integration Robusta).
+- [x] **Automatización:** Webhooks funcionales (Actualización automática de estado `PENDING` -> `PAID`).
+- [x] **Despliegue:** Proyecto activo en Vercel con variables de entorno configuradas.
 
-### 🛒 Tienda (Frontend)
-- **Core:** Catálogo, Buscador, Categorías.
-- **Carrito Pro:** Lógica pura separada (`cart-calculator.ts`) y estado con Zustand.
-- **Cupones:** Descuentos fijos y porcentuales validados.
-- **Checkout:** Integración WhatsApp con mensaje detallado.
-
-### ⚙️ Administración (Backend)
-- **CMS:** Gestión CRUD completa (Productos, Categorías, Banners, Configuración).
-- **Pedidos:** Kanban de estados, control de stock y notificaciones Email.
-- **Métricas:** Dashboard financiero y gráficos.
-
-### 🛠️ Ingeniería & Calidad
-- **Testing:** Unit Tests (Jest) para lógica financiera (100% cobertura).
-- **Performance:** `unstable_cache` y `revalidateTag` para lecturas de DB optimizadas.
-- **SEO Avanzado:** JSON-LD implementado dinámicamente en fichas de producto.
-
-### 🎨 UX & Interfaz
-- **Skeletons (Pantallas de Carga):**
-  - Implementado sistema de carga progresiva con `loading.tsx`.
-  - Componentes visuales (`ProductCardSkeleton`, `ProductDetailSkeleton`) que imitan el layout real.
-  - Elimina el "layout shift" y mejora la percepción de velocidad.
-
-  ### 🧠 Backend Logic (Monolito Modular)
-- **Actions Actualizados:**
-  - `getProducts`: Ahora acepta parámetro `division` (Default: JUGUETERIA).
-  - `getCategories`: Filtrado opcional por división.
-  - `createOrUpdateProduct/Category`: Soporte completo para guardar el campo `division`.
-
-## 2. Estructura Clave (Resumen)
+## 🏗️ Estructura Técnica Clave
 src/
-├── actions/            # Server Actions cacheados
+├── actions/
+│   ├── payments.ts       # 🧠 Lógica de creación de Preferencia (con notification_url explícita)
+│   └── order.ts          # Gestión de órdenes en BD
 ├── app/
-│   ├── (shop)/product/[slug]/page.tsx  # Con JSON-LD
-├── lib/
-│   ├── cart-calculator.ts # Cerebro matemático
-│   └── prisma.ts       # Cliente Singleton
-└── store/              # Zustand Store
+│   ├── api/webhooks/mercadopago/ # 👂 Oído del sistema (Recibe el pago)
+│   └── (shop)/checkout/  # Páginas de Feedback (Success/Failure)
+└── components/providers/ # SessionProvider global
 
+## ⚙️ Stack y Configuración
+- **MercadoPago:** Credenciales de Producción (`APP_USR`) configuradas.
+- **Webhook:** `https://festamas.vercel.app/api/webhooks/mercadopago`
+- **Base de Datos:** Neon (PostgreSQL) con Prisma ORM.
+
+## 🔜 Próximo Paso Inmediato
+- **Historial de Pedidos:** Crear la vista "Mis Compras" en el perfil del usuario para que vea el estado de sus pedidos.
+- **Correos Transaccionales:** Integrar Resend para enviar el recibo por email automáticamente.

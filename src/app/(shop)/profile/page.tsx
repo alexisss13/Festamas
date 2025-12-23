@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, MapPin, Package, LogOut, Settings, CreditCard, ShieldCheck, Plus } from 'lucide-react';
+import { User, MapPin, Package, LogOut, Settings, CreditCard, ShieldCheck, Plus, ChevronRight } from 'lucide-react';
 import { cookies } from 'next/headers';
 import { cn } from '@/lib/utils';
 import { logout } from '@/actions/auth-actions';
@@ -42,41 +42,45 @@ export default async function ProfilePage() {
   const bgLight = isFestamas ? 'bg-red-50' : 'bg-pink-50';
 
   return (
-    <div className="min-h-[80vh] w-full max-w-[1400px] mx-auto px-4 lg:px-8 py-8 md:py-12 animate-in fade-in duration-500">
+    // 🏗️ CONTENEDOR ESTANDARIZADO (Igual al Home y Orders)
+    <div className="container mx-auto px-4 mt-8 md:mt-12 pb-24 animate-in fade-in duration-500">
       
       {/* 1. ENCABEZADO DE PERFIL */}
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-10">
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-10 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
         <div className="relative group">
-            <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white shadow-xl transition-transform group-hover:scale-105">
-                <AvatarImage src={user.image || ''} />
+            <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white shadow-lg transition-transform group-hover:scale-105 ring-1 ring-slate-100">
+                <AvatarImage src={user.image || ''} className="object-cover" />
                 <AvatarFallback className={cn("text-3xl font-bold text-white", bgPrimary)}>
                     {user.name?.charAt(0).toUpperCase()}
                 </AvatarFallback>
             </Avatar>
             <Badge className={cn("absolute -bottom-2 -right-2 px-3 py-1 text-xs shadow-md border-white border-2", 
-                user.role === 'ADMIN' ? "bg-slate-900" : "bg-green-500"
+                user.role === 'ADMIN' ? "bg-slate-900" : "bg-emerald-500"
             )}>
                 {user.role === 'ADMIN' ? 'Administrador' : 'Cliente Verificado'}
             </Badge>
         </div>
 
         <div className="flex-1 text-center md:text-left space-y-1 py-2">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-800">{user.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">{user.name}</h1>
             <p className="text-slate-500 font-medium">{user.email}</p>
-            <p className="text-xs text-slate-400">Miembro desde {new Date(user.createdAt).toLocaleDateString()}</p>
+            <div className="flex items-center justify-center md:justify-start gap-2 text-xs text-slate-400 pt-1">
+                <ShieldCheck className="w-3 h-3" />
+                <span>Miembro desde {new Date(user.createdAt).toLocaleDateString()}</span>
+            </div>
         </div>
 
-        <div className="flex flex-col gap-3 w-full md:w-auto min-w-[180px]">
+        <div className="flex flex-col gap-3 w-full md:w-auto min-w-[200px]">
             {user.role === 'ADMIN' && (
-                <Link href="/admin/dashboard">
-                    <Button variant="outline" className="w-full justify-start gap-2 border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                        <Settings className="w-4 h-4 text-slate-500" /> Ir al Admin
+                <Link href="/admin/dashboard" className="w-full">
+                    <Button variant="outline" className="w-full justify-start gap-2 border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-colors font-medium">
+                        <Settings className="w-4 h-4 text-slate-500" /> Panel Admin
                     </Button>
                 </Link>
             )}
             
-            {/* 🚪 BOTÓN CERRAR SESIÓN MEJORADO */}
-            <form action={logout}>
+            {/* 🚪 BOTÓN CERRAR SESIÓN */}
+            <form action={logout} className="w-full">
                 <Button 
                     variant="ghost" 
                     className="w-full justify-start gap-2 text-slate-500 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all"
@@ -93,23 +97,24 @@ export default async function ProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         {/* TARJETA 1: DATOS PERSONALES */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow border-slate-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-bold text-slate-800">Datos Personales</CardTitle>
+        <Card className="shadow-sm hover:shadow-md transition-shadow border-slate-200 h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-slate-50/50 border-b border-slate-50">
+                <CardTitle className="text-base font-bold text-slate-800">Datos Personales</CardTitle>
                 <div className={cn("p-2 rounded-full bg-opacity-10", bgLight)}>
-                    <User className={cn("w-5 h-5", textPrimary)} />
+                    <User className={cn("w-4 h-4", textPrimary)} />
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
                 <div className="space-y-4">
                     <div className="grid gap-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nombre Completo</span>
-                        <span className="text-sm font-medium text-slate-700">{user.name}</span>
+                        <span className="text-sm font-medium text-slate-700 truncate">{user.name}</span>
                     </div>
                     <div className="grid gap-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Correo Electrónico</span>
-                        <span className="text-sm font-medium text-slate-700">{user.email}</span>
+                        <span className="text-sm font-medium text-slate-700 truncate">{user.email}</span>
                     </div>
+                    {/* Botón visual (funcionalidad futura) */}
                     <Button variant="outline" className="w-full mt-2 h-9 text-xs border-dashed text-slate-500 hover:text-slate-800 hover:bg-slate-50">
                         Editar Información
                     </Button>
@@ -118,18 +123,18 @@ export default async function ProfilePage() {
         </Card>
 
         {/* TARJETA 2: DIRECCIONES */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow border-slate-200 relative overflow-hidden group">
+        <Card className="shadow-sm hover:shadow-md transition-shadow border-slate-200 relative overflow-hidden group h-full">
             <div className={cn("absolute top-0 left-0 w-1 h-full transition-all group-hover:w-1.5", bgPrimary)} />
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-bold text-slate-800">Mis Direcciones</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-slate-50/50 border-b border-slate-50">
+                <CardTitle className="text-base font-bold text-slate-800">Mis Direcciones</CardTitle>
                 <div className={cn("p-2 rounded-full bg-opacity-10", bgLight)}>
-                    <MapPin className={cn("w-5 h-5", textPrimary)} />
+                    <MapPin className={cn("w-4 h-4", textPrimary)} />
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
                 {user.addresses.length > 0 ? (
                     <div className="space-y-3">
-                        {user.addresses.map((address) => (
+                        {user.addresses.slice(0, 2).map((address) => (
                             <div key={address.id} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
                                 <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                                 <div className="flex flex-col min-w-0">
@@ -138,8 +143,8 @@ export default async function ProfilePage() {
                                 </div>
                             </div>
                         ))}
-                        <Link href="/profile/address">
-                            <Button variant="ghost" className={cn("w-full mt-2 text-xs font-bold", textPrimary)}>
+                        <Link href="/profile/address" className="block">
+                            <Button variant="ghost" className={cn("w-full mt-2 text-xs font-bold hover:bg-slate-50", textPrimary)}>
                                 Gestionar Direcciones
                             </Button>
                         </Link>
@@ -161,23 +166,23 @@ export default async function ProfilePage() {
         </Card>
 
         {/* TARJETA 3: ÚLTIMOS PEDIDOS */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow border-slate-200 md:col-span-2 lg:col-span-1">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-bold text-slate-800">Mis Pedidos</CardTitle>
+        <Card className="shadow-sm hover:shadow-md transition-shadow border-slate-200 md:col-span-2 lg:col-span-1 h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-slate-50/50 border-b border-slate-50">
+                <CardTitle className="text-base font-bold text-slate-800">Pedidos Recientes</CardTitle>
                 <div className={cn("p-2 rounded-full bg-opacity-10", bgLight)}>
-                    <Package className={cn("w-5 h-5", textPrimary)} />
+                    <Package className={cn("w-4 h-4", textPrimary)} />
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
                 {user.orders.length > 0 ? (
                     <div className="space-y-4">
-                        {user.orders.map((order) => (
+                        {user.orders.slice(0, 3).map((order) => (
                             <div key={order.id} className="flex items-center justify-between border-b border-slate-100 last:border-0 pb-3 last:pb-0">
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-slate-700">Orden #{order.id.split('-')[0]}</span>
+                                    <span className="text-sm font-bold text-slate-700">#{order.id.split('-')[0].toUpperCase()}</span>
                                     <span className="text-xs text-slate-400">{new Date(order.createdAt).toLocaleDateString()}</span>
                                 </div>
-                                <Badge variant="outline" className={cn("font-normal", 
+                                <Badge variant="outline" className={cn("font-medium text-[10px] px-2", 
                                     order.isPaid 
                                         ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
                                         : "bg-amber-50 text-amber-700 border-amber-200"
@@ -186,8 +191,11 @@ export default async function ProfilePage() {
                                 </Badge>
                             </div>
                         ))}
-                        <Button variant="link" className={cn("w-full text-xs h-auto p-0 mt-2", textPrimary)}>
-                            Ver historial completo
+                        {/* 🔗 ENLACE ARREGLADO A /profile/orders */}
+                        <Button variant="link" className={cn("w-full text-xs h-auto p-0 mt-2 gap-1 group/link", textPrimary)} asChild>
+                            <Link href="/profile/orders">
+                                Ver historial completo <ChevronRight className="w-3 h-3 transition-transform group-hover/link:translate-x-1" />
+                            </Link>
                         </Button>
                     </div>
                 ) : (
@@ -202,7 +210,7 @@ export default async function ProfilePage() {
             </CardContent>
         </Card>
 
-        {/* TARJETA 4: SEGURIDAD (Relleno visual pro) */}
+        {/* TARJETA 4: SEGURIDAD (Banner Inferior) */}
         <Card className="bg-slate-50/50 border-slate-100 md:col-span-2 lg:col-span-3">
             <CardContent className="flex flex-col md:flex-row items-center justify-between p-6 gap-4">
                 <div className="flex items-center gap-4">
@@ -211,11 +219,11 @@ export default async function ProfilePage() {
                     </div>
                     <div className="text-center md:text-left">
                         <h3 className="font-bold text-slate-800">Tu cuenta está protegida</h3>
-                        <p className="text-sm text-slate-500">Tus datos están encriptados y seguros con nosotros.</p>
+                        <p className="text-sm text-slate-500">Tus datos están encriptados. No compartimos tu información.</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
-                    <CreditCard className="w-4 h-4" /> Pagos seguros con Mercado Pago
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
+                    <CreditCard className="w-4 h-4" /> Pagos procesados por Mercado Pago
                 </div>
             </CardContent>
         </Card>
