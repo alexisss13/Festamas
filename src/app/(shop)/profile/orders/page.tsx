@@ -11,6 +11,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Package, Calendar, MapPin, ChevronRight, ShoppingBag, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { FileText } from 'lucide-react';
 
 export default function OrdersPage() {
   const { currentDivision } = useUIStore();
@@ -182,9 +183,10 @@ export default function OrdersPage() {
             <Separator />
             
             <CardFooter className="p-4 bg-slate-50/50 flex justify-end">
+    {/* 👇 AQUÍ ESTÁ EL CAMBIO: Apunta a /orders/{id}/invoice */}
                 <Button variant="ghost" className="gap-2 text-slate-600 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-200 shadow-sm" asChild>
-                    <Link href={`#`}>
-                        Ver detalle completo <ChevronRight className="h-4 w-4" />
+                    <Link href={`/orders/${order.id}/invoice`} target="_blank">
+                        <FileText className="h-4 w-4" /> Ver Boleta / Detalle
                     </Link>
                 </Button>
             </CardFooter>

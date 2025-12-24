@@ -232,7 +232,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
       )}
 
       {/* 1. SUPER HEADER */}
-      <div className="w-full h-9 bg-white border-b border-slate-100 flex items-center z-[60] relative text-[11px]">
+      <div className="print:hidden w-full h-9 bg-white border-b border-slate-100 flex items-center z-[60] relative text-[11px]">
         <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 flex items-center justify-between h-full">
             <div className="flex h-full mr-auto">
                  <button 
@@ -275,7 +275,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
       {/* 2. NAVBAR PRINCIPAL */}
       <header 
         className={cn(
-            "w-full py-4 shadow-sm sticky top-0 z-50 transition-all duration-300", 
+            "w-full py-4 shadow-sm sticky top-0 z-50 transition-all duration-300 print:hidden", 
             navbarStyleClass
         )}
       >
