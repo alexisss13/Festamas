@@ -226,13 +226,21 @@ model StoreConfig {
   updatedAt       DateTime @updatedAt
 }
 
+// 🎫 CUPONES
 model Coupon {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  discount  Decimal  @db.Decimal(10, 2)
-  type      CouponType @default(FIXED)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id             String      @id @default(uuid())
+  code           String      @unique
+  discount       Decimal     @db.Decimal(10, 2)
+  type           CouponType  @default(FIXED)
+  isActive       Boolean     @default(true)
+  
+  // 🚀 Nuevos Campos
+  expirationDate DateTime?   // Si es null, no expira nunca
+  maxUses        Int?        // Si es null, usos infinitos
+  currentUses    Int         @default(0) // Contador real de usos
+  division       Division    @default(JUGUETERIA) // Scope del cupón
+
+  createdAt      DateTime    @default(now())
 }
 
 enum CouponType {
