@@ -25,7 +25,7 @@ import { reorderBanners, deleteBanner } from '@/actions/banners';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, GripVertical, Smartphone, Monitor, Link as LinkIcon, Image as ImageIcon, Layout, GalleryHorizontal, Layers } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, Smartphone, Monitor, Link as LinkIcon, Image as ImageIcon, GalleryHorizontal, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Division, BannerPosition } from '@prisma/client';
@@ -218,8 +218,7 @@ export function BannerList({ initialBanners, division }: { initialBanners: any[]
 
     const isFestamas = division === 'JUGUETERIA';
 
-    // Filtrado y Ordenado
-    const topStripBanners = banners.filter(b => b.division === division && b.position === 'TOP_STRIP').sort((a,b) => a.order - b.order);
+    // Filtrado y Ordenado (SOLO MAIN_HERO y MIDDLE_SECTION)
     const heroBanners = banners.filter(b => b.division === division && b.position === 'MAIN_HERO').sort((a,b) => a.order - b.order);
     const middleBanners = banners.filter(b => b.division === division && b.position === 'MIDDLE_SECTION').sort((a,b) => a.order - b.order);
 
@@ -242,17 +241,7 @@ export function BannerList({ initialBanners, division }: { initialBanners: any[]
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-            {/* 1. CINTILLO SUPERIOR */}
-            <BannerSectionGroup 
-                dndId="dnd-strip" // 🆔 ID Único para evitar Hydration Error
-                title="Cintillo Superior (Top Strip)" 
-                icon={Layout} 
-                banners={topStripBanners} 
-                onReorder={(items) => handleReorder(items, 'TOP_STRIP')}
-                onDelete={handleDelete}
-            />
-
-            {/* 2. HERO PRINCIPAL */}
+            {/* 1. HERO PRINCIPAL */}
             <BannerSectionGroup 
                 dndId="dnd-hero" // 🆔 ID Único
                 title="Hero Principal (Carrusel)" 
@@ -262,7 +251,7 @@ export function BannerList({ initialBanners, division }: { initialBanners: any[]
                 onDelete={handleDelete}
             />
 
-            {/* 3. SECCIÓN MEDIA */}
+            {/* 2. SECCIÓN MEDIA */}
             <BannerSectionGroup 
                 dndId="dnd-middle" // 🆔 ID Único
                 title="Sección Media" 
