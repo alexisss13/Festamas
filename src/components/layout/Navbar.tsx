@@ -3,10 +3,11 @@ import { NavbarClient } from './NavbarClient';
 import { cookies } from 'next/headers';
 import { Division } from '@prisma/client';
 import { auth } from '@/auth'; 
-import { FavoritesInitializer } from '@/components/features/FavoritesInitializer'; // 👈 Importar
-import { getFavoriteIds } from '@/actions/favorites'; // 👈 Importar
+import { FavoritesInitializer } from '@/components/features/FavoritesInitializer'; 
+import { getFavoriteIds } from '@/actions/favorites'; 
 
 export async function Navbar() {
+  // 1. Obtener categorías
   const categories = await prisma.category.findMany({
     orderBy: { name: 'asc' },
     select: { 
@@ -17,33 +18,31 @@ export async function Navbar() {
     }
   });
 
+  // 2. Manejo seguro de Cookies
   const cookieStore = await cookies();
   const rawDivision = cookieStore.get('festamas_division')?.value;
   
+  // Validamos que sea un valor permitido, si no, fallback a JUGUETERIA
   const defaultDivision: Division = (rawDivision === 'FIESTAS' || rawDivision === 'JUGUETERIA') 
     ? rawDivision 
     : 'JUGUETERIA';
 
-  // 🔐 Sesión
+  // 3. Sesión
   const session = await auth();
 
-  // ❤️ Obtener IDs de favoritos
-  // Usamos el action que creamos para reutilizar lógica
+  // 4. Favoritos
   const favoriteIds = await getFavoriteIds();
 
   return (
     <>
-      {/* 🔌 Inicializamos el store con los datos del servidor */}
       <FavoritesInitializer favoriteIds={favoriteIds} />
       
+      {/* Pasamos defaultDivision explícitamente para evitar mismatch */}
       <NavbarClient 
         categories={categories} 
         defaultDivision={defaultDivision}
         user={session?.user}
-        // Ya no necesitamos pasar el count estático, el cliente lo leerá del store
       />
     </>
   );
 }
-
-export const revalidate = 60;
