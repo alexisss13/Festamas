@@ -115,18 +115,23 @@ export default function CartPage() {
   }, [coupon]);
 
   const handleApplyCoupon = async () => {
-      if (!couponCode) return;
-      const res = await validateCoupon(couponCode);
-      if (res.success && res.coupon) {
-          applyCoupon({
-            code: res.coupon.code,
-            discount: Number(res.coupon.discount),
-            type: res.coupon.type as 'FIXED' | 'PERCENTAGE'
-          });
-          toast.success('Cupón aplicado');
-      } else {
-          toast.error(res.message || 'Cupón inválido');
-      }
+    if (!couponCode) return;
+
+    const res = await validateCoupon(
+      couponCode,
+      currentDivision as Division
+    );
+
+    if (res.success && res.coupon) {
+      applyCoupon({
+        code: res.coupon.code,
+        discount: Number(res.coupon.discount),
+        type: res.coupon.type as 'FIXED' | 'PERCENTAGE'
+      });
+      toast.success('Cupón aplicado');
+    } else {
+      toast.error(res.message || 'Cupón inválido');
+    }
   };
 
   const formatPrice = (value: number) =>
