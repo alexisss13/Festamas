@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, ShoppingCart, ChevronDown, Menu, Heart, User, LogOut, Package, MapPin, Store, ChevronRight, LogIn } from 'lucide-react';
+import { Search, ShoppingCart, ChevronDown, Menu, Heart, User, LogOut, Package, Store, ChevronRight, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
@@ -61,17 +61,18 @@ function SearchInput({ onSearch, className, searchBtnColor }: { onSearch?: () =>
   };
 
   return (
-    <form onSubmit={handleSearch} className={cn("relative w-full group", className)}>
+    // Fondo gris (slate-100) para resaltar sobre blanco
+    <form onSubmit={handleSearch} className={cn("relative w-full group bg-slate-100 rounded-full shadow-sm hover:bg-slate-200/70 transition-colors", className)}>
       <Input
         type="text"
         placeholder="¿Qué estás buscando hoy?"
-        className="h-11 w-full pl-5 pr-12 border-0 rounded-full text-[15px] font-medium bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-white/50"
+        className="h-10 w-full pl-5 pr-12 border-0 rounded-full text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
       <button 
         type="submit" 
-        className="absolute right-1 top-1 h-9 w-9 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
+        className="absolute right-1 top-1 h-8 w-8 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
         style={{ backgroundColor: searchBtnColor || '#fc4b65' }} 
       >
         <Search className="h-4 w-4" />
@@ -112,24 +113,20 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // --- LÓGICA SMART NAVBAR (Fixed Gap Issue) ---
+  // --- LÓGICA SMART NAVBAR ---
   const [isVisible, setIsVisible] = useState(true);
-  const [isAtTop, setIsAtTop] = useState(true); // Nuevo estado para detectar el tope
+  const [isAtTop, setIsAtTop] = useState(true); 
   const lastScrollY = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // Detectar si estamos en el tope absoluto (para desactivar transición)
       setIsAtTop(currentScrollY < 20);
 
-      // Zona de Seguridad: Si scroll < 120px (altura aprox del hero top), SIEMPRE visible.
-      // Esto evita que al subir en la parte inicial se oculte/muestre creando el hueco blanco.
       if (currentScrollY < 120) {
         setIsVisible(true);
       } else {
-        // Lógica normal: Subir = Mostrar, Bajar = Ocultar
         if (currentScrollY < lastScrollY.current) {
             setIsVisible(true);
         } else if (currentScrollY > 120 && currentScrollY > lastScrollY.current) {
@@ -182,81 +179,109 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   const filteredCategories = categories.filter(cat => cat.division === currentDivision);
   const brandName = isToys ? 'Festamás' : 'FiestasYa';
   
-  const navbarBgClass = isToys 
-    ? "bg-[#fc4b65] border-none shadow-none" 
-    : "bg-[#eab308] border-[#eab308] shadow-md"; 
-  
-  const textColorClass = "text-white";
-  const hoverBgClass = "hover:bg-white/20";
-  const borderColorClass = "border-white/30";
+  // Estilos Base
+  const navbarBgClass = "bg-white border-b border-slate-100 shadow-sm";
+  const textColorClass = "text-slate-700";
+  const hoverBgClass = "hover:bg-slate-100";
+  const borderColorClass = "border-transparent"; 
   
   const brandColorText = isToys ? "text-[#fc4b65]" : "text-yellow-600";
-  const badgeClass = isToys ? "text-[#fc4b65] bg-white" : "text-[#eab308] bg-white";
+  const badgeClass = isToys ? "text-white bg-[#fc4b65]" : "text-white bg-[#eab308]";
   
-  const iconFestamas = '/images/IconoFestamas.png';
+  // --- REFERENCIAS DE LOGOS ---
+  // 1. Logo para Subheader (Pestaña)
+  const iconFestamasSubheader = '/images/IconoFestamas.png';
+  
+  // 2. Logo para Navbar Principal (Grande)
+  const iconFestamasMain = '/images/IconoFestamas1.png';
+  
+  // 3. Logo FiestasYa (Único por ahora)
   const iconFiestasYa = '/images/IconoFiestasYa.png'; 
-  const activeIconPath = isToys ? iconFestamas : iconFiestasYa;
+
+  // Lógica de selección de path activo para cada zona
+  const activeSubheaderIcon = isToys ? iconFestamasSubheader : iconFiestasYa;
+  const activeMainIcon = isToys ? iconFestamasMain : iconFiestasYa;
 
   return (
     <>
-      {/* 1. SUPER HEADER (PESTAÑAS) */}
-      <div className="print:hidden w-full h-11 bg-slate-100 border-b border-slate-200 flex items-end z-[60] relative text-xs">
-        <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 flex items-center justify-between h-full">
+      {/* 1. SUPER HEADER (SUBHEADER) */}
+      <div className="print:hidden w-full h-[36px] bg-slate-100 border-b border-slate-200 flex items-end z-[60] relative text-[11px]">
+        <div className="w-full max-w-[1473px] mx-auto px-4 lg:px-8 flex items-center justify-between h-full">
             
-            <div className="flex h-full mr-auto pt-1 gap-1">
+            <div className="flex h-full mr-auto pt-0.5 gap-1">
+                {/* TAB 1: FESTAMÁS */}
                  <button 
                     disabled={isPending} 
                     onClick={() => handleDivisionChange('JUGUETERIA')} 
                     className={cn(
-                        "relative h-full px-6 flex items-center justify-center gap-2 transition-all duration-200 rounded-t-xl border-t border-x cursor-pointer",
+                        "relative h-full px-[15px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer min-w-[100px]",
                         isToys 
-                            ? "bg-[#fc4b65] border-[#fc4b65] text-white z-10 font-bold"
-                            : "bg-slate-200/50 border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-200 font-medium"
+                            ? "bg-[#fc4b65] border-[#fc4b65] z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
+                            : "bg-slate-200/50 border-transparent hover:bg-slate-200"
                     )}
                 >
-                    <span>Festamás</span>
+                    <div className="relative h-[19.6px] w-[80px]">
+                        {/* SUBHEADER: Usa IconoFestamas.png */}
+                        <Image 
+                            src={iconFestamasSubheader} 
+                            alt="Festamás" 
+                            fill 
+                            className={cn(
+                                "object-contain transition-all duration-300",
+                                !isToys && "grayscale opacity-50 hover:opacity-80"
+                            )}
+                        />
+                    </div>
                 </button>
 
+                {/* TAB 2: FIESTAS YA */}
                 <button 
                     disabled={isPending} 
                     onClick={() => handleDivisionChange('FIESTAS')} 
                     className={cn(
-                        "relative h-full px-6 flex items-center justify-center gap-2 transition-all duration-200 rounded-t-xl border-t border-x cursor-pointer",
+                        "relative h-full px-[15px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer min-w-[100px]",
                         !isToys 
-                            ? "bg-[#eab308] border-[#eab308] text-white z-10 font-bold" 
-                            : "bg-slate-200/50 border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-200 font-medium"
+                            ? "bg-[#eab308] border-[#eab308] z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]" 
+                            : "bg-slate-200/50 border-transparent hover:bg-slate-200"
                     )}
                 >
-                    <span>FiestasYa</span>
+                    <div className="relative h-[19.6px] w-[80px]">
+                         <Image 
+                            src={iconFiestasYa} 
+                            alt="FiestasYa" 
+                            fill 
+                            className={cn(
+                                "object-contain transition-all duration-300",
+                                isToys && "grayscale opacity-50 hover:opacity-80"
+                            )}
+                        />
+                    </div>
                 </button>
             </div>
 
-            <div className="hidden md:flex items-center gap-5 text-slate-500 font-medium pb-3">
+            <div className="hidden md:flex items-center gap-4 text-slate-500 font-medium pb-2">
                 <Link href="/ayuda" className="hover:text-slate-800 transition-colors">Centro de Ayuda</Link>
-                <span className="h-3 w-px bg-slate-300"></span>
-                <span className="text-xs">venta@festamas.com</span>
+                <span className="h-2.5 w-px bg-slate-300"></span>
+                <span className="opacity-90">venta@festamas.com</span>
             </div>
         </div>
       </div>
 
-      {/* 2. NAVBAR PRINCIPAL - STICKY INTELIGENTE */}
+      {/* 2. NAVBAR PRINCIPAL */}
       <header 
         className={cn(
-            "w-full py-3 sticky top-0 z-50 print:hidden", 
+            "w-full h-[64px] sticky top-0 z-50 print:hidden flex items-center", 
             navbarBgClass,
-            // LOGICA DE ANIMACIÓN CORREGIDA:
-            // 1. Si isAtTop es true, quitamos transition-all para que el anclaje sea instantáneo y sin huecos.
-            // 2. Si no estamos en el top, usamos la transición suave.
             isAtTop ? "transition-none" : "transition-all duration-300 ease-in-out",
             isVisible ? "translate-y-0" : "-translate-y-full"
         )}
       >
-        <div className="w-full max-w-[1600px] mx-auto flex items-center gap-4 lg:gap-8 px-4 lg:px-8 relative">
+        <div className="w-full max-w-[1473px] mx-auto flex items-center gap-4 lg:gap-8 px-4 lg:px-8 relative h-full">
           
           {/* MENU MÓVIL */}
           <Sheet>
             <SheetTrigger asChild>
-                <Button variant="ghost" className={cn("md:hidden h-10 w-10 rounded-full p-0", hoverBgClass, textColorClass)}>
+                <Button variant="ghost" className={cn("md:hidden h-10 w-10 rounded-full p-0 hover:bg-slate-100 text-slate-700")}>
                     <Menu className="h-6 w-6" />
                 </Button>
             </SheetTrigger>
@@ -264,7 +289,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-slate-50">
                <SheetHeader className={cn("p-6 text-left border-b", isToys ? "bg-[#fc4b65]" : "bg-[#eab308]")}>
                   <SheetTitle className="text-white sr-only">Menú</SheetTitle>
-                  
                   {user ? (
                     <div className="flex items-center gap-3 text-white">
                         <Avatar className="h-12 w-12 border-2 border-white/40">
@@ -278,9 +302,14 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     </div>
                   ) : (
                     <div className="flex flex-col gap-3">
-                        <div className="relative h-8 w-32 mb-1">
-                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                             <img src={activeIconPath} alt={brandName} className="object-contain h-full w-full object-left brightness-0 invert" />
+                        <div className="relative h-10 w-40 mb-1">
+                             {/* Logo Móvil usa el MAIN Icon */}
+                             <Image 
+                                src={activeMainIcon} 
+                                alt={brandName} 
+                                fill 
+                                className="object-contain object-left" 
+                             />
                         </div>
                         <SheetClose asChild>
                             <Link href="/auth/login">
@@ -305,14 +334,14 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
 
                   <div className="mt-6 mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Categorías</div>
                   <div className="space-y-1">
-                     {filteredCategories.map((cat) => (
-                         <SheetClose asChild key={cat.id}>
+                      {filteredCategories.map((cat) => (
+                          <SheetClose asChild key={cat.id}>
                             <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-medium transition-all">
                                 {cat.name}
                                 <ChevronRight className="h-4 w-4 text-slate-300" />
                             </Link>
-                         </SheetClose>
-                     ))}
+                          </SheetClose>
+                      ))}
                   </div>
                </div>
 
@@ -326,33 +355,34 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             </SheetContent>
           </Sheet>
 
-          {/* LOGO BLANCO */}
+          {/* LOGO PRINCIPAL (DESKTOP) */}
           <Link href="/" className="shrink-0 group mr-auto md:mr-2">
-             <div className="relative h-10 w-32 md:h-12 md:w-44 transition-all duration-300">
+             <div className="relative w-[135px] h-[48px] transition-all duration-300">
+                {/* NAVBAR: Usa IconoFestamas1.png (o FiestasYa) */}
                 <Image 
-                    src={activeIconPath} 
+                    src={activeMainIcon} 
                     alt={brandName} 
                     fill 
-                    className="object-contain object-left brightness-0 invert filter drop-shadow-sm" 
+                    className="object-contain object-left" 
                     priority 
                 />
              </div>
           </Link>
 
-          {/* DESKTOP: Botón Categorías */}
+          {/* DESKTOP: Botón Menú */}
           <div className="relative hidden md:block" ref={menuRef}>
             <Button 
                 variant="ghost" 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className={cn(
-                    "flex flex-row items-center gap-2 h-11 px-6 font-bold tracking-wide border rounded-full transition-all duration-200",
+                    "flex flex-row items-center gap-2 h-10 px-4 font-bold tracking-wide rounded-full transition-all duration-200",
                     isMenuOpen 
-                        ? "bg-white text-slate-900 border-white" 
-                        : cn(borderColorClass, hoverBgClass, textColorClass)
+                        ? "bg-slate-100 text-slate-900" 
+                        : "text-slate-700 hover:bg-slate-100"
                 )}
             >
-                <span>Categorías</span>
-                <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isMenuOpen && "rotate-180")} />
+                <Menu className="h-5 w-5" />
+                <span>Menú</span>
             </Button>
 
              {isMenuOpen && (
@@ -376,7 +406,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
           </div>
 
           {/* ICONOS DERECHA */}
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-1 md:gap-2">
               
               {/* USUARIO */}
               <div className="relative hidden lg:block" ref={userMenuRef}>
@@ -384,24 +414,23 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     variant="ghost" 
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className={cn(
-                        "flex flex-row items-center gap-3 h-11 pl-2 pr-5 text-left border rounded-full transition-all duration-200",
-                        isUserMenuOpen ? "bg-white text-slate-900 border-white" : cn(borderColorClass, hoverBgClass, textColorClass),
-                        !user && "bg-white/10 border-white/40 hover:bg-white/20"
+                        "flex flex-row items-center gap-3 h-10 pl-2 pr-4 text-left rounded-full transition-all duration-200",
+                        isUserMenuOpen ? "bg-slate-100 text-slate-900" : "text-slate-700 hover:bg-slate-100"
                     )}
                 >
                     {user ? (
                         <>
-                           <Avatar className="h-8 w-8 border border-white/50 shadow-sm">
+                           <Avatar className="h-7 w-7 border border-slate-200 shadow-sm">
                                 <AvatarImage src={user.image || ''} />
-                                <AvatarFallback className="bg-white text-slate-900 font-bold">{user.name?.charAt(0)}</AvatarFallback>
+                                <AvatarFallback className="bg-slate-100 text-slate-900 font-bold text-xs">{user.name?.charAt(0)}</AvatarFallback>
                            </Avatar>
-                           <span className={cn("text-sm font-bold truncate max-w-[100px]", isUserMenuOpen ? "text-slate-900" : "text-white")}>
+                           <span className={cn("text-sm font-bold truncate max-w-[100px]")}>
                                {user.name?.split(' ')[0]}
                            </span>
                         </>
                     ) : (
                         <>
-                            <div className="bg-white/20 p-1.5 rounded-full">
+                            <div className="bg-slate-100 p-1.5 rounded-full">
                                 <User className="h-4 w-4" />
                             </div>
                             <span className="text-sm font-bold">Ingresar</span>
@@ -436,7 +465,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
 
               {!user && (
                 <Link href="/auth/login" className="lg:hidden">
-                    <Button variant="ghost" className={cn("h-10 w-10 rounded-full border p-0", borderColorClass, hoverBgClass, textColorClass)}>
+                    <Button variant="ghost" className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100">
                         <LogIn className="h-5 w-5" />
                     </Button>
                 </Link>
@@ -444,10 +473,10 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
 
               {/* FAVORITOS */}
               <Link href="/favorites">
-                <Button variant="ghost" className={cn("hidden md:flex relative h-11 w-11 rounded-full border items-center justify-center p-0 transition-colors", borderColorClass, hoverBgClass, textColorClass)}>
+                <Button variant="ghost" className="hidden md:flex relative h-10 w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100">
                     <Heart className="h-5 w-5" />
                     {loaded && favoritesCount > 0 && (
-                        <span className={cn("absolute top-0 right-0 h-4 w-4 rounded-full text-[10px] flex items-center justify-center font-bold shadow-sm ring-2 ring-transparent", badgeClass)}>
+                        <span className={cn("absolute top-0 right-0 h-3.5 w-3.5 rounded-full text-[9px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>
                             {favoritesCount}
                         </span>
                     )}
@@ -456,10 +485,10 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
 
               {/* CART */}
               <CartSidebar>
-                 <Button variant="ghost" className={cn("relative h-10 w-10 md:h-11 md:w-11 rounded-full border items-center justify-center p-0 transition-colors", borderColorClass, hoverBgClass, textColorClass)}>
+                 <Button variant="ghost" className="relative h-10 w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100">
                     <ShoppingCart className="h-5 w-5" />
                     {loaded && getTotalItems() > 0 && (
-                        <span className={cn("absolute top-0 right-0 h-4 w-4 rounded-full text-[10px] flex items-center justify-center font-bold shadow-sm ring-2 ring-transparent", badgeClass)}>
+                        <span className={cn("absolute top-0 right-0 h-3.5 w-3.5 rounded-full text-[9px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>
                             {getTotalItems()}
                         </span>
                     )}
@@ -467,13 +496,14 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
               </CartSidebar>
           </div>
         </div>
-        
-        <div className="md:hidden px-4 pb-3 pt-1">
-             <Suspense>
-                <SearchInput searchBtnColor={isToys ? '#fc4b65' : '#eab308'} className="shadow-none" />
-             </Suspense>
-        </div>
       </header>
+      
+      {/* ESPACIADOR MÓVIL PARA BUSCADOR FLOTANTE */}
+      <div className="md:hidden w-full bg-white px-4 py-2 border-b">
+           <Suspense>
+              <SearchInput searchBtnColor={isToys ? '#fc4b65' : '#eab308'} className="shadow-none bg-slate-100" />
+           </Suspense>
+      </div>
     </>
   );
 }

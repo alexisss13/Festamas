@@ -28,7 +28,7 @@ export default async function Home() {
   );
 
   return (
-    <main className="min-h-screen bg-white pb-24">
+    <main className="min-h-screen bg-slate-100 pb-24">
       <Hero />
 
       <div className="container mx-auto px-4 mt-12 md:mt-16 space-y-24">
