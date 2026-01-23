@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { getHomeData } from '@/actions/home-data';
 import { getProductsByTag } from '@/actions/products';
 import { Hero } from '@/components/ui/Hero';
-import { CategoryBento } from '@/components/features/CategoryBento';
+import { CategoryCarousel } from '@/components/features/CategoryCarousel';
 import { PromoBanner } from '@/components/features/PromoBanner';
 import { ProductCarousel } from '@/components/features/ProductCarousel';
 import { Button } from '@/components/ui/button';
@@ -55,7 +55,7 @@ export default async function Home() {
         )}
 
         {/* 2. CATEGORÍAS */}
-        <CategoryBento categories={categories} />
+        <CategoryCarousel categories={categories} />
 
         {/* 3. BANNER INTERMEDIO */}
         {middleBanner && <PromoBanner banner={middleBanner} />}
