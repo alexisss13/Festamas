@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, ShoppingCart, Menu, Heart, User, LogOut, Package, Store, ChevronRight, LogIn, ChevronDown, MapPin, BookOpen, Truck } from 'lucide-react';
+import { Search, ShoppingCart, Menu, Heart, User, LogOut, Package, Store, ChevronRight, LogIn, ChevronDown, MapPin, BookOpen, Truck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
@@ -118,8 +118,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   const [isAtTop, setIsAtTop] = useState(true); 
   const lastScrollY = useRef(0);
 
-  // AQUI LA MAGIA: Si cierras el menú, forzamos que el navbar se vea.
-  // Solo se ocultará cuando vuelvas a hacer scroll hacia abajo.
+  // Forzar visibilidad si el menú de usuario DESKTOP está abierto
   useEffect(() => {
     if (!isUserMenuOpen) {
         setIsVisible(true);
@@ -270,13 +269,12 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             "w-full h-[64px] z-50 print:hidden flex flex-col transition-all duration-300 ease-in-out", 
             navbarBgClass,
             isAtTop ? "sticky top-0" : "sticky top-0 shadow-md", 
-            // FIX: Quitamos 'absolute' y solo aplicamos ocultar si NO está visible Y el menú está cerrado.
             (!isVisible && !isUserMenuOpen) && "-translate-y-full" 
         )}
       >
         <div className="w-full max-w-[1473px] mx-auto flex items-center gap-4 lg:gap-8 px-4 lg:px-8 relative h-full">
             
-            {/* MENU MÓVIL */}
+            {/* ----------------- MENU HAMBURGUESA (IZQUIERDA) ----------------- */}
             <Sheet>
                 <SheetTrigger asChild>
                     <Button variant="ghost" className={cn("md:hidden h-10 w-10 rounded-full p-0 hover:bg-slate-100 text-slate-700")}>
@@ -285,21 +283,10 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 </SheetTrigger>
                 
                 <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-slate-50">
-                {/* Header Móvil */}
-                <SheetHeader className={cn("p-6 text-left border-b", mobileHeaderClass)}>
-                    <SheetTitle className="text-white sr-only">Menú</SheetTitle>
-                    {user ? (
-                        <div className="flex items-center gap-3 text-white">
-                            <Avatar className="h-12 w-12 border-2 border-white/40">
-                                <AvatarImage src={user.image || ''} />
-                                <AvatarFallback className="bg-white/20 text-white font-bold">{user.name?.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-bold text-lg leading-tight">Hola, {user.name?.split(' ')[0]}</p>
-                                <p className="text-xs opacity-80 font-medium">{user.email}</p>
-                            </div>
-                        </div>
-                    ) : (
+                    <SheetTitle className="sr-only">Menú de Navegación</SheetTitle> 
+                    
+                    {/* Header Móvil: Solo Logo */}
+                    <SheetHeader className={cn("p-6 text-left border-b", mobileHeaderClass)}>
                         <div className="flex flex-col gap-3">
                             <div className="relative h-10 w-40 mb-1">
                                 <Image 
@@ -309,47 +296,45 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                     className="object-contain object-left" 
                                 />
                             </div>
+                        </div>
+                    </SheetHeader>
+
+                    <div className="flex-1 overflow-y-auto py-4 px-2">
+                        {/* Links Principales */}
+                        <div className="space-y-1 mb-6">
                             <SheetClose asChild>
-                                <Link href="/auth/login">
-                                    <Button className={cn("w-full bg-white font-bold rounded-full h-10 hover:bg-slate-100", brandColorText)}>
-                                        Iniciar Sesión
-                                    </Button>
+                                <Link href="/" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-medium transition-all">
+                                    <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><Store className="h-5 w-5"/></div>
+                                    Inicio
+                                </Link>
+                            </SheetClose>
+                            <SheetClose asChild>
+                                <Link href="/catalogos" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-medium transition-all">
+                                    <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><BookOpen className="h-5 w-5"/></div>
+                                    Catálogos
+                                </Link>
+                            </SheetClose>
+                            <SheetClose asChild>
+                                <Link href="/tiendas" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-medium transition-all">
+                                    <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><MapPin className="h-5 w-5"/></div>
+                                    Tiendas
                                 </Link>
                             </SheetClose>
                         </div>
-                    )}
-                </SheetHeader>
 
-                <div className="flex-1 overflow-y-auto py-4 px-2">
-                    <div className="space-y-1">
-                        <SheetClose asChild>
-                            <Link href="/" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-medium transition-all">
-                                <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><Store className="h-5 w-5"/></div>
-                                Inicio
-                            </Link>
-                        </SheetClose>
+                        {/* Categorías */}
+                        <div className="mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Categorías</div>
+                        <div className="space-y-1">
+                            {filteredCategories.map((cat) => (
+                                <SheetClose asChild key={cat.id}>
+                                    <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-medium transition-all">
+                                        {cat.name}
+                                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                                    </Link>
+                                </SheetClose>
+                            ))}
+                        </div>
                     </div>
-
-                    <div className="mt-6 mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Categorías</div>
-                    <div className="space-y-1">
-                        {filteredCategories.map((cat) => (
-                            <SheetClose asChild key={cat.id}>
-                                <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-medium transition-all">
-                                    {cat.name}
-                                    <ChevronRight className="h-4 w-4 text-slate-300" />
-                                </Link>
-                            </SheetClose>
-                        ))}
-                    </div>
-                </div>
-
-                {user && (
-                    <div className="p-4 border-t bg-white">
-                            <button onClick={handleLogout} className="flex items-center justify-center gap-2 w-full p-3 text-red-500 hover:bg-red-50 rounded-xl font-bold text-sm transition-colors">
-                                <LogOut className="h-4 w-4" /> Cerrar Sesión
-                            </button>
-                    </div>
-                )}
                 </SheetContent>
             </Sheet>
 
@@ -402,10 +387,10 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 </Suspense>
             </div>
 
-            {/* ICONOS DERECHA - AQUI EL CAMBIO CLAVE: ml-auto */}
+            {/* ICONOS DERECHA - ml-auto para empujar al final */}
             <div className="flex items-center gap-1 md:gap-2 ml-auto">
                 
-                {/* 1. MIS PEDIDOS */}
+                {/* 1. MIS PEDIDOS (Desktop Only) */}
                 {user && (
                     <Link 
                         href="/profile/orders" 
@@ -416,13 +401,13 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     </Link>
                 )}
 
-                {/* 2. USUARIO */}
+                {/* 2. USUARIO (DESKTOP) */}
                 <div className="relative hidden lg:block" ref={userMenuRef}>
                     <Button 
                         variant="ghost" 
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                         className={cn(
-                            "flex flex-row items-center gap-2 h-10 pl-2 pr-3 text-left rounded-full transition-all duration-200 relative z-50", // z-50 para que quede sobre el backdrop
+                            "flex flex-row items-center gap-2 h-10 pl-2 pr-3 text-left rounded-full transition-all duration-200 relative z-50", 
                             isUserMenuOpen ? "bg-white text-slate-900 ring-2 ring-slate-100" : "text-slate-700 hover:bg-slate-100"
                         )}
                     >
@@ -474,15 +459,91 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     )}
                 </div>
 
-                {!user && (
-                    <Link href="/auth/login" className="lg:hidden">
-                        <Button variant="ghost" className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100">
-                            <LogIn className="h-5 w-5" />
-                        </Button>
-                    </Link>
-                )}
+                {/* 3. USUARIO (MÓVIL - NUEVO - MI CUENTA) */}
+                {/* FIX: Se añade [&>button]:hidden al SheetContent para ocultar la 'X' nativa duplicada */}
+                <div className="lg:hidden">
+                    {user ? (
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
+                                    <Avatar className="h-8 w-8 border border-slate-200">
+                                        <AvatarImage src={user.image || ''} />
+                                        <AvatarFallback className="bg-slate-100 text-slate-900 font-bold text-xs">{user.name?.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="right" className="w-[65vw] max-w-[280px] z-[100] p-0 flex flex-col h-full bg-white [&>button]:hidden"> {/* ANCHO REDUCIDO AQUI */}
+                                <SheetTitle className="sr-only">Mi cuenta de usuario</SheetTitle>
+                                
+                                {/* HEADER GRIS: User Icon + "Mi Cuenta" + X */}
+                                <div className="flex items-center justify-between p-4 bg-slate-100 border-b border-slate-200">
+                                    <div className="flex items-center gap-2">
+                                        <User className="h-5 w-5 text-slate-700" />
+                                        <span className="font-bold text-slate-800">Mi cuenta</span>
+                                    </div>
+                                    <SheetClose asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:bg-slate-200 rounded-full">
+                                            <X className="h-5 w-5" />
+                                        </Button>
+                                    </SheetClose>
+                                </div>
 
-                {/* 3. FAVORITOS */}
+                                {/* CONTENIDO: Bienvenida y Lista */}
+                                <div className="flex-1 overflow-y-auto px-0 py-4">
+                                    {/* BIENVENIDA - Separada por línea */}
+                                    <div className="px-5 pb-4 border-b border-slate-100">
+                                        <p className="text-sm font-bold text-slate-800 uppercase tracking-wide">
+                                            BIENVENIDO, {user.name?.split(' ')[0]}
+                                        </p>
+                                        <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
+                                    </div>
+
+                                    {/* LISTA DE ACCIONES UNIFICADA (Estilo consistente) */}
+                                    <div className="flex flex-col mt-2">
+                                        <SheetClose asChild>
+                                            <Link href="/profile" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
+                                                <User className="h-4 w-4 text-slate-400" /> Mi Perfil
+                                            </Link>
+                                        </SheetClose>
+
+                                        <SheetClose asChild>
+                                            <Link href="/profile/orders" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
+                                                <Package className="h-4 w-4 text-slate-400" /> Mis Pedidos
+                                            </Link>
+                                        </SheetClose>
+                                        
+                                        <SheetClose asChild>
+                                            <Link href="/profile/addresses" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
+                                                <MapPin className="h-4 w-4 text-slate-400" /> Direcciones de entrega
+                                            </Link>
+                                        </SheetClose>
+
+                                        <SheetClose asChild>
+                                            <Link href="/favorites" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
+                                                <Heart className="h-4 w-4 text-slate-400" /> Favoritos
+                                            </Link>
+                                        </SheetClose>
+
+                                        {/* CERRAR SESIÓN (Separado por línea superior) */}
+                                        <div className="mt-2 border-t border-slate-100 pt-2">
+                                            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium text-sm transition-colors text-left border-l-4 border-transparent">
+                                                <LogOut className="h-4 w-4" /> Cerrar Sesión
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                    ) : (
+                        <Link href="/auth/login">
+                            <Button variant="ghost" className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100">
+                                <User className="h-6 w-6" />
+                            </Button>
+                        </Link>
+                    )}
+                </div>
+
+                {/* 3. FAVORITOS (Desktop only) */}
                 <Link href="/favorites">
                     <Button variant="ghost" className="hidden md:flex relative h-10 w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100">
                         <Heart className="h-5 w-5" />
