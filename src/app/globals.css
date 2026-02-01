@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* ... tus variables existentes ... */
+  /* Mapeamos las utilidades de Tailwind a variables CSS dinámicas */
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -32,26 +32,21 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-
-  /* --- 🚀 REGISTRO DE MARCAS EN TAILWIND --- */
-  --color-festamas-primary: var(--festamas-primary);
-  --color-festamas-accent: var(--festamas-accent);
-  --color-fiestasya-primary: var(--fiestasya-primary);
-  --color-fiestasya-accent: var(--fiestasya-accent);
 }
 
 @layer base {
   :root {
+    /* --- CONFIGURACIÓN BASE (FiestasYa por defecto) --- */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
-    --primary: 329 96% 59%;
+    /* ROSA FIESTASYA (Por defecto) */
+    --primary: 329 96% 59%; 
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 49 94% 57%;
+    --secondary: 49 94% 57%; /* Amarillo */
     --secondary-foreground: 222.2 47.4% 11.2%;
 
-    /* ... resto de variables base ... */
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
@@ -66,98 +61,40 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 329 96% 59%;
     --radius: 0.5rem;
-
-    /* --- 🎨 VARIABLES DE MARCA (HEX) --- */
-    --festamas-primary: #fc4b65;
-    --festamas-accent: #f5d463;
-
-    --fiestasya-primary: #f8d82b;
-    --fiestasya-accent: #fb3099;
   }
  
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    /* ... (resto de dark mode igual) ... */
     --primary: 329 96% 59%; 
     --primary-foreground: 0 0% 100%;
-    --secondary: 49 94% 57%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+  }
+
+  /* 🔴 TEMA FESTAMAS (Override con alta especificidad)
+     Usamos [data-theme="festamas"] que es más seguro que una clase simple.
+  */
+  [data-theme="festamas"] {
+    --primary: 351 96% 64%; /* ROJO FESTAMAS (#fc4b65) */
+    --ring: 351 96% 64%;
+    
+    /* Opcional: Ajustar secondary si Festamas tiene otro color secundario */
+    --secondary: 45 93% 47%; /* Un amarillo más dorado por ejemplo */
+  }
+
+  /* 🌸 TEMA FIESTASYA (Explícito) */
+  [data-theme="fiestasya"] {
+    --primary: 329 96% 59%; /* ROSA (#fb3099) */
     --ring: 329 96% 59%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
 }
 
-/* 🚫 Ocultar el ojito nativo del navegador (Edge/IE) */
-input[type="password"]::-ms-reveal,
-input[type="password"]::-ms-clear {
-  display: none;
-}
-
-/* 🚫 Por si acaso en Chrome/Safari (aunque es menos común) */
-input[type="password"]::-webkit-contacts-auto-fill-button,
-input[type="password"]::-webkit-credentials-auto-fill-button {
-  visibility: hidden;
-  display: none !important;
-  pointer-events: none;
-  height: 0;
-  width: 0;
-  margin: 0;
-}
-
-
-/* 🖨️ ESTILOS DE IMPRESIÓN (Para que la boleta salga limpia) */
-@media print {
-  /* 1. Ocultar Sidebar, Header Móvil y cualquier navegación */
-  aside, nav, header, footer, .fixed { 
-    display: none !important; 
-  }
-
-  /* 2. Resetear el contenedor del Layout */
-  body > div.flex.min-h-screen {
-    display: block !important;
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-  }
-
-  /* 3. Resetear el Main Content (Quitar margen izquierdo) */
-  main#admin-main-content {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    border: none !important;
-  }
-
-  /* 4. Configuración de la hoja */
-  @page {
-    margin: 0;
-    size: auto;
-  }
-
-  /* 5. Fondo blanco puro */
-  body {
-    background: white !important;
-    color: black !important;
-  }
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 }

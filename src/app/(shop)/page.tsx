@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'; 
 import { getHomeData } from '@/actions/home-data';
 import { getProductsByTag } from '@/actions/products';
+import { getCategories } from '@/actions/categories'; // 👈 IMPORTANTE: Importamos esto directo
 import { Hero } from '@/components/ui/Hero';
 import { CategoryCarousel } from '@/components/features/CategoryCarousel';
 import { PromoBanner } from '@/components/features/PromoBanner';
@@ -18,7 +19,19 @@ export default async function Home() {
     ? divisionCookie 
     : 'JUGUETERIA';
 
-  const { newArrivals, categories, middleBanner, sections } = await getHomeData(currentDivision);
+  // 1. Ejecutamos las promesas en paralelo para velocidad
+  // Reemplazamos el 'categories' que viene de getHomeData por nuestra llamada directa
+  const [homeData, categoriesResult] = await Promise.all([
+    getHomeData(currentDivision),
+    getCategories(currentDivision) // 👈 Llamada directa sin límites
+  ]);
+
+  const { newArrivals, middleBanner, sections } = homeData;
+  
+  // Extraemos la data segura (getCategories devuelve { success, data })
+  const allCategories = categoriesResult.success && categoriesResult.data 
+    ? categoriesResult.data 
+    : [];
 
   const sectionsWithProducts = await Promise.all(
     sections.map(async (section) => {
@@ -28,11 +41,14 @@ export default async function Home() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-100 pb-24">
+    <main className="min-h-screen bg-white pb-24">
       <Hero />
 
       <div className="container mx-auto px-4 mt-12 md:mt-16 space-y-24">
         
+        {/* 2. CATEGORÍAS - Usamos allCategories que tiene TODAS */}
+        <CategoryCarousel categories={allCategories} />
+
         {/* 1. RECIÉN LLEGADOS */}
         {newArrivals.length > 0 && (
           <section>
@@ -54,8 +70,7 @@ export default async function Home() {
           </section>
         )}
 
-        {/* 2. CATEGORÍAS */}
-        <CategoryCarousel categories={categories} />
+        
 
         {/* 3. BANNER INTERMEDIO */}
         {middleBanner && <PromoBanner banner={middleBanner} />}
@@ -78,7 +93,7 @@ export default async function Home() {
                   )}
                 </div>
                 
-                {/* 🔗 BOTÓN DESKTOP: Apunta a /collections con tag y division */}
+                {/* 🔗 BOTÓN DESKTOP */}
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex border-slate-200 text-slate-600 hover:text-slate-900">
                     <Link href={`/collections?tag=${section.tag}&division=${section.division}`}>
                         Ver colección
@@ -89,7 +104,7 @@ export default async function Home() {
               <ProductCarousel products={section.products as any} autoPlay={true} />
               
               <div className="mt-4 px-2 sm:hidden">
-                  {/* 🔗 BOTÓN MÓVIL: Mismo cambio */}
+                  {/* 🔗 BOTÓN MÓVIL */}
                   <Button variant="outline" className="w-full" asChild>
                     <Link href={`/collections?tag=${section.tag}&division=${section.division}`}>Ver colección</Link>
                   </Button>

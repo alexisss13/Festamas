@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Rubik } from "next/font/google"; // Asegúrate de importar Rubik
 import { Toaster } from "@/components/ui/sonner";
-import { Providers } from "@/components/providers/Providers"; // 👈 Importamos el nuevo provider
-import { auth } from "@/auth"; // 👈 Importamos la autenticación
 import "./globals.css";
+import { cn } from "@/lib/utils";
+import { Providers } from "@/components/providers/Providers";
+import { auth } from "@/auth";
 
-const inter = Inter({ subsets: ["latin"] });
+// Configuración de Fuente Rubik
+const rubik = Rubik({ 
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "700"],
+  variable: "--font-rubik",
+});
 
 export const metadata: Metadata = {
-  title: "Festamas | Artículos de Fiesta en Trujillo",
-  description: "La mejor tienda de globos y decoración en Trujillo, Perú.",
+  title: "Festamas | Artículos de Fiesta",
+  description: "La mejor tienda de celebraciones.",
 };
 
 export default async function RootLayout({
@@ -18,9 +24,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+
   return (
     <html lang="es">
-      <body className={`${inter.className} antialiased`}>
+      {/* 🚀 AQUÍ ESTÁ EL TRUCO: data-theme="festamas"
+         Esto activa el bloque CSS que definimos arriba con el color Rojo.
+      */}
+      <body 
+        className={cn(rubik.className, "antialiased")}
+        data-theme="festamas"
+      >
         <Providers session={session}>
           {children}
           <Toaster richColors position="top-center" />
