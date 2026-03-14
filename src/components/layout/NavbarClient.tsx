@@ -192,7 +192,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   
   // COLORES POR DIVISIÓN
   const brandColorText = isToys ? "text-[#fc4b65]" : "text-[#fb3099]"; 
-  const badgeClass = isToys ? "text-white bg-[#fc4b65]" : "text-white bg-[#fb3099]";
+  const badgeClass = isToys ? "text-white bg-[#fc4b65]" : "text-[#fb3099] bg-[#fb3099] text-white"; // Fix temporal de clases dobles
   const searchBtnBg = isToys ? '#fc4b65' : '#fb3099';
   const mobileHeaderClass = isToys ? "bg-[#fc4b65]" : "bg-[#fb3099]";
 
@@ -285,49 +285,47 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-slate-50">
                     <SheetTitle className="sr-only">Menú de Navegación</SheetTitle> 
                     
-                    {/* Header Móvil: Solo Logo */}
-                    <SheetHeader className={cn("p-6 text-left border-b", mobileHeaderClass)}>
-                        <div className="flex flex-col gap-3">
-                            <div className="relative h-10 w-40 mb-1">
-                                <Image 
-                                    src={activeMainIcon} 
-                                    alt={brandName} 
-                                    fill 
-                                    className="object-contain object-left" 
-                                />
-                            </div>
+                    {/* Header Móvil: Ajustado exactamente a 52px de alto */}
+                    <SheetHeader className={cn("h-[52px] flex flex-row items-center px-4 py-0 space-y-0 border-b", mobileHeaderClass)}>
+                        <div className="relative h-8 w-32">
+                            <Image 
+                                src={activeMainIcon} 
+                                alt={brandName} 
+                                fill 
+                                className="object-contain object-left" 
+                            />
                         </div>
                     </SheetHeader>
 
                     <div className="flex-1 overflow-y-auto py-4 px-2">
-                        {/* Links Principales */}
-                        <div className="space-y-1 mb-6">
+                        {/* Links Principales (Padding reducido y sin espacio extra entre ellos) */}
+                        <div className="flex flex-col mb-4">
                             <SheetClose asChild>
-                                <Link href="/" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-medium transition-all">
+                                <Link href="/" className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-normal transition-all">
                                     <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><Store className="h-5 w-5"/></div>
                                     Inicio
                                 </Link>
                             </SheetClose>
                             <SheetClose asChild>
-                                <Link href="/catalogos" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-medium transition-all">
+                                <Link href="/catalogos" className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-normal transition-all">
                                     <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><BookOpen className="h-5 w-5"/></div>
                                     Catálogos
                                 </Link>
                             </SheetClose>
                             <SheetClose asChild>
-                                <Link href="/tiendas" className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-medium transition-all">
+                                <Link href="/tiendas" className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-normal transition-all">
                                     <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><MapPin className="h-5 w-5"/></div>
                                     Tiendas
                                 </Link>
                             </SheetClose>
                         </div>
 
-                        {/* Categorías */}
+                        {/* Categorías (font-normal) */}
                         <div className="mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Categorías</div>
                         <div className="space-y-1">
                             {filteredCategories.map((cat) => (
                                 <SheetClose asChild key={cat.id}>
-                                    <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-medium transition-all">
+                                    <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">
                                         {cat.name}
                                         <ChevronRight className="h-4 w-4 text-slate-300" />
                                     </Link>
@@ -460,7 +458,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 </div>
 
                 {/* 3. USUARIO (MÓVIL - NUEVO - MI CUENTA) */}
-                {/* FIX: Se añade [&>button]:hidden al SheetContent para ocultar la 'X' nativa duplicada */}
                 <div className="lg:hidden">
                     {user ? (
                         <Sheet>
@@ -472,7 +469,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                     </Avatar>
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="right" className="w-[65vw] max-w-[280px] z-[100] p-0 flex flex-col h-full bg-white [&>button]:hidden"> {/* ANCHO REDUCIDO AQUI */}
+                            <SheetContent side="right" className="w-[65vw] max-w-[280px] z-[100] p-0 flex flex-col h-full bg-white [&>button]:hidden"> 
                                 <SheetTitle className="sr-only">Mi cuenta de usuario</SheetTitle>
                                 
                                 {/* HEADER GRIS: User Icon + "Mi Cuenta" + X */}
@@ -498,7 +495,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                         <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
                                     </div>
 
-                                    {/* LISTA DE ACCIONES UNIFICADA (Estilo consistente) */}
+                                    {/* LISTA DE ACCIONES UNIFICADA */}
                                     <div className="flex flex-col mt-2">
                                         <SheetClose asChild>
                                             <Link href="/profile" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
@@ -524,7 +521,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                             </Link>
                                         </SheetClose>
 
-                                        {/* CERRAR SESIÓN (Separado por línea superior) */}
+                                        {/* CERRAR SESIÓN */}
                                         <div className="mt-2 border-t border-slate-100 pt-2">
                                             <button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium text-sm transition-colors text-left border-l-4 border-transparent">
                                                 <LogOut className="h-4 w-4" /> Cerrar Sesión
