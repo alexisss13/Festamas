@@ -392,7 +392,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 {user && (
                     <Link 
                         href="/profile/orders" 
-                        className="hidden lg:flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium text-sm px-3 py-2 rounded-full hover:bg-slate-100 transition-colors"
+                        className="hidden font-bold lg:flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium text-sm px-3 py-2 rounded-full hover:bg-slate-100 transition-colors"
                     >
                         <Package className="h-5 w-5" />
                         <span>Mis Pedidos</span>
@@ -489,7 +489,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                 <div className="flex-1 overflow-y-auto px-0 py-4">
                                     {/* BIENVENIDA - Separada por línea */}
                                     <div className="px-5 pb-4 border-b border-slate-100">
-                                        <p className="text-sm font-bold text-slate-800 uppercase tracking-wide">
+                                        <p className="text-sm  text-slate-800 uppercase tracking-wide">
                                             BIENVENIDO, {user.name?.split(' ')[0]}
                                         </p>
                                         <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
@@ -591,7 +591,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     </Link>
 
                     {/* Link destacado para Venta por Volumen */}
-                    <Link href="/venta-empresa" className={cn("flex items-center gap-2 transition-colors font-semibold", brandColorText)}>
+                    <Link href="/venta-empresa" className={cn("flex items-center gap-2 transition-colors ", brandColorText)}>
                         <Truck className="h-4 w-4" />
                         ¡Abastece tu hogar por volumen!
                     </Link>

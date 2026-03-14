@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'; 
 import { getHomeData } from '@/actions/home-data';
 import { getProductsByTag } from '@/actions/products';
-import { getCategories } from '@/actions/categories'; // 👈 IMPORTANTE: Importamos esto directo
+import { getCategories } from '@/actions/categories';
 import { Hero } from '@/components/ui/Hero';
 import { CategoryCarousel } from '@/components/features/CategoryCarousel';
 import { PromoBanner } from '@/components/features/PromoBanner';
@@ -20,15 +20,13 @@ export default async function Home() {
     : 'JUGUETERIA';
 
   // 1. Ejecutamos las promesas en paralelo para velocidad
-  // Reemplazamos el 'categories' que viene de getHomeData por nuestra llamada directa
   const [homeData, categoriesResult] = await Promise.all([
     getHomeData(currentDivision),
-    getCategories(currentDivision) // 👈 Llamada directa sin límites
+    getCategories(currentDivision)
   ]);
 
   const { newArrivals, middleBanner, sections } = homeData;
   
-  // Extraemos la data segura (getCategories devuelve { success, data })
   const allCategories = categoriesResult.success && categoriesResult.data 
     ? categoriesResult.data 
     : [];
@@ -44,18 +42,21 @@ export default async function Home() {
     <main className="min-h-screen bg-white pb-24">
       <Hero />
 
-      <div className="container mx-auto px-4 mt-12 md:mt-16 space-y-24">
+      {/* 🔥 FIX: Redujimos 'space-y-24' a 'space-y-12 md:space-y-16' para juntar las secciones. */}
+      {/* También se ajustó el margen top inicial 'mt-8 md:mt-12' para acercarlo al Hero */}
+      <div className="container mx-auto px-4 md:px-8 lg:px-10 xl:px-12 mt-8 md:mt-12 space-y-12 md:space-y-16">
         
-        {/* 2. CATEGORÍAS - Usamos allCategories que tiene TODAS */}
+        {/* 2. CATEGORÍAS */}
         <CategoryCarousel categories={allCategories} />
 
         {/* 1. RECIÉN LLEGADOS */}
         {newArrivals.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-2 px-2">
+            <div className="flex items-center justify-between mb-4 px-2">
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-700">
-                  Recién Llegados
+                {/* Título igualado a las categorías (proporcional) */}
+                <h2 className="font-medium text-[16px] md:text-[24px] leading-tight text-[#333] tracking-tight">
+                  ¡Recién Llegados!
                 </h2>
               </div>
               
@@ -70,12 +71,10 @@ export default async function Home() {
           </section>
         )}
 
-        
-
         {/* 3. BANNER INTERMEDIO */}
         {middleBanner && <PromoBanner banner={middleBanner} />}
 
-        {/* 4. SECCIONES DINÁMICAS (TAGS) */}
+        {/* 4. SECCIONES DINÁMICAS */}
         {sectionsWithProducts.map((section) => {
           if (!section.products || section.products.length === 0) return null;
 
@@ -83,9 +82,10 @@ export default async function Home() {
 
           return (
             <section key={section.id} className="animate-in fade-in duration-700">
-              <div className="flex items-center justify-between mb-2 px-2">
+              <div className="flex items-center justify-between mb-4 px-2">
                 <div>
-                  <h2 className={`text-2xl md:text-3xl font-bold tracking-tight ${titleClass}`}>
+                  {/* Título igualado a las categorías, respetando color */}
+                  <h2 className={`font-medium text-[16px] md:text-[24px] leading-tight tracking-tight ${titleClass}`}>
                     {section.title}
                   </h2>
                   {section.subtitle && (

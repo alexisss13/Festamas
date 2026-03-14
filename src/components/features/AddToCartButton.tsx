@@ -26,7 +26,18 @@ export function AddToCartButton({ product, disabled, className }: Props) {
   
   useEffect(() => setMounted(true), []);
 
-  const brandVariant = product.division === 'JUGUETERIA' ? 'festamas' : 'fiestasya';
+  // Lógica de Tienda para Colores
+  const isFestamas = product.division === 'JUGUETERIA' || !product.division;
+
+  // 🔥 Estilos de botón Invertido (Outline)
+  const outlineStyles = isFestamas 
+    ? "bg-transparent border-2 border-[#fc4b65] text-[#fc4b65] hover:bg-[#fc4b65] hover:text-white"
+    : "bg-transparent border-2 border-[#fb3099] text-[#fb3099] hover:bg-[#fb3099] hover:text-white";
+
+  // 🔥 Estilos para cuando ya se agregó al carrito (Fondo sólido como feedback visual)
+  const addedStyles = isFestamas
+    ? "bg-[#fc4b65] border-2 border-[#fc4b65] text-white"
+    : "bg-[#fb3099] border-2 border-[#fb3099] text-white";
 
   const handleAddToCart = (e: React.MouseEvent) => {
     // 🛡️ Prevenir navegación si el botón está dentro de un Link (muy común en Cards)
@@ -44,7 +55,6 @@ export function AddToCartButton({ product, disabled, className }: Props) {
       stock: product.stock,
       division: product.division,
       
-      // 👇 ¡AQUÍ ESTABA EL ERROR! Faltaba pasar la lógica de precios
       wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
       wholesaleMinCount: product.wholesaleMinCount || null,
       discountPercentage: product.discountPercentage || 0,
@@ -60,25 +70,28 @@ export function AddToCartButton({ product, disabled, className }: Props) {
   };
 
   if (!mounted) {
-    return <Button disabled variant="secondary" className="w-full opacity-50">Cargando...</Button>;
+    return <Button disabled variant="outline" className="w-full opacity-50 border-slate-200">Cargando...</Button>;
   }
 
   return (
     <Button 
       onClick={handleAddToCart}
-      disabled={disabled}
-      // @ts-ignore 
-      variant={brandVariant} 
-      className={cn("w-full font-bold transition-all duration-200 active:scale-95", className)} 
+      disabled={disabled || added} // Evita el doble click mientras dice "¡Listo!"
+      variant="outline" // Base outline de shadcn
+      className={cn(
+        "w-full font-bold transition-all duration-300 active:scale-95", 
+        added ? addedStyles : outlineStyles, // Aplica el estilo normal o el de éxito
+        className
+      )} 
     >
       {added ? (
         <span className="flex items-center animate-in fade-in zoom-in duration-300">
-             <Check className="mr-2 h-5 w-5" /> ¡Listo!
+             <Check className="mr-2 h-5 w-5" strokeWidth={3} /> ¡Listo!
         </span>
       ) : (
         <>
-          <ShoppingCart className="mr-2 h-5 w-5" /> 
-          <span className="text-base">Agregar</span>
+          <ShoppingCart className="mr-2 h-5 w-5" strokeWidth={2.5} /> 
+          <span className="text-[13px] tracking-wide uppercase">Agregar</span>
         </>
       )}
     </Button>
