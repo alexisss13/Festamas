@@ -13,10 +13,8 @@ import {
 import { 
   Dialog, 
   DialogContent, 
-  DialogHeader, 
   DialogTitle, 
   DialogDescription, 
-  DialogFooter 
 } from '@/components/ui/dialog';
 import { ChevronDown, Check, AlertTriangle, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -35,12 +33,10 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
   const [isPending, startTransition] = useTransition();
   const [division, setDivision] = useState<Division>(currentDivision);
   
-  // Estados para el Modal de Conflicto
   const [modalOpen, setModalOpen] = useState(false);
   const [targetDivision, setTargetDivision] = useState<Division | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Hook al carrito
   const { cart, clearCart, clearCustomer } = usePOSStore();
 
   useEffect(() => {
@@ -48,23 +44,14 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
   }, []);
 
   const isFestamas = division === 'JUGUETERIA';
-  const logoFestamas = '/images/IconoFestamas.png';
-  const logoFiestasYa = '/images/IconoFiestasYa.png';
+  const logoFestamas = '/images/IconoFestamas2.png';
+  const logoFiestasYa = '/images/IconoFiestasYa2.png';
 
-  // 🎨 Lógica de colores dinámica (Marca ACTUAL)
-  const brandColor = isFestamas ? "bg-festamas-primary" : "bg-fiestasya-accent";
-  // 👇 NUEVO: Color específico para el botón (con hover)
-  const buttonBg = isFestamas 
-    ? "bg-festamas-primary hover:bg-festamas-primary/90" 
-    : "bg-fiestasya-accent hover:bg-fiestasya-accent/90";
-    
   const brandName = isFestamas ? "Festamas" : "FiestasYa";
 
-  // 1. Intento de cambio (Interceptado)
   const handleSwitchRequest = (newDivision: Division) => {
     if (newDivision === division) return; 
 
-    // Si hay items en el carrito... ¡ALTO! ✋
     if (cart.length > 0) {
       setTargetDivision(newDivision); 
       setModalOpen(true);             
@@ -73,7 +60,6 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
     }
   };
 
-  // 2. Ejecución real del cambio
   const executeSwitch = (newDivision: Division) => {
     setDivision(newDivision);
     startTransition(async () => {
@@ -88,7 +74,6 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
     });
   };
 
-  // 3. Confirmación
   const handleConfirmSwitch = () => {
     if (targetDivision) {
       clearCart();     
@@ -108,16 +93,17 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
             variant="ghost" 
             disabled={isPending}
             className={cn(
-              "w-full transition-all duration-300",
-              isCollapsed ? "h-12 px-0 justify-center" : "justify-between h-14 px-3 border shadow-sm bg-white hover:bg-slate-50 text-slate-900 border-slate-200"
+              "w-full transition-all duration-300 group", 
+              isCollapsed 
+                ? "h-12 px-0 justify-center border-transparent hover:bg-slate-50" 
+                : "justify-between h-14 px-3 border border-slate-200 shadow-sm bg-white hover:bg-slate-50 hover:border-primary/40"
             )}
           >
             <div className={cn("flex items-center gap-3 overflow-hidden", isCollapsed && "justify-center w-full")}>
-              {/* 🖼️ LOGO */}
+              {/* LOGO */}
               <div className={cn(
-                  "flex items-center justify-center rounded-md shrink-0 p-1 transition-colors",
-                  isCollapsed ? "w-8 h-8" : "w-8 h-8",
-                  isFestamas ? "bg-festamas-primary/10" : "bg-fiestasya-accent/10"
+                  "flex items-center justify-center shrink-0 transition-colors",
+                  isCollapsed ? "w-8 h-8" : "w-8 h-8"
               )}>
                   <div className="relative w-full h-full">
                       <Image 
@@ -135,54 +121,60 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
                   <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
                     Panel de Control
                   </span>
-                  <span className={cn(
-                      "font-bold text-sm truncate transition-colors",
-                      isFestamas ? "text-festamas-primary" : "text-fiestasya-accent"
-                  )}>
-                    {isFestamas ? 'Festamas' : 'FiestasYa'}
+                  <span className="font-bold text-sm truncate text-primary">
+                    {brandName}
                   </span>
                 </div>
               )}
             </div>
             
-            {!isCollapsed && <ChevronDown className="w-4 h-4 text-slate-400 opacity-50 shrink-0 ml-2" />}
+            {!isCollapsed && <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2 transition-colors group-hover:text-primary/50" />}
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent className="w-[240px] p-1" align="start" side={isCollapsed ? "right" : "bottom"}>
-          <DropdownMenuItem onClick={() => handleSwitchRequest('JUGUETERIA')} className={cn("gap-3 cursor-pointer p-2 mb-1 rounded-md focus:bg-slate-50", isFestamas && "bg-slate-50")}>
-            <div className="flex items-center justify-center w-8 h-8 rounded-md bg-festamas-primary/10 border border-festamas-primary/20 p-1">
+        {/* 👇 AQUÍ HACEMOS LA MAGIA DEL ANCHO DINÁMICO */}
+        <DropdownMenuContent 
+            className={cn(
+              "p-1 border-slate-200 shadow-lg rounded-xl",
+              // Si está colapsado es fijo (240px), si está abierto toma EXACTAMENTE el ancho del botón
+              isCollapsed ? "w-[240px]" : "w-[var(--radix-dropdown-menu-trigger-width)]"
+            )}
+            align="start" 
+            side={isCollapsed ? "right" : "bottom"}
+        >
+          
+          <DropdownMenuItem onClick={() => handleSwitchRequest('JUGUETERIA')} className={cn("gap-3 cursor-pointer p-2 mb-1 rounded-lg focus:bg-slate-50 transition-colors", isFestamas && "bg-slate-50")}>
+            <div className="flex items-center justify-center w-8 h-8 shrink-0">
                 <div className="relative w-full h-full"><Image src={logoFestamas} alt="Festamas" fill className="object-contain" /></div>
             </div>
             <div className="flex flex-col flex-1">
-                <span className="font-bold text-sm text-slate-700">Festamas</span>
+                <span className={cn("font-bold text-sm", isFestamas ? "text-primary" : "text-slate-700")}>Festamas</span>
                 <span className="text-[10px] text-slate-500">Juguetes y Diversión</span>
             </div>
-            {isFestamas && <Check className="w-4 h-4 text-festamas-primary" />}
+            {isFestamas && <Check className="w-4 h-4 text-primary" />}
           </DropdownMenuItem>
           
-          <DropdownMenuItem onClick={() => handleSwitchRequest('FIESTAS')} className={cn("gap-3 cursor-pointer p-2 rounded-md focus:bg-slate-50", !isFestamas && "bg-slate-50")}>
-            <div className="flex items-center justify-center w-8 h-8 rounded-md bg-fiestasya-accent/10 border border-fiestasya-accent/20 p-1">
+          <DropdownMenuItem onClick={() => handleSwitchRequest('FIESTAS')} className={cn("gap-3 cursor-pointer p-2 rounded-lg focus:bg-slate-50 transition-colors", !isFestamas && "bg-slate-50")}>
+            <div className="flex items-center justify-center w-8 h-8 shrink-0">
               <div className="relative w-full h-full"><Image src={logoFiestasYa} alt="FiestasYa" fill className="object-contain" /></div>
             </div>
             <div className="flex flex-col flex-1">
-                <span className="font-bold text-sm text-slate-700">FiestasYa</span>
+                <span className={cn("font-bold text-sm", !isFestamas ? "text-primary" : "text-slate-700")}>FiestasYa</span>
                 <span className="text-[10px] text-slate-500">Decoración y Piñatas</span>
             </div>
-            {!isFestamas && <Check className="w-4 h-4 text-fiestasya-accent" />}
+            {!isFestamas && <Check className="w-4 h-4 text-primary" />}
           </DropdownMenuItem>
+
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* 🛑 MODAL INTERCEPTOR (Stop Inmediato) */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-[420px] p-0 overflow-hidden gap-0 border-none shadow-2xl">
-            {/* Header con el color de la tienda ACTUAL */}
-            <div className={cn("p-6 flex flex-col items-center justify-center text-white", brandColor)}>
+            <div className="p-6 flex flex-col items-center justify-center text-primary-foreground bg-primary transition-colors">
                 <div className="h-12 w-12 bg-white/20 rounded-full flex items-center justify-center mb-3 backdrop-blur-sm shadow-inner">
                     <AlertTriangle className="h-6 w-6 text-white" />
                 </div>
-                <DialogTitle className="text-xl font-bold text-center">¡Atención!</DialogTitle>
+                <DialogTitle className="text-xl font-bold text-center text-white">¡Atención!</DialogTitle>
                 <DialogDescription className="text-white/90 text-center mt-2 font-medium">
                     Tienes productos de <strong>{brandName}</strong> en el carrito.
                 </DialogDescription>
@@ -195,10 +187,9 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
                 </p>
 
                 <div className="flex flex-col gap-2">
-                    {/* 👇 BOTÓN PERSONALIZADO CON COLOR DE MARCA */}
                     <Button 
                         onClick={handleConfirmSwitch}
-                        className={cn("w-full h-11 font-bold shadow-md text-white transition-colors", buttonBg)}
+                        className="w-full h-11 font-bold shadow-md text-primary-foreground transition-colors bg-primary hover:bg-primary/90"
                     >
                         <Trash2 className="mr-2 h-4 w-4" /> 
                         Vaciar Carrito y Cambiar

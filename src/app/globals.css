@@ -36,15 +36,16 @@
 
 @layer base {
   :root {
-    /* --- CONFIGURACIÓN BASE (FiestasYa por defecto) --- */
+    /* --- CONFIGURACIÓN BASE (Festamas por defecto) --- */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
-    /* ROSA FIESTASYA (Por defecto) */
-    --primary: 329 96% 59%; 
+    /* ROJO FESTAMAS (#fc4b65) */
+    --primary: 351 96% 64%; 
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 49 94% 57%; /* Amarillo */
+    /* AMARILLO FESTAMAS */
+    --secondary: 45 93% 47%; 
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --card: 0 0% 100%;
@@ -59,33 +60,22 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 329 96% 59%;
+    --ring: 351 96% 64%; /* Mismo que primary Festamas */
     --radius: 0.5rem;
   }
  
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    /* ... (resto de dark mode igual) ... */
-    --primary: 329 96% 59%; 
+    --primary: 351 96% 64%; 
     --primary-foreground: 0 0% 100%;
   }
 
-  /* 🔴 TEMA FESTAMAS (Override con alta especificidad)
-     Usamos [data-theme="festamas"] que es más seguro que una clase simple.
-  */
-  [data-theme="festamas"] {
-    --primary: 351 96% 64%; /* ROJO FESTAMAS (#fc4b65) */
-    --ring: 351 96% 64%;
-    
-    /* Opcional: Ajustar secondary si Festamas tiene otro color secundario */
-    --secondary: 45 93% 47%; /* Un amarillo más dorado por ejemplo */
-  }
-
-  /* 🌸 TEMA FIESTASYA (Explícito) */
+  /* 🌸 TEMA FIESTASYA (Override) */
   [data-theme="fiestasya"] {
     --primary: 329 96% 59%; /* ROSA (#fb3099) */
     --ring: 329 96% 59%;
+    --secondary: 49 94% 57%; /* Amarillo FiestasYa */
   }
 }
 

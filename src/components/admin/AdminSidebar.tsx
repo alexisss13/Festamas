@@ -14,10 +14,9 @@ import { logout } from '@/actions/auth-actions';
 import { AdminStoreSwitcher } from './AdminStoreSwitcher';
 import { Division } from '@prisma/client';
 
-// 👇 AQUÍ AGREGAMOS LA RUTA DE USUARIOS
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/users', label: 'Usuarios y Roles', icon: Users }, // 👈 NUEVO
+  { href: '/admin/users', label: 'Usuarios y Roles', icon: Users },
   { href: '/admin/pos', label: 'Punto de Venta', icon: Calculator },
   { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
   { href: '/admin/products', label: 'Productos', icon: Package },
@@ -37,12 +36,13 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const isFestamas = currentDivision === 'JUGUETERIA';
-  
-  const activeBgClass = isFestamas ? "bg-festamas-primary/10" : "bg-fiestasya-accent/10";
-  const activeTextClass = isFestamas ? "text-festamas-primary font-bold" : "text-fiestasya-accent font-bold";
-  const borderClass = isFestamas ? "border-r-festamas-primary/20" : "border-r-fiestasya-accent/20";
-  const iconColorClass = isFestamas ? "text-festamas-primary" : "text-fiestasya-accent";
+  const brandName = currentDivision === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa';
+
+  useEffect(() => {
+    const activeTheme = currentDivision === 'FIESTAS' ? 'fiestasya' : 'festamas';
+    document.documentElement.setAttribute('data-theme', activeTheme);
+    return () => document.documentElement.removeAttribute('data-theme');
+  }, [currentDivision]);
 
   useEffect(() => {
     const mainContent = document.getElementById('admin-main-content');
@@ -59,13 +59,16 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
     <div className="flex flex-col h-full bg-white text-slate-600">
       
       <div className={cn(
-          "flex flex-col border-b px-4 py-4 gap-4 transition-all duration-300", 
-          isCollapsed ? "items-center" : "",
-          "border-slate-100"
+          "flex flex-col border-b px-4 py-4 gap-4 transition-all duration-300 border-slate-100", 
+          isCollapsed ? "items-center" : ""
       )}>
         {!isCollapsed && (
-            <span className="text-xl font-bold tracking-tighter flex items-center gap-2 text-slate-800 px-2">
-            Festamas <span className={cn("text-xs px-1.5 py-0.5 rounded bg-slate-100 uppercase font-semibold text-slate-500")}>Admin</span>
+            // 👇 TÍTULO EQUILIBRADO: Texto principal gris oscuro, solo el 'Admin' lleva color primario
+            <span className="text-xl font-bold tracking-tighter flex items-center gap-2 text-slate-800 transition-colors px-2">
+              {brandName} 
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 uppercase font-bold text-primary tracking-wider">
+                Admin
+              </span>
             </span>
         )}
         <AdminStoreSwitcher currentDivision={currentDivision} isCollapsed={isCollapsed} />
@@ -84,21 +87,18 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative",
                 isCollapsed ? "justify-center" : "",
                 isActive 
-                  ? cn(activeBgClass, activeTextClass) 
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-primary/10 text-primary font-bold" 
+                  : "text-slate-500 hover:bg-primary/5 hover:text-primary"
               )}
               title={isCollapsed ? item.label : undefined}
             >
               <item.icon className={cn(
                   "h-5 w-5 transition-colors", 
-                  isActive ? iconColorClass : "text-slate-400 group-hover:text-slate-600"
+                  isActive ? "text-primary" : "text-slate-400 group-hover:text-primary"
               )} />
               {!isCollapsed && <span>{item.label}</span>}
               {isActive && (
-                  <div className={cn(
-                      "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full",
-                      isFestamas ? "bg-festamas-primary" : "bg-fiestasya-accent"
-                  )} />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full bg-primary" />
               )}
             </Link>
           );
@@ -123,11 +123,7 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
 
   return (
     <>
-      {/* 📱 MOBILE HEADER & TRIGGER */}
-      <div className={cn(
-          "md:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b flex items-center px-4 justify-between shadow-sm transition-colors print:hidden",
-          borderClass
-      )}>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-primary/20 flex items-center px-4 justify-between shadow-sm transition-colors print:hidden">
          <div className="flex items-center gap-3">
             <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                 <SheetTrigger asChild>
@@ -142,17 +138,18 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
                     <SidebarContent />
                 </SheetContent>
             </Sheet>
-            <span className="font-bold text-lg text-slate-800">Festamas Admin</span>
+            {/* 👇 TÍTULO MÓVIL EQUILIBRADO */}
+            <span className="font-bold text-lg text-slate-800 flex items-center gap-1.5">
+              {brandName} <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary uppercase">Admin</span>
+            </span>
          </div>
-         <div className={cn("w-3 h-3 rounded-full border-2 border-white ring-1 ring-slate-100", isFestamas ? "bg-festamas-primary" : "bg-fiestasya-accent")} />
+         <div className="w-3 h-3 rounded-full border-2 border-white ring-1 ring-slate-100 bg-primary" />
       </div>
 
-      {/* 💻 DESKTOP SIDEBAR */}
       <aside 
         className={cn(
-            "fixed inset-y-0 left-0 z-40 hidden md:flex flex-col border-r bg-white transition-all duration-300 shadow-sm",
-            isCollapsed ? "w-20" : "w-64",
-            borderClass
+            "fixed inset-y-0 left-0 z-40 hidden md:flex flex-col border-r border-slate-200 bg-white transition-all duration-300 shadow-sm",
+            isCollapsed ? "w-20" : "w-64"
         )}
       >
         <SidebarContent />
