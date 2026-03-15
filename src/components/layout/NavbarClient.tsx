@@ -65,16 +65,18 @@ function SearchInput({ onSearch, className, searchBtnColor }: { onSearch?: () =>
       <Input
         type="text"
         placeholder="Buscar"
-        className="h-9 md:h-10 w-full pl-4 md:pl-5 pr-10 md:pr-12 border-0 rounded-full text-[13px] md:text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
+        // 🔥 FIX: Aumentado el padding izquierdo y alto en móvil
+        className="h-10 w-full pl-5 pr-12 border-0 rounded-full text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
       <button 
         type="submit" 
-        className="absolute right-1 top-1 h-7 w-7 md:h-8 md:w-8 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
+        // 🔥 FIX: Botón de búsqueda más grande en móvil
+        className="absolute right-1 top-1 h-8 w-8 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
         style={{ backgroundColor: searchBtnColor || '#fc4b65' }} 
       >
-        <Search className="h-3.5 w-3.5 md:h-4 md:w-4" />
+        <Search className="h-4 w-4" />
       </button>
     </form>
   );
@@ -209,7 +211,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   return (
     <>
       {/* 1. SUPER HEADER (SUBHEADER - TABS) */}
-      <div className="print:hidden w-full h-[36px] bg-slate-100 border-b border-slate-200 flex items-end z-[60] relative text-[11px]">
+      <div className="print:hidden w-full h-[36px] bg-slate-100 border-b border-slate-200 flex items-end z-40 relative text-[11px]">
         <div className="w-full max-w-[1473px] mx-auto px-4 lg:px-8 flex items-center justify-between h-full">
             
             <div className="flex h-full mr-auto pt-0.5 gap-1">
@@ -269,17 +271,18 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
       {/* 2. NAVBAR PRINCIPAL (STICKY) */}
       <header 
         className={cn(
-            "w-full h-[64px] z-50 print:hidden flex flex-col transition-all duration-300 ease-in-out", 
+            "w-full h-[64px] md:h-[72px] z-50 print:hidden flex flex-col transition-all duration-300 ease-in-out", 
             navbarBgClass,
             isAtTop ? "sticky top-0" : "sticky top-0 shadow-md", 
             (!isVisible && !isUserMenuOpen) && "-translate-y-full" 
         )}
       >
-        <div className="w-full max-w-[1473px] mx-auto flex items-center gap-1.5 md:gap-4 lg:gap-8 px-2 md:px-4 lg:px-8 relative h-full">
+        {/* 🔥 FIX: Aumentamos padding Y en móvil ligeramente para acomodar iconos más grandes */}
+        <div className="w-full max-w-[1473px] mx-auto flex items-center gap-2 md:gap-4 lg:gap-8 px-2 sm:px-4 lg:px-8 relative h-full">
             
             {/* --- ORDEN MÓVIL 1: LOGO PRINCIPAL --- */}
             <Link href="/" className="shrink-0 group">
-                <div className="relative w-[36px] h-[36px] md:w-[135px] md:h-[48px] transition-all duration-300">
+                <div className="relative w-[40px] h-[40px] md:w-[135px] md:h-[48px] transition-all duration-300">
                     <Image 
                         src={activeMainIcon} 
                         alt={brandName} 
@@ -300,7 +303,8 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             {/* --- ORDEN MÓVIL 2: MENU HAMBURGUESA --- */}
             <Sheet>
                 <SheetTrigger asChild>
-                    <Button variant="ghost" className={cn("md:hidden h-9 w-9 rounded-full p-0 hover:bg-slate-100 text-slate-700 shrink-0")}>
+                    {/* 🔥 FIX: h-10 w-10 y el icono h-6 w-6 */}
+                    <Button variant="ghost" className={cn("md:hidden h-10 w-10 rounded-full p-0 hover:bg-slate-100 text-slate-700 shrink-0")}>
                         <Menu className="h-6 w-6" />
                     </Button>
                 </SheetTrigger>
@@ -340,6 +344,8 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                 </Link>
                             </SheetClose>
                         </div>
+
+                        <div className="border-t border-slate-200/60 mx-4 mt-2 mb-4"></div>
 
                         <div className="mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Categorías</div>
                         <div className="space-y-1">
@@ -468,7 +474,8 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     {user ? (
                         <Sheet>
                             <SheetTrigger asChild>
-                                <Button variant="ghost" className="h-9 w-9 rounded-full p-0 shrink-0">
+                                {/* 🔥 FIX: Aumentado tamaño h-10 w-10 en móvil */}
+                                <Button variant="ghost" className="h-10 w-10 rounded-full p-0 shrink-0">
                                     <Avatar className="h-8 w-8 border border-slate-200">
                                         <AvatarImage src={user.image || ''} />
                                         <AvatarFallback className="bg-slate-100 text-slate-900 font-bold text-xs">{user.name?.charAt(0)}</AvatarFallback>
@@ -499,7 +506,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                     </div>
 
                                     <div className="flex flex-col mt-2">
-                                        {/* 🔥 FIX: Cambiados font-medium a font-normal */}
                                         <SheetClose asChild>
                                             <Link href="/profile" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
                                                 <User className="h-4 w-4 text-slate-400" /> Mi Perfil
@@ -535,7 +541,8 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                         </Sheet>
                     ) : (
                         <Link href="/auth/login">
-                            <Button variant="ghost" className="h-9 w-9 rounded-full p-0 text-slate-700 hover:bg-slate-100 shrink-0">
+                            {/* 🔥 FIX: h-10 w-10 y User icon h-6 w-6 */}
+                            <Button variant="ghost" className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100 shrink-0">
                                 <User className="h-6 w-6" />
                             </Button>
                         </Link>
@@ -554,10 +561,11 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 </Link>
 
                 <CartSidebar>
-                    <Button variant="ghost" className="relative h-9 w-9 md:h-10 md:w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100 shrink-0">
-                        <ShoppingCart className="h-5 w-5" />
+                    {/* 🔥 FIX: h-10 w-10 y ShoppingCart icon h-6 w-6 para que el área táctil sea perfecta en móvil */}
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100 shrink-0">
+                        <ShoppingCart className="h-6 w-6" />
                         {loaded && getTotalItems() > 0 && (
-                            <span className={cn("absolute top-0 right-0 h-3.5 w-3.5 rounded-full text-[9px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>
+                            <span className={cn("absolute top-0 right-0 h-4 w-4 rounded-full text-[10px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>
                                 {getTotalItems()}
                             </span>
                         )}
