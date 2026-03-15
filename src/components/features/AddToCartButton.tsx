@@ -1,17 +1,17 @@
 'use client';
 
 import { useCartStore, CartProduct } from '@/store/cart';
+import { useUIStore } from '@/store/ui'; 
 import { Product } from '@prisma/client';
 import { Button } from '@/components/ui/button'; 
-import { ShoppingCart, Check } from 'lucide-react';
+import { Minus, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface Props {
-  // Extendemos el tipo Product para asegurar que TS reconozca los campos opcionales si Prisma los trae
   product: Product & {
-    wholesalePrice?: any; // Puede venir como Decimal
+    wholesalePrice?: any; 
     wholesaleMinCount?: number | null;
     discountPercentage?: number;
   };
@@ -20,80 +20,129 @@ interface Props {
 }
 
 export function AddToCartButton({ product, disabled, className }: Props) {
+  // Conectamos con el Zustand Store
+  const cart = useCartStore(state => state.cart);
   const addProductToCart = useCartStore(state => state.addProductToCart);
-  const [added, setAdded] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const updateProductQuantity = useCartStore(state => state.updateProductQuantity);
+  const removeProduct = useCartStore(state => state.removeProduct);
   
+  const currentDivision = useUIStore(state => state.currentDivision);
+  
+  const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Lógica de Tienda para Colores
-  const isFestamas = product.division === 'JUGUETERIA' || !product.division;
+  // Buscamos si el producto YA ESTÁ en el carrito
+  const productInCart = cart.find(item => item.id === product.id);
+  const quantityInCart = productInCart?.quantity || 0;
+  const isAdded = quantityInCart > 0;
 
-  // 🔥 Estilos de botón Invertido (Outline)
-  const outlineStyles = isFestamas 
-    ? "bg-transparent border-2 border-[#fc4b65] text-[#fc4b65] hover:bg-[#fc4b65] hover:text-white"
-    : "bg-transparent border-2 border-[#fb3099] text-[#fb3099] hover:bg-[#fb3099] hover:text-white";
+  const isActiveFestamas = currentDivision === 'JUGUETERIA';
 
-  // 🔥 Estilos para cuando ya se agregó al carrito (Fondo sólido como feedback visual)
-  const addedStyles = isFestamas
-    ? "bg-[#fc4b65] border-2 border-[#fc4b65] text-white"
-    : "bg-[#fb3099] border-2 border-[#fb3099] text-white";
+  // 🔥 FIX: Volvemos a 'border-2' para que los bordes sean súper nítidos y visibles
+  const outlineStyles = isActiveFestamas 
+    ? "bg-transparent border-2 border-[#fc4b65] text-[#fc4b65] hover:!bg-[#fc4b65] hover:!text-white"
+    : "bg-transparent border-2 border-[#fb3099] text-[#fb3099] hover:!bg-[#fb3099] hover:!text-white";
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    // 🛡️ Prevenir navegación si el botón está dentro de un Link (muy común en Cards)
+  // --- ACCIONES ---
+
+  const handleInitialAdd = (e: React.MouseEvent) => {
     e.preventDefault(); 
     e.stopPropagation();
 
-    // 1. Mapeo Completo de Datos para el Store 🧠
     const cartProduct: CartProduct = {
       id: product.id,
       slug: product.slug,
       title: product.title,
-      price: Number(product.price), // Precio base
+      price: Number(product.price), 
       quantity: 1,
       image: product.images[0] || '/placeholder.jpg',
       stock: product.stock,
       division: product.division,
-      
       wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
       wholesaleMinCount: product.wholesaleMinCount || null,
       discountPercentage: product.discountPercentage || 0,
     };
 
-    // 2. Enviamos al Store
     addProductToCart(cartProduct);
-    
-    // 3. Feedback Visual
-    setAdded(true);
     toast.success(`${product.title} agregado al carrito`);
-    setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleIncrement = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (quantityInCart < product.stock) {
+        updateProductQuantity(product.id, quantityInCart + 1);
+    } else {
+        toast.error("Stock máximo alcanzado");
+    }
+  };
+
+  const handleDecrement = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (quantityInCart > 1) {
+        updateProductQuantity(product.id, quantityInCart - 1);
+    } else {
+        removeProduct(product.id);
+        toast.info("Producto removido del carrito");
+    }
   };
 
   if (!mounted) {
-    return <Button disabled variant="outline" className="w-full opacity-50 border-slate-200">Cargando...</Button>;
+    return <Button disabled variant="outline" className="w-full opacity-50 border-slate-200 h-10">Cargando...</Button>;
   }
 
+  // --- VISTA 2: EL PRODUCTO YA ESTÁ EN EL CARRITO (CONTROLES + / -) ---
+  if (isAdded) {
+      return (
+          <div className={cn("flex items-center justify-between w-full h-10", className)}>
+              
+              {/* Botón Minus/Trash */}
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleDecrement}
+                className={cn(
+                    "h-10 w-10 rounded-xl transition-all active:scale-95",
+                    // Si es 1 (Basurero) usamos gris/rojo, si es resta (-) usamos el color de la tienda
+                    quantityInCart === 1 
+                        ? "bg-transparent border-2 border-slate-300 text-slate-500 hover:!bg-red-50 hover:!text-red-500 hover:!border-red-200"
+                        : outlineStyles
+                )}
+              >
+                  {quantityInCart === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" strokeWidth={2.5} />}
+              </Button>
+              
+              <span className="font-bold text-[14px] text-slate-800 flex-1 text-center select-none">
+                  {quantityInCart}
+              </span>
+
+              {/* Botón Plus */}
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleIncrement}
+                disabled={quantityInCart >= product.stock}
+                className={cn("h-10 w-10 rounded-xl transition-all active:scale-95", outlineStyles)}
+              >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} />
+              </Button>
+          </div>
+      );
+  }
+
+  // --- VISTA 1: EL PRODUCTO NO ESTÁ EN EL CARRITO (BOTÓN "AGREGAR") ---
   return (
     <Button 
-      onClick={handleAddToCart}
-      disabled={disabled || added} // Evita el doble click mientras dice "¡Listo!"
-      variant="outline" // Base outline de shadcn
+      onClick={handleInitialAdd}
+      disabled={disabled}
       className={cn(
-        "w-full font-bold transition-all duration-300 active:scale-95", 
-        added ? addedStyles : outlineStyles, // Aplica el estilo normal o el de éxito
+        "w-full h-10 font-bold rounded-xl shadow-sm hover:shadow-md transition-all duration-300 active:scale-95", 
+        outlineStyles, 
         className
       )} 
     >
-      {added ? (
-        <span className="flex items-center animate-in fade-in zoom-in duration-300">
-             <Check className="mr-2 h-5 w-5" strokeWidth={3} /> ¡Listo!
-        </span>
-      ) : (
-        <>
-          <ShoppingCart className="mr-2 h-5 w-5" strokeWidth={2.5} /> 
-          <span className="text-[13px] tracking-wide uppercase">Agregar</span>
-        </>
-      )}
+      <span className="text-[13px] tracking-wide uppercase">Agregar</span>
     </Button>
   );
 }

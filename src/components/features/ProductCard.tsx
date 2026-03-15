@@ -6,8 +6,8 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { AddToCartButton } from './AddToCartButton';
 import { FavoriteButton } from './FavoriteButton';
 import { cn } from '@/lib/utils';
-import { Tag, Package, AlertCircle } from 'lucide-react';
-import { useUIStore } from '@/store/ui'; // 🔥 IMPORTAMOS EL ESTADO GLOBAL
+import { Package, AlertCircle } from 'lucide-react';
+import { useUIStore } from '@/store/ui';
 
 interface ProductCardProps {
   product: {
@@ -32,26 +32,17 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   
   // --- Lógica de Tienda y Temas ---
-  // 🔥 Leemos la tienda ACTIVA en la que el usuario está navegando
   const currentDivision = useUIStore((state) => state.currentDivision);
   const isActiveFestamas = currentDivision === 'JUGUETERIA';
 
-  // Mantenemos el nombre original de la marca del producto por si queremos mostrarlo
-  const isProductFestamas = product.division === 'JUGUETERIA' || !product.division;
-  const brandName = isProductFestamas ? 'Festamás' : 'FiestasYa';
-
-  // 🔥 El TEMA visual ahora depende exclusivamente de la pestaña activa
+  // Solo necesitamos el color del texto y bordes para la UI minimalista
   const theme = isActiveFestamas 
     ? {
         brandText: 'text-[#fc4b65]',
-        titleHover: 'group-hover:text-[#fc4b65]',
-        cardBorder: 'hover:border-[#fc4b65]/30',
         discountBadge: 'bg-[#fc4b65] text-white',
       }
     : {
         brandText: 'text-[#fb3099]',
-        titleHover: 'group-hover:text-[#fb3099]',
-        cardBorder: 'hover:border-[#fb3099]/30',
         discountBadge: 'bg-[#fb3099] text-white',
       };
 
@@ -66,24 +57,18 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Card className={cn(
-        "group relative flex flex-col h-full overflow-hidden transition-all duration-500 bg-white border border-slate-200 rounded-2xl",
-        "hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1",
-        theme.cardBorder
+        "group relative flex flex-col h-full overflow-hidden transition-all duration-300 bg-white border border-slate-200 rounded-2xl",
+        "hover:shadow-md"
     )}>
       
       {/* 🛡️ ÁREA DE IMAGEN */}
       <div className="relative aspect-square w-full overflow-hidden bg-slate-50/50">
           
-          {/* Etiquetas Superiores */}
+          {/* Etiqueta Superior (Solo Agotado) */}
           <div className="absolute top-3 left-3 z-10 flex flex-col gap-2 pointer-events-none">
-              {isOutOfStock ? (
-                  <div className="bg-slate-900/90 backdrop-blur-sm text-white text-[11px] font-black px-3 py-1 rounded-full shadow-sm tracking-wide">
+              {isOutOfStock && (
+                  <div className="bg-slate-900/90 backdrop-blur-sm text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm tracking-wide">
                       AGOTADO
-                  </div>
-              ) : hasDiscount && (
-                  <div className={cn("text-[11px] font-black px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1", theme.discountBadge)}>
-                      <Tag className="w-3 h-3" strokeWidth={3} />
-                      -{discount}%
                   </div>
               )}
           </div>
@@ -101,7 +86,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     alt={product.title}
                     fill
                     className={cn(
-                        "object-contain p-5 transition-all duration-700 group-hover:scale-110",
+                        "object-contain p-5 transition-transform duration-500 group-hover:scale-105",
                         isOutOfStock && "opacity-50 grayscale"
                     )}
                     sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
@@ -115,71 +100,81 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* 📝 ÁREA DE CONTENIDO */}
-      <CardContent className="flex flex-col flex-1 p-4 pt-3 gap-1.5">
+      {/* 🔥 FIX: Reducimos padding en móvil (p-3) para dar más ancho al texto */}
+      <CardContent className="flex flex-col flex-1 p-3 md:p-4 pt-3 md:pt-4 gap-1.5">
         
-        {/* Marca y Alerta de Stock */}
-        <div className="flex items-start justify-between gap-2 min-h-[20px]">
-            <span className={cn("text-[10px] font-black uppercase tracking-widest", theme.brandText)}>
-                {brandName}
-            </span>
-            
-            {!isOutOfStock && product.stock > 0 && product.stock < 5 && (
-                <div className="flex items-center gap-1 text-[9px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-md">
+        {/* Alerta de Stock */}
+        {!isOutOfStock && product.stock > 0 && product.stock < 5 && (
+            <div className="flex mb-0.5">
+                <div className="flex items-center gap-1 text-[9px] font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-md">
                     <AlertCircle className="w-2.5 h-2.5" />
                     ¡Solo {product.stock}!
                 </div>
-            )}
-        </div>
+            </div>
+        )}
 
         {/* Título del Producto */}
         <Link href={`/product/${product.slug}`} title={product.title} className="mb-1">
-            <h3 className={cn(
-                "text-sm font-bold text-slate-800 leading-snug line-clamp-2 transition-colors duration-300",
-                theme.titleHover
-            )}>
+            {/* 🔥 FIX: Letra un poco más pequeña en móvil (text-[12px]) */}
+            <h3 className="text-[12px] md:text-[14px] font-medium text-slate-700 leading-tight md:leading-snug line-clamp-2">
                 {product.title}
             </h3>
         </Link>
 
+        {/* Espaciador flexible para asegurar que los precios se alineen abajo */}
         <div className="flex-1" />
 
-        {/* 💰 BLOQUE DE PRECIOS */}
-        <div className="flex flex-col gap-1 mt-2">
+        {/* 💰 BLOQUE DE PRECIOS EN CASCADA (Vertical) */}
+        <div className="flex flex-col mt-1 md:mt-2">
             
-            {/* Precio Regular */}
-            <div className="flex items-end gap-2 flex-wrap leading-none">
-                <span className="text-xl font-black text-slate-900 tracking-tight">
+            {/* 1. Precio Original (Tachado, solo si hay descuento) */}
+            {hasDiscount && (
+                <span className="text-[10px] md:text-[12px] font-medium text-slate-400 line-through leading-none mb-0.5 md:mb-1">
+                    S/ {price.toFixed(2)}
+                </span>
+            )}
+
+            {/* 2. Precio Final (Regular o con Descuento) */}
+            <div className="flex items-center gap-1.5 md:gap-2 mb-1">
+                <span className="text-[16px] md:text-[19px] font-bold text-slate-800 leading-none">
                     S/ {finalPrice.toFixed(2)}
                 </span>
+                
+                {/* Etiqueta de Descuento integrada al precio */}
                 {hasDiscount && (
-                    <span className="text-xs font-semibold text-slate-400 line-through mb-[3px]">
-                        S/ {price.toFixed(2)}
+                    <span className={cn(
+                        // 🔥 FIX: Padding y tamaño más compacto en móvil
+                        "text-[9px] md:text-[10px] font-bold px-1 md:px-1.5 py-0.5 rounded leading-none shadow-sm", 
+                        theme.discountBadge
+                    )}>
+                        {discount}% OFF
                     </span>
                 )}
             </div>
 
-            {/* 🔥 PRECIO MAYORISTA */}
+            {/* 3. Precio Mayorista */}
             {hasWholesale && !isOutOfStock && (
-                 <div className="flex items-baseline gap-1 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
-                    <span className={cn("text-[11px] font-medium uppercase tracking-tight", theme.brandText)}>
-                        Por mayor:
+                 <div className="flex items-center flex-wrap gap-x-1 mt-0.5 leading-none">
+                    {/* 🔥 FIX: Textos abreviados ("x Mayor" y "Mín.") y tamaños micro en móvil para evitar que salte de línea */}
+                    <span className={cn("text-[9px] md:text-[11px] font-medium uppercase tracking-tight", theme.brandText)}>
+                        x Mayor:
                     </span>
-                    <span className={cn("text-[13px] font-bold", theme.brandText)}>
+                    <span className={cn("text-[11px] md:text-[13px] font-bold", theme.brandText)}>
                         S/ {wholesalePrice.toFixed(2)}
                     </span>
-                    <span className="text-[10px] font-medium text-slate-500 ml-0.5">
-                        (Mín. {product.wholesaleMinCount || 3} un.)
+                    <span className="text-[8px] md:text-[10px] font-medium text-slate-500 ml-0.5">
+                        (Mín. {product.wholesaleMinCount || 3})
                     </span>
                 </div>
             )}
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-3 md:p-4 pt-0">
         <AddToCartButton 
             product={product as any} 
             disabled={isOutOfStock}
-            className="w-full h-10 text-[13px] font-bold rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95"
+            className="w-full h-9 md:h-10 text-[12px] md:text-[13px] font-semibold rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95"
         />
       </CardFooter>
     </Card>
