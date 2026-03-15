@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { Division } from '@prisma/client';
 
 /**
@@ -11,6 +12,9 @@ export async function setAdminDivision(division: Division) {
   const cookieStore = await cookies();
   // Guardamos la cookie por defecto (sin expiración explícita es de sesión, pero podemos ponerle maxAge si queremos persistencia larga)
   cookieStore.set('admin_division', division, { path: '/' });
+  
+  // Revalidamos todas las rutas del admin para que se actualicen con la nueva división
+  revalidatePath('/admin', 'layout');
 }
 
 /**
