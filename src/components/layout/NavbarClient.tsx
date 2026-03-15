@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, ShoppingCart, Menu, Heart, User, LogOut, Package, Store, ChevronRight, LogIn, ChevronDown, MapPin, BookOpen, Truck, X } from 'lucide-react';
+import { Search, ShoppingCart, Menu, Heart, User, LogOut, Package, Store, ChevronRight, ChevronDown, MapPin, BookOpen, Truck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
@@ -61,21 +61,20 @@ function SearchInput({ onSearch, className, searchBtnColor }: { onSearch?: () =>
   };
 
   return (
-    // Fondo gris (slate-100) para resaltar sobre blanco
     <form onSubmit={handleSearch} className={cn("relative w-full group bg-slate-100 rounded-full shadow-sm hover:bg-slate-200/70 transition-colors", className)}>
       <Input
         type="text"
-        placeholder="¿Qué estás buscando hoy?"
-        className="h-10 w-full pl-5 pr-12 border-0 rounded-full text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
+        placeholder="Buscar"
+        className="h-9 md:h-10 w-full pl-4 md:pl-5 pr-10 md:pr-12 border-0 rounded-full text-[13px] md:text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
       <button 
         type="submit" 
-        className="absolute right-1 top-1 h-8 w-8 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
+        className="absolute right-1 top-1 h-7 w-7 md:h-8 md:w-8 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
         style={{ backgroundColor: searchBtnColor || '#fc4b65' }} 
       >
-        <Search className="h-4 w-4" />
+        <Search className="h-3.5 w-3.5 md:h-4 md:w-4" />
       </button>
     </form>
   );
@@ -118,7 +117,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   const [isAtTop, setIsAtTop] = useState(true); 
   const lastScrollY = useRef(0);
 
-  // Forzar visibilidad si el menú de usuario DESKTOP está abierto
   useEffect(() => {
     if (!isUserMenuOpen) {
         setIsVisible(true);
@@ -131,7 +129,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
       
       setIsAtTop(currentScrollY < 20);
 
-      // Ocultar navbar al hacer scroll down, mostrar al subir
       if (currentScrollY < 120) {
         setIsVisible(true);
       } else {
@@ -187,21 +184,27 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
   const filteredCategories = categories.filter(cat => cat.division === currentDivision);
   const brandName = isToys ? 'Festamás' : 'FiestasYa';
   
-  // Estilos Base
   const navbarBgClass = "bg-white shadow-sm border-b border-slate-100";
   
-  // COLORES POR DIVISIÓN
   const brandColorText = isToys ? "text-[#fc4b65]" : "text-[#fb3099]"; 
-  const badgeClass = isToys ? "text-white bg-[#fc4b65]" : "text-[#fb3099] bg-[#fb3099] text-white"; // Fix temporal de clases dobles
+  const badgeClass = isToys ? "text-white bg-[#fc4b65]" : "text-[#fb3099] bg-[#fb3099] text-white"; 
   const searchBtnBg = isToys ? '#fc4b65' : '#fb3099';
   const mobileHeaderClass = isToys ? "bg-[#fc4b65]" : "bg-[#fb3099]";
 
   // --- REFERENCIAS DE LOGOS ---
   const iconFestamasSubheader = '/images/IconoFestamas.png';
+  
+  // Logos Desktop
   const iconFestamasMain = '/images/IconoFestamas1.png';
-  const iconFiestasYa = '/images/IconoFiestasYa1.png'; 
+  const iconFiestasYaMain = '/images/IconoFiestasYa1.png'; 
+  
+  // Logos Móvil
+  const iconFestamasMobile = '/images/IconoFestamas2.png';
+  const iconFiestasYaMobile = '/images/IconoFiestasYa2.png';
 
-  const activeMainIcon = isToys ? iconFestamasMain : iconFiestasYa;
+  // Lógica Activa
+  const activeMainIcon = isToys ? iconFestamasMain : iconFiestasYaMain;
+  const activeMobileIcon = isToys ? iconFestamasMobile : iconFiestasYaMobile;
 
   return (
     <>
@@ -247,7 +250,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 >
                     <div className="relative h-[19.6px] w-[80px]">
                          <Image 
-                            src={iconFiestasYa} 
+                            src={iconFiestasYaMain} 
                             alt="FiestasYa" 
                             fill 
                             className={cn(
@@ -272,12 +275,32 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             (!isVisible && !isUserMenuOpen) && "-translate-y-full" 
         )}
       >
-        <div className="w-full max-w-[1473px] mx-auto flex items-center gap-4 lg:gap-8 px-4 lg:px-8 relative h-full">
+        <div className="w-full max-w-[1473px] mx-auto flex items-center gap-1.5 md:gap-4 lg:gap-8 px-2 md:px-4 lg:px-8 relative h-full">
             
-            {/* ----------------- MENU HAMBURGUESA (IZQUIERDA) ----------------- */}
+            {/* --- ORDEN MÓVIL 1: LOGO PRINCIPAL --- */}
+            <Link href="/" className="shrink-0 group">
+                <div className="relative w-[36px] h-[36px] md:w-[135px] md:h-[48px] transition-all duration-300">
+                    <Image 
+                        src={activeMainIcon} 
+                        alt={brandName} 
+                        fill 
+                        className="hidden md:block object-contain object-left" 
+                        priority 
+                    />
+                    <Image 
+                        src={activeMobileIcon} 
+                        alt={brandName} 
+                        fill 
+                        className="block md:hidden object-contain object-center" 
+                        priority 
+                    />
+                </div>
+            </Link>
+
+            {/* --- ORDEN MÓVIL 2: MENU HAMBURGUESA --- */}
             <Sheet>
                 <SheetTrigger asChild>
-                    <Button variant="ghost" className={cn("md:hidden h-10 w-10 rounded-full p-0 hover:bg-slate-100 text-slate-700")}>
+                    <Button variant="ghost" className={cn("md:hidden h-9 w-9 rounded-full p-0 hover:bg-slate-100 text-slate-700 shrink-0")}>
                         <Menu className="h-6 w-6" />
                     </Button>
                 </SheetTrigger>
@@ -285,42 +308,39 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-slate-50">
                     <SheetTitle className="sr-only">Menú de Navegación</SheetTitle> 
                     
-                    {/* Header Móvil: Ajustado exactamente a 52px de alto */}
                     <SheetHeader className={cn("h-[52px] flex flex-row items-center px-4 py-0 space-y-0 border-b", mobileHeaderClass)}>
-                        <div className="relative h-8 w-32">
+                        <div className="relative h-8 w-24">
                             <Image 
-                                src={activeMainIcon} 
+                                src={activeMobileIcon} 
                                 alt={brandName} 
                                 fill 
-                                className="object-contain object-left" 
+                                className={cn("object-contain object-left", !isToys && "brightness-0 invert")} 
                             />
                         </div>
                     </SheetHeader>
 
                     <div className="flex-1 overflow-y-auto py-4 px-2">
-                        {/* Links Principales (Padding reducido y sin espacio extra entre ellos) */}
                         <div className="flex flex-col mb-4">
                             <SheetClose asChild>
-                                <Link href="/" className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-normal transition-all">
-                                    <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><Store className="h-5 w-5"/></div>
+                                <Link href="/" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">
+                                    <Store className="h-4 w-4 text-slate-400"/>
                                     Inicio
                                 </Link>
                             </SheetClose>
                             <SheetClose asChild>
-                                <Link href="/catalogos" className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-normal transition-all">
-                                    <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><BookOpen className="h-5 w-5"/></div>
+                                <Link href="/catalogos" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">
+                                    <BookOpen className="h-4 w-4 text-slate-400"/>
                                     Catálogos
                                 </Link>
                             </SheetClose>
                             <SheetClose asChild>
-                                <Link href="/tiendas" className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-white hover:shadow-sm rounded-xl font-normal transition-all">
-                                    <div className={cn("p-2 rounded-full bg-slate-100", brandColorText)}><MapPin className="h-5 w-5"/></div>
+                                <Link href="/tiendas" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">
+                                    <MapPin className="h-4 w-4 text-slate-400"/>
                                     Tiendas
                                 </Link>
                             </SheetClose>
                         </div>
 
-                        {/* Categorías (font-normal) */}
                         <div className="mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Categorías</div>
                         <div className="space-y-1">
                             {filteredCategories.map((cat) => (
@@ -335,19 +355,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     </div>
                 </SheetContent>
             </Sheet>
-
-            {/* LOGO PRINCIPAL */}
-            <Link href="/" className="shrink-0 group mr-auto md:mr-2">
-                <div className="relative w-[135px] h-[48px] transition-all duration-300">
-                    <Image 
-                        src={activeMainIcon} 
-                        alt={brandName} 
-                        fill 
-                        className="object-contain object-left" 
-                        priority 
-                    />
-                </div>
-            </Link>
 
             {/* BOTÓN MENÚ DESKTOP */}
             <div className="relative hidden md:block" ref={menuRef}>
@@ -378,17 +385,16 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 )}
             </div>
 
-            {/* BUSCADOR */}
-            <div className="flex-1 max-w-2xl hidden md:block">
+            {/* --- ORDEN MÓVIL 3: BUSCADOR --- */}
+            <div className="flex-1 min-w-0">
                 <Suspense>
                     <SearchInput searchBtnColor={searchBtnBg} />
                 </Suspense>
             </div>
 
-            {/* ICONOS DERECHA - ml-auto para empujar al final */}
-            <div className="flex items-center gap-1 md:gap-2 ml-auto">
+            {/* --- ORDEN MÓVIL 4 y 5: ICONOS DERECHA --- */}
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
                 
-                {/* 1. MIS PEDIDOS (Desktop Only) */}
                 {user && (
                     <Link 
                         href="/profile/orders" 
@@ -399,7 +405,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     </Link>
                 )}
 
-                {/* 2. USUARIO (DESKTOP) */}
+                {/* USUARIO (DESKTOP) */}
                 <div className="relative hidden lg:block" ref={userMenuRef}>
                     <Button 
                         variant="ghost" 
@@ -457,12 +463,12 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     )}
                 </div>
 
-                {/* 3. USUARIO (MÓVIL - NUEVO - MI CUENTA) */}
+                {/* --- ORDEN MÓVIL 4: USUARIO (MÓVIL) --- */}
                 <div className="lg:hidden">
                     {user ? (
                         <Sheet>
                             <SheetTrigger asChild>
-                                <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
+                                <Button variant="ghost" className="h-9 w-9 rounded-full p-0 shrink-0">
                                     <Avatar className="h-8 w-8 border border-slate-200">
                                         <AvatarImage src={user.image || ''} />
                                         <AvatarFallback className="bg-slate-100 text-slate-900 font-bold text-xs">{user.name?.charAt(0)}</AvatarFallback>
@@ -472,7 +478,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                             <SheetContent side="right" className="w-[65vw] max-w-[280px] z-[100] p-0 flex flex-col h-full bg-white [&>button]:hidden"> 
                                 <SheetTitle className="sr-only">Mi cuenta de usuario</SheetTitle>
                                 
-                                {/* HEADER GRIS: User Icon + "Mi Cuenta" + X */}
                                 <div className="flex items-center justify-between p-4 bg-slate-100 border-b border-slate-200">
                                     <div className="flex items-center gap-2">
                                         <User className="h-5 w-5 text-slate-700" />
@@ -485,9 +490,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                     </SheetClose>
                                 </div>
 
-                                {/* CONTENIDO: Bienvenida y Lista */}
                                 <div className="flex-1 overflow-y-auto px-0 py-4">
-                                    {/* BIENVENIDA - Separada por línea */}
                                     <div className="px-5 pb-4 border-b border-slate-100">
                                         <p className="text-sm  text-slate-800 uppercase tracking-wide">
                                             BIENVENIDO, {user.name?.split(' ')[0]}
@@ -495,35 +498,34 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                                         <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
                                     </div>
 
-                                    {/* LISTA DE ACCIONES UNIFICADA */}
                                     <div className="flex flex-col mt-2">
+                                        {/* 🔥 FIX: Cambiados font-medium a font-normal */}
                                         <SheetClose asChild>
-                                            <Link href="/profile" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
+                                            <Link href="/profile" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
                                                 <User className="h-4 w-4 text-slate-400" /> Mi Perfil
                                             </Link>
                                         </SheetClose>
 
                                         <SheetClose asChild>
-                                            <Link href="/profile/orders" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
+                                            <Link href="/profile/orders" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
                                                 <Package className="h-4 w-4 text-slate-400" /> Mis Pedidos
                                             </Link>
                                         </SheetClose>
                                         
                                         <SheetClose asChild>
-                                            <Link href="/profile/addresses" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
+                                            <Link href="/profile/addresses" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
                                                 <MapPin className="h-4 w-4 text-slate-400" /> Direcciones de entrega
                                             </Link>
                                         </SheetClose>
 
                                         <SheetClose asChild>
-                                            <Link href="/favorites" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
+                                            <Link href="/favorites" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
                                                 <Heart className="h-4 w-4 text-slate-400" /> Favoritos
                                             </Link>
                                         </SheetClose>
 
-                                        {/* CERRAR SESIÓN */}
                                         <div className="mt-2 border-t border-slate-100 pt-2">
-                                            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium text-sm transition-colors text-left border-l-4 border-transparent">
+                                            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 font-normal text-sm transition-colors text-left border-l-4 border-transparent">
                                                 <LogOut className="h-4 w-4" /> Cerrar Sesión
                                             </button>
                                         </div>
@@ -533,14 +535,13 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                         </Sheet>
                     ) : (
                         <Link href="/auth/login">
-                            <Button variant="ghost" className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100">
+                            <Button variant="ghost" className="h-9 w-9 rounded-full p-0 text-slate-700 hover:bg-slate-100 shrink-0">
                                 <User className="h-6 w-6" />
                             </Button>
                         </Link>
                     )}
                 </div>
 
-                {/* 3. FAVORITOS (Desktop only) */}
                 <Link href="/favorites">
                     <Button variant="ghost" className="hidden md:flex relative h-10 w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100">
                         <Heart className="h-5 w-5" />
@@ -552,9 +553,8 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     </Button>
                 </Link>
 
-                {/* 4. CART */}
                 <CartSidebar>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100">
+                    <Button variant="ghost" className="relative h-9 w-9 md:h-10 md:w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100 shrink-0">
                         <ShoppingCart className="h-5 w-5" />
                         {loaded && getTotalItems() > 0 && (
                             <span className={cn("absolute top-0 right-0 h-3.5 w-3.5 rounded-full text-[9px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>
@@ -567,18 +567,15 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
         </div>
       </header>
 
-      {/* 3. BARRA INFERIOR DE NAVEGACIÓN (SEPARADA Y STATIC) */}
       <div className="hidden md:block w-full bg-white border-b border-slate-200">
             <div className="w-full max-w-[1473px] mx-auto px-4 lg:px-8 h-[40px] flex items-center justify-between text-sm font-medium text-slate-600">
                 
-                {/* IZQUIERDA: UBICACIÓN */}
                 <button className="flex items-center gap-2 hover:text-slate-900 transition-colors">
                     <MapPin className="h-4 w-4 text-slate-400" />
                     <span>¿Dónde quieres recibir tu pedido?</span>
                     <ChevronDown className="h-3 w-3 opacity-50" />
                 </button>
 
-                {/* DERECHA: LINKS ADICIONALES */}
                 <div className="flex items-center gap-6">
                     <Link href="/catalogos" className="flex items-center gap-2 hover:text-slate-900 transition-colors">
                         <BookOpen className="h-4 w-4 text-slate-400" />
@@ -590,7 +587,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                         Tiendas
                     </Link>
 
-                    {/* Link destacado para Venta por Volumen */}
                     <Link href="/venta-empresa" className={cn("flex items-center gap-2 transition-colors ", brandColorText)}>
                         <Truck className="h-4 w-4" />
                         ¡Abastece tu hogar por volumen!
@@ -600,14 +596,6 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             </div>
       </div>
       
-      {/* ESPACIADOR MÓVIL PARA BUSCADOR FLOTANTE */}
-      <div className="md:hidden w-full bg-white px-4 py-2 border-b">
-           <Suspense>
-              <SearchInput searchBtnColor={searchBtnBg} className="shadow-none bg-slate-100" />
-           </Suspense>
-      </div>
-
-      {/* OVERLAY (TELÓN OSCURO) */}
       {isUserMenuOpen && (
         <div 
             className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 animate-in fade-in"

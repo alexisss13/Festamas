@@ -42,8 +42,6 @@ export default async function Home() {
     <main className="min-h-screen bg-white pb-24">
       <Hero />
 
-      {/* 🔥 FIX: Redujimos 'space-y-24' a 'space-y-12 md:space-y-16' para juntar las secciones. */}
-      {/* También se ajustó el margen top inicial 'mt-8 md:mt-12' para acercarlo al Hero */}
       <div className="container mx-auto px-4 md:px-8 lg:px-10 xl:px-12 mt-8 md:mt-12 space-y-12 md:space-y-16">
         
         {/* 2. CATEGORÍAS */}
@@ -52,17 +50,16 @@ export default async function Home() {
         {/* 1. RECIÉN LLEGADOS */}
         {newArrivals.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-4 px-2">
-              <div className="flex items-center gap-2">
-                {/* Título igualado a las categorías (proporcional) */}
+            <div className="flex items-end justify-between mb-4 px-2">
+              <div className="flex flex-col">
                 <h2 className="font-medium text-[16px] md:text-[24px] leading-tight text-[#333] tracking-tight">
                   ¡Recién Llegados!
                 </h2>
               </div>
               
-              <Button variant="link" asChild className="text-slate-500 hover:text-slate-900 font-medium">
+              <Button variant="link" asChild className="text-slate-500 hover:text-slate-900 font-medium px-0 pb-0 h-auto">
                 <Link href={`/new-arrivals?division=${currentDivision}`}>
-                  Ver todo <ArrowRight className="ml-1 w-4 h-4" />
+                  Ver todo <ArrowRight className="ml-1.5 w-4 h-4" />
                 </Link>
               </Button>
             </div>
@@ -78,37 +75,32 @@ export default async function Home() {
         {sectionsWithProducts.map((section) => {
           if (!section.products || section.products.length === 0) return null;
 
-          const titleClass = section.division === 'JUGUETERIA' ? 'text-rose-600' : 'text-fuchsia-600';
-
           return (
             <section key={section.id} className="animate-in fade-in duration-700">
-              <div className="flex items-center justify-between mb-4 px-2">
-                <div>
-                  {/* Título igualado a las categorías, respetando color */}
-                  <h2 className={`font-medium text-[16px] md:text-[24px] leading-tight tracking-tight ${titleClass}`}>
+              {/* 🔥 FIX: Estructura clonada de 'Recién Llegados' para armonía visual */}
+              <div className="flex items-end justify-between mb-4 px-2">
+                <div className="flex flex-col">
+                  {/* Título unificado en color y tamaño */}
+                  <h2 className="font-medium text-[16px] md:text-[24px] leading-tight text-[#333] tracking-tight">
                     {section.title}
                   </h2>
+                  {/* Subtítulo alineado y equilibrado */}
                   {section.subtitle && (
-                    <p className="text-sm text-slate-500 mt-1">{section.subtitle}</p>
+                    <p className="text-[12px] md:text-[14px] text-slate-500 mt-0.5 md:mt-1 leading-tight">
+                      {section.subtitle}
+                    </p>
                   )}
                 </div>
                 
-                {/* 🔗 BOTÓN DESKTOP */}
-                <Button variant="outline" size="sm" asChild className="hidden sm:flex border-slate-200 text-slate-600 hover:text-slate-900">
+                {/* 🔗 BOTÓN UNIFICADO: Link minimalista en PC y Móvil en lugar de botones pesados */}
+                <Button variant="link" asChild className="text-slate-500 hover:text-slate-900 font-medium px-0 pb-0 h-auto whitespace-nowrap ml-4">
                     <Link href={`/collections?tag=${section.tag}&division=${section.division}`}>
-                        Ver colección
+                        Ver todo <ArrowRight className="ml-1.5 w-4 h-4" />
                     </Link>
                 </Button>
               </div>
               
               <ProductCarousel products={section.products as any} autoPlay={true} />
-              
-              <div className="mt-4 px-2 sm:hidden">
-                  {/* 🔗 BOTÓN MÓVIL */}
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link href={`/collections?tag=${section.tag}&division=${section.division}`}>Ver colección</Link>
-                  </Button>
-              </div>
             </section>
           );
         })}
