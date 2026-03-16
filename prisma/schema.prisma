@@ -280,3 +280,17 @@ model HomeSection {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// 📖 CATÁLOGOS INTERACTIVOS
+model Catalog {
+  id         String   @id @default(uuid())
+  title      String   
+  coverImage String   // Imagen de portada
+  iframeUrl  String   // El link de Flipsnack/Heyzine
+  division   Division @default(JUGUETERIA) // Festamas o FiestasYa
+  isActive   Boolean  @default(true) // Para ocultarlo sin borrarlo
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
