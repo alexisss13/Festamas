@@ -179,7 +179,6 @@ model Order {
 
   clientName     String
   clientPhone    String
-  clientDni      String?   // DNI opcional - no rompe POS ni registros existentes
   deliveryMethod String      @default("PICKUP") 
   shippingAddress String?
   shippingCost   Decimal     @default(0) @db.Decimal(10, 2)
