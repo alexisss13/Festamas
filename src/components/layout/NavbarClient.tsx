@@ -580,7 +580,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 
                 <button className="flex items-center gap-2 hover:text-slate-900 transition-colors">
                     <MapPin className="h-4 w-4 text-slate-400" />
-                    <span>¿Dónde quieres recibir tu pedido?</span>
+                    <Link href="/profile/address"><span>¿Dónde quieres recibir tu pedido?</span></Link>
                     <ChevronDown className="h-3 w-3 opacity-50" />
                 </button>
 
