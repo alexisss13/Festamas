@@ -24,9 +24,10 @@ export default async function OrderDetailPage({ params }: Props) {
   const formatPrice = (value: number) =>
     new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('es-PE', { dateStyle: 'long', timeStyle: 'short' }).format(date);
-  };
+  const formatDate = (date: Date) =>
+    new Intl.DateTimeFormat('es-PE', { dateStyle: 'long', timeStyle: 'short' }).format(date);
+
+  const isPhone = (value: string) => /^9\d{8}$/.test(value?.trim() ?? '');
 
   // --- CÁLCULOS MATEMÁTICOS ---
   const shippingCost = Number(order.shippingCost);
@@ -176,11 +177,25 @@ export default async function OrderDetailPage({ params }: Props) {
                 <p className="text-lg font-medium text-slate-900">{order.clientName}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">WhatsApp</p>
-                <div className="flex items-center gap-2">
+                {isPhone(order.clientPhone) ? (
+                  <>
+                    <p className="text-sm font-medium text-slate-500">WhatsApp</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-medium text-slate-900">{order.clientPhone}</p>
+                      <a href={`https://wa.me/51${order.clientPhone}`} target="_blank" rel="noreferrer" className="text-green-600 text-sm hover:underline">(Chat)</a>
+                    </div>
+                  </>
+                ) : order.clientPhone && order.clientPhone !== '-' ? (
+                  <>
+                    <p className="text-sm font-medium text-slate-500">DNI</p>
                     <p className="text-lg font-medium text-slate-900">{order.clientPhone}</p>
-                    <a href={`https://wa.me/51${order.clientPhone}`} target="_blank" rel="noreferrer" className="text-green-600 text-sm hover:underline">(Chat)</a>
-                </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-slate-500">Documento</p>
+                    <p className="text-base text-slate-400 italic">Sin documento registrado</p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

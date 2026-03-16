@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, Filter, CheckCircle2, Clock, ShoppingCart, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, CheckCircle2, Clock, ShoppingCart, Search, X, ChevronLeft, ChevronRight, Store, Globe, Pencil, Trash2, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ExportButton } from './ExportButton';
 import {
   Table,
   TableBody,
@@ -26,6 +27,8 @@ interface Order {
   totalAmount: number;
   createdAt: Date | string;
   deliveryMethod?: string;
+  notes?: string | null;
+  receiptNumber?: string | null;
 }
 
 interface OrdersViewProps {
@@ -42,10 +45,18 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 const deliveryLabel: Record<string, string> = {
-  PICKUP:   'Recojo',
+  PICKUP:   'Recoger',
   DELIVERY: 'Delivery',
   PROVINCE: 'Provincia',
 };
+
+// Un celular peruano tiene 9 dígitos y empieza con 9
+const isPhone = (value: string) => /^9\d{8}$/.test(value?.trim() ?? '');
+
+// Orden creada desde el POS (siempre deja el prefijo [VENTA POS] en notes)
+const isPOS = (order: Order) =>
+  order.notes?.trimStart().startsWith('[VENTA POS]') ||
+  Boolean(order.receiptNumber);
 
 export function OrdersView({ orders }: OrdersViewProps) {
   const [activeTab, setActiveTab] = useState('all');
@@ -104,50 +115,59 @@ export function OrdersView({ orders }: OrdersViewProps) {
   const paginatedOrders = filteredOrders.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
-    <div className="space-y-4 [&_::selection]:bg-slate-200 [&_::selection]:text-slate-900">
+    <div className="space-y-6 [&_::selection]:bg-slate-200 [&_::selection]:text-slate-900">
       <Tabs defaultValue="all" className="w-full" onValueChange={handleTabChange}>
 
         {/* Barra superior: tabs + buscador + contador */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
-          <TabsList className="bg-slate-100 border border-slate-200 h-auto p-1 flex-wrap gap-1">
-            <TabsTrigger
-              value="all"
-              className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
-            >
-              Todos
-            </TabsTrigger>
-            <TabsTrigger
-              value="priority"
-              className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
-            >
-              <Filter className="h-3.5 w-3.5" />
-              Por Despachar
-            </TabsTrigger>
-            <TabsTrigger
-              value="unpaid"
-              className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
-            >
-              <Clock className="h-3.5 w-3.5" />
-              Por Pagar
-            </TabsTrigger>
-            <TabsTrigger
-              value="delivered"
-              className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Historial
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex flex-col gap-4">
+          {/* Tabs y contador en la misma línea */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <TabsList className="bg-slate-100 border border-slate-200 h-auto p-1 flex-wrap gap-1">
+              <TabsTrigger
+                value="all"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
+              >
+                Todos
+              </TabsTrigger>
+              <TabsTrigger
+                value="priority"
+                className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
+              >
+                <Filter className="h-3.5 w-3.5" />
+                Por Despachar
+              </TabsTrigger>
+              <TabsTrigger
+                value="unpaid"
+                className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Por Pagar
+              </TabsTrigger>
+              <TabsTrigger
+                value="delivered"
+                className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Historial
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Buscador */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative max-w-full sm:max-w-sm flex-1">
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
+              <ShoppingCart className="h-4 w-4 text-slate-400" />
+              <span className="text-sm font-semibold text-slate-900">{filteredOrders.length}</span>
+              <span className="text-sm text-slate-500">{filteredOrders.length === 1 ? 'pedido' : 'pedidos'}</span>
+            </div>
+          </div>
+
+          {/* Buscador y Exportar en su propia línea */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar cliente o teléfono..."
+                placeholder="Buscar por cliente o teléfono..."
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 pr-8 h-9 bg-white border-slate-200 focus-visible:border-slate-400 focus-visible:ring-slate-400/20"
+                className="pl-10 pr-8 h-10 bg-white border-slate-200 focus-visible:border-slate-400 focus-visible:ring-slate-400/20"
               />
               {searchTerm && (
                 <button
@@ -158,25 +178,25 @@ export function OrdersView({ orders }: OrdersViewProps) {
                 </button>
               )}
             </div>
-            <div className="text-sm text-slate-500 text-center sm:text-left whitespace-nowrap">
-              {filteredOrders.length} {filteredOrders.length === 1 ? 'pedido' : 'pedidos'}
+            <div className="ml-auto">
+              <ExportButton orders={filteredOrders} />
             </div>
           </div>
         </div>
 
         {/* Tabla */}
-        <div className="w-full border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+        <div className="w-full border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm mt-6">
           <div className="w-full overflow-x-auto">
-            <Table className="w-full min-w-[520px]">
+            <Table className="min-w-[860px]">
               <TableHeader>
                 <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-200">
-                  <TableHead className="h-11 px-3 lg:px-4 font-semibold text-slate-700 whitespace-nowrap">Fecha</TableHead>
-                  <TableHead className="h-11 px-3 font-semibold text-slate-700 w-full">Cliente</TableHead>
-                  <TableHead className="h-11 px-3 font-semibold text-slate-700 whitespace-nowrap">Pago</TableHead>
-                  <TableHead className="h-11 px-3 font-semibold text-slate-700 whitespace-nowrap">Estado</TableHead>
-                  <TableHead className="h-11 px-3 font-semibold text-slate-700 whitespace-nowrap">Envío</TableHead>
-                  <TableHead className="h-11 px-3 font-semibold text-slate-700 text-right whitespace-nowrap">Total</TableHead>
-                  <TableHead className="h-11 px-3 lg:px-4 font-semibold text-slate-700 text-right w-10">Ver</TableHead>
+                  <TableHead className="h-11 px-4 lg:px-6 font-semibold text-slate-700 w-[130px]">Fecha</TableHead>
+                  <TableHead className="h-11 px-4 font-semibold text-slate-700 w-[180px]">Cliente</TableHead>
+                  <TableHead className="h-11 px-4 font-semibold text-slate-700 w-[100px]">Pago</TableHead>
+                  <TableHead className="h-11 px-4 font-semibold text-slate-700 w-[100px]">Estado</TableHead>
+                  <TableHead className="h-11 px-4 font-semibold text-slate-700 w-[100px]">Envío</TableHead>
+                  <TableHead className="h-11 px-4 font-semibold text-slate-700 w-[110px] text-right">Total</TableHead>
+                  <TableHead className="h-11 px-4 lg:px-6 font-semibold text-slate-700 w-[120px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -186,7 +206,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
 
                   return (
                     <TableRow key={order.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <TableCell className="py-3 px-3 lg:px-4 whitespace-nowrap align-middle">
+                      <TableCell className="py-3 px-4 lg:px-6">
                         {(() => { const { datePart, timePart } = formatDateParts(order.createdAt); return (
                           <div className="flex flex-col tabular-nums">
                             <span className="text-xs font-medium text-slate-600">{datePart}</span>
@@ -194,20 +214,31 @@ export function OrdersView({ orders }: OrdersViewProps) {
                           </div>
                         ); })()}
                       </TableCell>
-                      <TableCell className="py-3 px-3 align-middle">
+                      <TableCell className="py-3 px-4">
                         <div className="flex flex-col min-w-0">
                           <span className="font-medium text-slate-900 text-sm truncate">{toTitleCase(order.clientName)}</span>
-                          <a
-                            href={`https://wa.me/51${order.clientPhone}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-slate-500 hover:text-slate-700 hover:underline mt-0.5 transition-colors"
-                          >
-                            {order.clientPhone}
-                          </a>
+                          {isPhone(order.clientPhone) ? (
+                            <span className="text-xs mt-0.5">
+                              <span className="text-slate-400">TEL: </span>
+                              <a
+                                href={`https://wa.me/51${order.clientPhone}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-slate-500 hover:text-slate-700 hover:underline transition-colors"
+                              >
+                                {order.clientPhone}
+                              </a>
+                            </span>
+                          ) : order.clientPhone && order.clientPhone !== '-' ? (
+                            <span className="text-xs text-slate-400 mt-0.5">
+                              DNI: {order.clientPhone}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-300 mt-0.5 italic">Sin doc.</span>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell className="py-3 px-3 whitespace-nowrap align-middle">
+                      <TableCell className="py-3 px-4">
                         <Badge
                           variant="outline"
                           className={cn(
@@ -220,29 +251,64 @@ export function OrdersView({ orders }: OrdersViewProps) {
                           {order.isPaid ? 'Pagado' : 'Pendiente'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-3 px-3 whitespace-nowrap align-middle">
+                      <TableCell className="py-3 px-4">
                         <Badge variant="outline" className={cn('text-xs font-medium', cfg.className)}>
                           {cfg.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-3 px-3 whitespace-nowrap align-middle text-slate-600 text-sm">
-                        {deliveryLabel[order.deliveryMethod || ''] || order.deliveryMethod || '—'}
+                      <TableCell className="py-3 px-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-medium text-slate-700">
+                            {deliveryLabel[order.deliveryMethod || ''] || order.deliveryMethod || '—'}
+                          </span>
+                          {isPOS(order) ? (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                              <Store className="w-3.5 h-3.5 text-slate-400" />
+                              <span>POS</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                              <Globe className="w-3.5 h-3.5 text-slate-400" />
+                              <span>WEB</span>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell className="py-3 px-3 text-right whitespace-nowrap align-middle font-medium text-slate-900 text-sm">
-                        {formatPrice(Number(order.totalAmount))}
+                      <TableCell className="py-3 px-4 text-right">
+                        <span className="text-sm font-bold text-slate-900 tabular-nums">
+                          {formatPrice(Number(order.totalAmount))}
+                        </span>
                       </TableCell>
-                      <TableCell className="py-3 px-3 lg:px-4 text-right align-middle">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          title="Ver detalle del pedido"
-                          className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
-                        >
-                          <Link href={`/admin/orders/${order.id}`}>
-                            <Eye className="w-3.5 h-3.5" />
-                          </Link>
-                        </Button>
+                      <TableCell className="py-3 px-4 lg:px-6 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            title="Ver detalle del pedido"
+                            className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                          >
+                            <Link href={`/admin/orders/${order.id}`}>
+                              <Eye className="w-3.5 h-3.5" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Editar pedido"
+                            className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Eliminar pedido"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

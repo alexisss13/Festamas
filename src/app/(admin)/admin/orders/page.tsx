@@ -57,18 +57,13 @@ export default async function AdminOrdersPage() {
 
       {/* Header */}
       <div className="pb-2 lg:pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              Gestión de <span className="text-primary">Pedidos</span>
-            </h1>
-            <p className="text-sm sm:text-base text-slate-500 mt-1 sm:mt-2">
-              Gestiona, filtra y exporta las ventas de ambas tiendas.
-            </p>
-          </div>
-          <div className="shrink-0">
-            <ExportButton orders={plainOrders} />
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            Gestión de <span className="text-primary">Pedidos</span>
+          </h1>
+          <p className="text-sm sm:text-base text-slate-500 mt-1 sm:mt-2">
+            Gestiona, filtra y exporta las ventas de ambas tiendas.
+          </p>
         </div>
       </div>
 
@@ -104,12 +99,6 @@ export default async function AdminOrdersPage() {
 
       {/* Tabla de pedidos */}
       <section>
-        <div className="mb-4">
-          <h2 className="text-base sm:text-lg font-semibold text-slate-800">Listado de Pedidos</h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Filtra por estado y revisa el detalle de cada orden.
-          </p>
-        </div>
         <OrdersView orders={plainOrders} />
       </section>
 
