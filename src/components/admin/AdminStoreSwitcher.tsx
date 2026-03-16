@@ -66,7 +66,6 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
       try {
         await setAdminDivision(newDivision);
         router.refresh();
-        toast.success(`Cambiando a ${newDivision === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa'}...`);
       } catch (error) {
         console.error(error);
         toast.error('Error al cambiar de tienda');
@@ -93,17 +92,25 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
             variant="ghost" 
             disabled={isPending}
             className={cn(
-              "w-full transition-all duration-300 group", 
+              "w-full transition-all duration-300 group relative", 
               isCollapsed 
                 ? "h-12 px-0 justify-center border-transparent hover:bg-slate-50" 
-                : "justify-between h-14 px-3 border border-slate-200 shadow-sm bg-white hover:bg-slate-50 hover:border-primary/40"
+                : "justify-between h-14 px-3 border border-slate-200 shadow-sm bg-white hover:bg-slate-50 hover:border-primary/40",
+              isPending && "opacity-60 cursor-wait"
             )}
           >
-            <div className={cn("flex items-center gap-3 overflow-hidden", isCollapsed && "justify-center w-full")}>
+            {/* Loading indicator sutil */}
+            {isPending && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer" 
+                   style={{ backgroundSize: '200% 100%' }} />
+            )}
+            
+            <div className={cn("flex items-center gap-3 overflow-hidden relative z-10", isCollapsed && "justify-center w-full")}>
               {/* LOGO */}
               <div className={cn(
-                  "flex items-center justify-center shrink-0 transition-colors",
-                  isCollapsed ? "w-8 h-8" : "w-8 h-8"
+                  "flex items-center justify-center shrink-0 transition-all duration-300",
+                  isCollapsed ? "w-8 h-8" : "w-8 h-8",
+                  isPending && "animate-pulse"
               )}>
                   <div className="relative w-full h-full">
                       <Image 
@@ -119,7 +126,7 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
               {!isCollapsed && (
                 <div className="flex flex-col items-start leading-tight">
                   <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                    Panel de Control
+                    {isPending ? 'Cambiando...' : 'Panel de Control'}
                   </span>
                   <span className="font-bold text-sm truncate text-primary">
                     {brandName}
@@ -128,7 +135,7 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
               )}
             </div>
             
-            {!isCollapsed && <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2 transition-colors group-hover:text-primary/50" />}
+            {!isCollapsed && <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2 transition-colors group-hover:text-primary/50 relative z-10" />}
           </Button>
         </DropdownMenuTrigger>
 

@@ -115,7 +115,14 @@ export default async function DashboardPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 text-xs sm:text-sm line-clamp-1 group-hover:text-primary transition-colors">{product.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-slate-900 text-xs sm:text-sm line-clamp-1 group-hover:text-primary transition-colors">{product.title}</p>
+                        {!product.isAvailable && product.stock === 0 && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-red-100 text-red-700 border border-red-200">
+                            Sin stock
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">Stock: {product.stock} u.</p>
                     </div>
                   </div>

@@ -224,7 +224,7 @@ export async function getRecentSales(division: Division = 'JUGUETERIA') {
 
 export async function getTopProducts(division: Division = 'JUGUETERIA') {
   try {
-    // Primero obtenemos los productos con ventas de esta división
+    // Obtenemos productos con ventas de esta división
     const topProducts = await prisma.product.findMany({
       where: { 
         division,
@@ -232,7 +232,11 @@ export async function getTopProducts(division: Division = 'JUGUETERIA') {
           some: {
             order: { isPaid: true }
           }
-        }
+        },
+        OR: [
+          { isAvailable: true }, // Productos activos
+          { isAvailable: false, stock: 0 } // Productos sin stock (no ocultos intencionalmente)
+        ]
       },
       orderBy: {
         orderItems: { _count: 'desc' }
@@ -244,6 +248,7 @@ export async function getTopProducts(division: Division = 'JUGUETERIA') {
         stock: true,
         price: true,
         images: true,
+        isAvailable: true,
         _count: {
           select: { orderItems: true }
         }
