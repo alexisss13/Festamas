@@ -110,7 +110,11 @@ export function ExportButton({ orders }: ExportButtonProps) {
   };
 
   return (
-    <Button variant="outline" onClick={handleExport} className="gap-2 bg-white hover:bg-slate-50 text-slate-700 border-slate-300">
+    <Button
+      variant="outline"
+      onClick={handleExport}
+      className="gap-2 bg-primary/5 hover:bg-primary/10 text-primary border-primary/30 hover:border-primary/50 font-medium h-9 transition-colors"
+    >
       <Download className="h-4 w-4" />
       Exportar a Excel
     </Button>
