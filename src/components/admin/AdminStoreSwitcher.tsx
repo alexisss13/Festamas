@@ -16,7 +16,7 @@ import {
   DialogTitle, 
   DialogDescription, 
 } from '@/components/ui/dialog';
-import { ChevronDown, Check, AlertTriangle, Trash2, X } from 'lucide-react';
+import { ChevronDown, Check, AlertTriangle, Trash2, X, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { setAdminDivision } from '@/actions/admin-settings';
 import { Division } from '@prisma/client';
@@ -26,9 +26,10 @@ import { toast } from 'sonner';
 interface Props {
   currentDivision: Division;
   isCollapsed?: boolean;
+  isGlobalModule?: boolean;
 }
 
-export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
+export const AdminStoreSwitcher = ({ currentDivision, isCollapsed, isGlobalModule = false }: Props) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [division, setDivision] = useState<Division>(currentDivision);
@@ -66,7 +67,6 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
       try {
         await setAdminDivision(newDivision);
         router.refresh();
-        toast.success(`Cambiando a ${newDivision === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa'}...`);
       } catch (error) {
         console.error(error);
         toast.error('Error al cambiar de tienda');
@@ -91,44 +91,61 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
         <DropdownMenuTrigger asChild>
           <Button 
             variant="ghost" 
-            disabled={isPending}
+            disabled={isPending || isGlobalModule}
             className={cn(
-              "w-full transition-all duration-300 group", 
+              "w-full transition-all duration-300 group relative", 
               isCollapsed 
                 ? "h-12 px-0 justify-center border-transparent hover:bg-slate-50" 
-                : "justify-between h-14 px-3 border border-slate-200 shadow-sm bg-white hover:bg-slate-50 hover:border-primary/40"
+                : "justify-between h-14 px-3 border border-slate-200 shadow-sm bg-white hover:bg-slate-50 hover:border-primary/40",
+              isPending && "opacity-60 cursor-wait",
+              isGlobalModule && "cursor-default hover:bg-white hover:border-slate-200"
             )}
           >
-            <div className={cn("flex items-center gap-3 overflow-hidden", isCollapsed && "justify-center w-full")}>
-              {/* LOGO */}
+            {/* Loading indicator sutil */}
+            {isPending && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer" 
+                   style={{ backgroundSize: '200% 100%' }} />
+            )}
+            
+            <div className={cn("flex items-center gap-3 overflow-hidden relative z-10", isCollapsed && "justify-center w-full")}>
+              {/* LOGO O ICONO */}
               <div className={cn(
-                  "flex items-center justify-center shrink-0 transition-colors",
-                  isCollapsed ? "w-8 h-8" : "w-8 h-8"
+                  "flex items-center justify-center shrink-0 transition-all duration-300",
+                  isCollapsed ? "w-8 h-8" : "w-8 h-8",
+                  isPending && "animate-pulse"
               )}>
-                  <div className="relative w-full h-full">
+                  {isGlobalModule ? (
+                    <Globe className="text-slate-600" style={{ width: '24px', height: '24px' }} />
+                  ) : (
+                    <div className="relative w-full h-full">
                       <Image 
-                          src={isFestamas ? logoFestamas : logoFiestasYa} 
+                          src={isFestamas ? logoFestamas : logoFiestasYa}
                           alt="Logo" 
                           fill 
+                          sizes="32px"
                           className="object-contain" 
                       />
-                  </div>
+                    </div>
+                  )}
               </div>
               
               {/* TEXTO */}
               {!isCollapsed && (
                 <div className="flex flex-col items-start leading-tight">
                   <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                    Panel de Control
+                    {isPending ? 'Cambiando...' : (isGlobalModule ? 'Administración' : 'Panel de Control')}
                   </span>
-                  <span className="font-bold text-sm truncate text-primary">
-                    {brandName}
+                  <span className={cn(
+                    "font-bold text-sm truncate",
+                    isGlobalModule ? "text-slate-700" : "text-primary"
+                  )}>
+                    {isGlobalModule ? "Sistema Global" : brandName}
                   </span>
                 </div>
               )}
             </div>
             
-            {!isCollapsed && <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2 transition-colors group-hover:text-primary/50" />}
+            {!isCollapsed && !isGlobalModule && <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2 transition-colors group-hover:text-primary/50 relative z-10" />}
           </Button>
         </DropdownMenuTrigger>
 
@@ -145,7 +162,7 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
           
           <DropdownMenuItem onClick={() => handleSwitchRequest('JUGUETERIA')} className={cn("gap-3 cursor-pointer p-2 mb-1 rounded-lg focus:bg-slate-50 transition-colors", isFestamas && "bg-slate-50")}>
             <div className="flex items-center justify-center w-8 h-8 shrink-0">
-                <div className="relative w-full h-full"><Image src={logoFestamas} alt="Festamas" fill className="object-contain" /></div>
+                <div className="relative w-full h-full"><Image src={logoFestamas} alt="Festamas" fill sizes="32px" className="object-contain" /></div>
             </div>
             <div className="flex flex-col flex-1">
                 <span className={cn("font-bold text-sm", isFestamas ? "text-primary" : "text-slate-700")}>Festamas</span>
@@ -156,7 +173,7 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed }: Props) => {
           
           <DropdownMenuItem onClick={() => handleSwitchRequest('FIESTAS')} className={cn("gap-3 cursor-pointer p-2 rounded-lg focus:bg-slate-50 transition-colors", !isFestamas && "bg-slate-50")}>
             <div className="flex items-center justify-center w-8 h-8 shrink-0">
-              <div className="relative w-full h-full"><Image src={logoFiestasYa} alt="FiestasYa" fill className="object-contain" /></div>
+              <div className="relative w-full h-full"><Image src={logoFiestasYa} alt="FiestasYa" fill sizes="32px" className="object-contain" /></div>
             </div>
             <div className="flex flex-col flex-1">
                 <span className={cn("font-bold text-sm", !isFestamas ? "text-primary" : "text-slate-700")}>FiestasYa</span>

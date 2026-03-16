@@ -12,12 +12,12 @@ export default async function AdminLayout({
   const activeTheme = division === 'FIESTAS' ? 'fiestasya' : 'festamas';
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50" data-theme={activeTheme}>
+    <div className="flex min-h-screen bg-slate-50/50 overflow-x-hidden" data-theme={activeTheme}>
       <AdminSidebar currentDivision={division} />
 
       <main 
         id="admin-main-content"
-        className="flex-1 transition-all duration-300 ease-in-out p-8 pt-20 md:pt-8"
+        className="flex-1 min-w-0 overflow-x-hidden transition-all duration-300 ease-in-out p-8 pt-20 md:pt-8"
         style={{ marginLeft: '256px' }}
       >
         {children}
