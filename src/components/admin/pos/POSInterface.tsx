@@ -55,6 +55,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
   const [paymentMethod, setPaymentMethod] = useState<'YAPE' | 'PLIN' | 'EFECTIVO' | 'TARJETA'>('EFECTIVO');
   const [loadingDni, setLoadingDni] = useState(false);
   const [processingSale, setProcessingSale] = useState(false);
+  const [printTicketId, setPrintTicketId] = useState<string | null>(null);
 
   const { cart, customer, addToCart, removeFromCart, updateQuantity, setCustomer, clearCart, clearCustomer, getTotal, getItemsCount, getItemActivePrice } = usePOSStore();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -154,11 +155,7 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
 
       if (result.success) {
         toast.success(result.message, { icon: <CheckCircle2 className="h-5 w-5 text-green-500" /> });
-        setTimeout(() => {
-            const width = 800, height = 800, left = (window.screen.width - width) / 2, top = (window.screen.height - height) / 2;
-            const features = `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no,location=no`;
-            window.open(`/admin/orders/${result.orderId}/invoice`, '_blank', features);
-        }, 500);
+        setPrintTicketId(result.orderId || '');
         clearCart();
         clearCustomer();
         setIsCheckoutOpen(false);
@@ -314,6 +311,19 @@ export const POSInterface = ({ initialProducts, division }: Props) => {
             </div>
         </DialogContent>
       </Dialog>
+
+      {/* Iframe oculto para impresión térmica automática */}
+      {printTicketId && (
+        <iframe 
+          src={`/admin/orders/${printTicketId}/ticket`} 
+          className="hidden" 
+          title="Print Ticket"
+          onLoad={() => {
+            // Opcional: limpiar el ID después de un tiempo para permitir re-impresión
+            setTimeout(() => setPrintTicketId(null), 5000);
+          }}
+        />
+      )}
     </div>
   );
 };
