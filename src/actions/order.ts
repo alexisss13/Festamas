@@ -7,7 +7,8 @@ import { OrderStatus } from '@prisma/client';
 import { Resend } from 'resend';
 import { OrderEmail } from '@/components/email/OrderEmail';
 import * as React from 'react';
-import { auth } from '@/auth'; // Asegúrate de tener este import al inicio
+import { auth } from '@/auth';
+import { getAdminDivision } from './admin-settings';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -148,7 +149,18 @@ export async function createOrder(data: CreateOrderInput) {
 // OBTENER ÓRDENES (SERIALIZADO)
 export async function getOrders() {
   try {
+    const division = await getAdminDivision();
+    
     const orders = await prisma.order.findMany({
+      where: {
+        orderItems: {
+          some: {
+            product: {
+              division: division
+            }
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         orderItems: { include: { product: true } }

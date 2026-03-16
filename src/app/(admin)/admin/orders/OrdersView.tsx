@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Filter, CheckCircle2, Clock, ShoppingCart, Search, X, ChevronLeft, ChevronRight, Store, Globe, Pencil, Trash2, Eye } from 'lucide-react';
+import { Filter, CheckCircle2, Clock, ShoppingCart, Search, X, ChevronLeft, ChevronRight, Store, Globe, Pencil, Trash2, Eye, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,9 +26,17 @@ interface Order {
   isPaid: boolean;
   totalAmount: number;
   createdAt: Date | string;
-  deliveryMethod?: string;
+  deliveryMethod: string;
   notes?: string | null;
   receiptNumber?: string | null;
+  shippingCost: number;
+  shippingAddress?: string | null;
+  orderItems: {
+    quantity: number;
+    product: {
+      title: string;
+    };
+  }[];
 }
 
 interface OrdersViewProps {
@@ -39,8 +47,8 @@ const PAGE_SIZE = 10;
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   PENDING:   { label: 'Pendiente',  className: 'bg-slate-100 text-slate-700 border-slate-300' },
-  PAID:      { label: 'Pagado',     className: 'bg-slate-900 text-white border-slate-900' },
-  DELIVERED: { label: 'Entregado', className: 'bg-slate-100 text-slate-600 border-slate-300' },
+  PAID:      { label: 'Pagado',     className: 'bg-primary/10 text-primary border-primary/30' },
+  DELIVERED: { label: 'Entregado', className: 'bg-slate-100 text-slate-700 border-slate-300' },
   CANCELLED: { label: 'Cancelado', className: 'bg-red-50 text-red-600 border-red-200' },
 };
 
@@ -103,6 +111,14 @@ export function OrdersView({ orders }: OrdersViewProps) {
     return true;
   });
 
+  // Contadores para cada filtro
+  const counts = {
+    all: orders.length,
+    priority: orders.filter((o) => o.isPaid === true && o.status === 'PENDING').length,
+    unpaid: orders.filter((o) => o.isPaid === false && o.status !== 'CANCELLED').length,
+    delivered: orders.filter((o) => o.status === 'DELIVERED').length,
+  };
+
   // Filtro por búsqueda
   const filteredOrders = tabFiltered.filter((order) =>
     order.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -121,58 +137,73 @@ export function OrdersView({ orders }: OrdersViewProps) {
         {/* Barra superior: tabs + buscador + contador */}
         <div className="flex flex-col gap-4">
           {/* Tabs y contador en la misma línea */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <TabsList className="bg-slate-100 border border-slate-200 h-auto p-1 flex-wrap gap-1">
-              <TabsTrigger
-                value="all"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
-              >
-                Todos
-              </TabsTrigger>
-              <TabsTrigger
-                value="priority"
-                className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
-              >
-                <Filter className="h-3.5 w-3.5" />
-                Por Despachar
-              </TabsTrigger>
-              <TabsTrigger
-                value="unpaid"
-                className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
-              >
-                <Clock className="h-3.5 w-3.5" />
-                Por Pagar
-              </TabsTrigger>
-              <TabsTrigger
-                value="delivered"
-                className="gap-1.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 text-xs sm:text-sm"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Historial
-              </TabsTrigger>
-            </TabsList>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-3">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filtrado por estado</span>
+              <TabsList className="bg-white border border-slate-200 h-auto p-1.5 flex-wrap gap-1.5 shadow-sm">
+                <TabsTrigger
+                  value="all"
+                  className="data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 text-sm px-4 py-2 rounded-md font-medium transition-all"
+                >
+                  Todos
+                  <span className="ml-2 px-1.5 py-0.5 rounded text-xs font-semibold bg-slate-100 data-[state=active]:bg-slate-700 text-slate-600 data-[state=active]:text-white">
+                    {counts.all}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="priority"
+                  className="gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 text-sm px-4 py-2 rounded-md font-medium transition-all"
+                >
+                  <Truck className="h-4 w-4" />
+                  Por enviar
+                  <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-slate-100 data-[state=active]:bg-slate-700 text-slate-600 data-[state=active]:text-white">
+                    {counts.priority}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="unpaid"
+                  className="gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 text-sm px-4 py-2 rounded-md font-medium transition-all"
+                >
+                  <Clock className="h-4 w-4" />
+                  Por pagar
+                  <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-slate-100 data-[state=active]:bg-slate-700 text-slate-600 data-[state=active]:text-white">
+                    {counts.unpaid}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="delivered"
+                  className="gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 text-sm px-4 py-2 rounded-md font-medium transition-all"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Entregados
+                  <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-slate-100 data-[state=active]:bg-slate-700 text-slate-600 data-[state=active]:text-white">
+                    {counts.delivered}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
-              <ShoppingCart className="h-4 w-4 text-slate-400" />
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg self-end">
+              <ShoppingCart className="h-4 w-4 text-slate-600" />
               <span className="text-sm font-semibold text-slate-900">{filteredOrders.length}</span>
-              <span className="text-sm text-slate-500">{filteredOrders.length === 1 ? 'pedido' : 'pedidos'}</span>
+              <span className="text-sm text-slate-600">{filteredOrders.length === 1 ? 'pedido' : 'pedidos'}</span>
             </div>
           </div>
 
           {/* Buscador y Exportar en su propia línea */}
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60" />
               <Input
                 placeholder="Buscar por cliente o teléfono..."
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 pr-8 h-10 bg-white border-slate-200 focus-visible:border-slate-400 focus-visible:ring-slate-400/20"
+                className="pl-10 pr-8 h-10 bg-white border-slate-200 focus-visible:border-primary focus-visible:ring-primary/20"
               />
               {searchTerm && (
                 <button
                   onClick={() => handleSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -205,7 +236,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                   const cfg = statusConfig[currentStatus] || statusConfig.PENDING;
 
                   return (
-                    <TableRow key={order.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                    <TableRow key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <TableCell className="py-3 px-4 lg:px-6">
                         {(() => { const { datePart, timePart } = formatDateParts(order.createdAt); return (
                           <div className="flex flex-col tabular-nums">
@@ -224,7 +255,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                                 href={`https://wa.me/51${order.clientPhone}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-slate-500 hover:text-slate-700 hover:underline transition-colors"
+                                className="text-slate-500 hover:text-primary hover:underline transition-colors"
                               >
                                 {order.clientPhone}
                               </a>
@@ -244,7 +275,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                           className={cn(
                             'text-xs font-medium',
                             order.isPaid
-                              ? 'bg-slate-900 text-white border-slate-900'
+                              ? 'bg-primary/10 text-primary border-primary/30'
                               : 'bg-slate-100 text-slate-600 border-slate-300'
                           )}
                         >
@@ -258,17 +289,17 @@ export function OrdersView({ orders }: OrdersViewProps) {
                       </TableCell>
                       <TableCell className="py-3 px-4">
                         <div className="flex flex-col gap-1">
-                          <span className="text-sm font-medium text-slate-700">
+                          <span className="text-sm font-medium text-slate-900">
                             {deliveryLabel[order.deliveryMethod || ''] || order.deliveryMethod || '—'}
                           </span>
                           {isPOS(order) ? (
                             <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                              <Store className="w-3.5 h-3.5 text-slate-400" />
+                              <Store className="w-3.5 h-3.5 text-primary/70" />
                               <span>POS</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                              <Globe className="w-3.5 h-3.5 text-slate-400" />
+                              <Globe className="w-3.5 h-3.5 text-primary/70" />
                               <span>WEB</span>
                             </div>
                           )}
@@ -286,7 +317,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                             size="sm"
                             asChild
                             title="Ver detalle del pedido"
-                            className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                            className="h-8 w-8 p-0 text-slate-600 hover:text-primary hover:bg-primary/10 cursor-pointer transition-colors"
                           >
                             <Link href={`/admin/orders/${order.id}`}>
                               <Eye className="w-3.5 h-3.5" />
@@ -296,7 +327,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                             variant="ghost"
                             size="sm"
                             title="Editar pedido"
-                            className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                            className="h-8 w-8 p-0 text-slate-600 hover:text-primary hover:bg-primary/10 cursor-pointer transition-colors"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
@@ -304,7 +335,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                             variant="ghost"
                             size="sm"
                             title="Eliminar pedido"
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -343,7 +374,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage <= 1}
-                  className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-40"
+                  className="h-8 w-8 p-0 text-slate-600 hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -366,10 +397,10 @@ export function OrdersView({ orders }: OrdersViewProps) {
                         size="sm"
                         onClick={() => setPage(item as number)}
                         className={cn(
-                          'h-8 w-8 p-0 text-xs font-medium',
+                          'h-8 w-8 p-0 text-xs font-medium transition-colors',
                           safePage === item
-                            ? 'bg-slate-900 text-white hover:bg-slate-800'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            ? 'bg-primary text-white hover:bg-primary/90'
+                            : 'text-slate-600 hover:text-primary hover:bg-primary/10'
                         )}
                       >
                         {item}
@@ -382,7 +413,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage >= totalPages}
-                  className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-40"
+                  className="h-8 w-8 p-0 text-slate-600 hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>

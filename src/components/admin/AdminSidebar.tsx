@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Package, ShoppingCart, Settings, LogOut, 
-  Tags, Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, Calculator, Users
+  Tags, Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, Calculator, Users, BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -20,6 +20,7 @@ const storeNavItems = [
   { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
   { href: '/admin/products', label: 'Productos', icon: Package },
   { href: '/admin/categories', label: 'Categorías', icon: Tags },
+  { href: '/admin/catalogs', label: 'Catálogos', icon: BookOpen },
   { href: '/admin/banners', label: 'Banners', icon: Images },
   { href: '/admin/sections', label: 'Secciones Home', icon: Store },
 ];
