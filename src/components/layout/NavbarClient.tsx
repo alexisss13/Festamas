@@ -18,7 +18,6 @@ import { setCookie } from 'cookies-next';
 import { logout } from '@/actions/auth-actions';
 import { Division } from '@prisma/client';
 
-// --- TYPES ---
 interface Category {
   id: string; 
   name: string; 
@@ -40,7 +39,6 @@ interface NavbarClientProps {
   user?: UserSession | null;
 }
 
-// --- BUSCADOR COMPONENTE ---
 function SearchInput({ onSearch, className, searchBtnColor }: { onSearch?: () => void, className?: string, searchBtnColor?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,14 +63,12 @@ function SearchInput({ onSearch, className, searchBtnColor }: { onSearch?: () =>
       <Input
         type="text"
         placeholder="Buscar"
-        // 🔥 FIX: Aumentado el padding izquierdo y alto en móvil
         className="h-10 w-full pl-5 pr-12 border-0 rounded-full text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
       <button 
         type="submit" 
-        // 🔥 FIX: Botón de búsqueda más grande en móvil
         className="absolute right-1 top-1 h-8 w-8 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
         style={{ backgroundColor: searchBtnColor || '#fc4b65' }} 
       >
@@ -82,55 +78,39 @@ function SearchInput({ onSearch, className, searchBtnColor }: { onSearch?: () =>
   );
 }
 
-// --- COMPONENTE PRINCIPAL ---
 export function NavbarClient({ categories, defaultDivision, user }: NavbarClientProps) {
   const router = useRouter();
   const pathname = usePathname();
-  
-  // Stores
   const { getTotalItems } = useCartStore();
   const { setDivision } = useUIStore();
   const favorites = useFavoritesStore(state => state.favorites);
   const favoritesCount = favorites.length;
-  
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    setLoaded(true);
-  }, []);
+  useEffect(() => setLoaded(true), []);
   
-  // Estado Optimista
   const [optimisticDivision, setOptimisticDivision] = useState<Division>(defaultDivision);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-     setDivision(defaultDivision);
-  }, [defaultDivision, setDivision]);
+  useEffect(() => setDivision(defaultDivision), [defaultDivision, setDivision]);
   
-  // Estados de UI
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // --- LÓGICA SMART NAVBAR ---
   const [isVisible, setIsVisible] = useState(true);
   const [isAtTop, setIsAtTop] = useState(true); 
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    if (!isUserMenuOpen) {
-        setIsVisible(true);
-    }
+    if (!isUserMenuOpen) setIsVisible(true);
   }, [isUserMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
       setIsAtTop(currentScrollY < 20);
-
       if (currentScrollY < 120) {
         setIsVisible(true);
       } else {
@@ -140,10 +120,8 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             setIsVisible(false);
         }
       }
-
       lastScrollY.current = currentScrollY;
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -164,11 +142,9 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
 
   const handleDivisionChange = (newDivision: Division) => {
     if (optimisticDivision === newDivision) return;
-    
     setOptimisticDivision(newDivision); 
     setDivision(newDivision);
     setCookie('festamas_division', newDivision, { maxAge: 60 * 60 * 24 * 30, path: '/' }); 
-
     startTransition(() => {
         if (pathname !== '/') router.push('/');
         else router.refresh(); 
@@ -180,31 +156,23 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
     window.location.href = "/";
   };
 
-  // --- LÓGICA DE DISEÑO & COLORES ---
   const currentDivision = optimisticDivision; 
   const isToys = currentDivision === 'JUGUETERIA';
   const filteredCategories = categories.filter(cat => cat.division === currentDivision);
   const brandName = isToys ? 'Festamás' : 'FiestasYa';
   
   const navbarBgClass = "bg-white shadow-sm border-b border-slate-100";
-  
   const brandColorText = isToys ? "text-[#fc4b65]" : "text-[#fb3099]"; 
   const badgeClass = isToys ? "text-white bg-[#fc4b65]" : "text-[#fb3099] bg-[#fb3099] text-white"; 
   const searchBtnBg = isToys ? '#fc4b65' : '#fb3099';
   const mobileHeaderClass = isToys ? "bg-[#fc4b65]" : "bg-[#fb3099]";
 
-  // --- REFERENCIAS DE LOGOS ---
   const iconFestamasSubheader = '/images/IconoFestamas.png';
-  
-  // Logos Desktop
   const iconFestamasMain = '/images/IconoFestamas1.png';
   const iconFiestasYaMain = '/images/IconoFiestasYa1.png'; 
-  
-  // Logos Móvil
   const iconFestamasMobile = '/images/IconoFestamas2.png';
   const iconFiestasYaMobile = '/images/IconoFiestasYa2.png';
 
-  // Lógica Activa
   const activeMainIcon = isToys ? iconFestamasMain : iconFiestasYaMain;
   const activeMobileIcon = isToys ? iconFestamasMobile : iconFiestasYaMobile;
 
@@ -212,15 +180,18 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
     <>
       {/* 1. SUPER HEADER (SUBHEADER - TABS) */}
       <div className="print:hidden w-full h-[36px] bg-slate-100 border-b border-slate-200 flex items-end z-40 relative text-[11px]">
-        <div className="w-full max-w-[1473px] mx-auto px-4 lg:px-8 flex items-center justify-between h-full">
+        {/* 🔥 FIX: Reducimos padding en móvil a 0 (px-0 md:px-4) para que abarque orilla a orilla */}
+        <div className="w-full max-w-[1473px] mx-auto px-0 md:px-4 lg:px-8 flex items-center justify-between h-full">
             
-            <div className="flex h-full mr-auto pt-0.5 gap-1">
+            {/* 🔥 FIX: w-full en móvil para que ocupe todo el espacio */}
+            <div className="flex h-full w-full md:w-auto mr-auto pt-0.5 md:gap-1">
                 {/* TAB 1: FESTAMÁS */}
                  <button 
                     disabled={isPending} 
                     onClick={() => handleDivisionChange('JUGUETERIA')} 
                     className={cn(
-                        "relative h-full px-[12px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer min-w-[100px]",
+                        // 🔥 FIX: flex-1 en móvil para que tome 50%
+                        "relative h-full flex-1 md:flex-none md:px-[12px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer md:min-w-[100px]",
                         isToys 
                             ? "bg-[#fc4b65] border-[#fc4b65] z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
                             : "bg-slate-200/50 border-transparent hover:bg-slate-200"
@@ -244,7 +215,8 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     disabled={isPending} 
                     onClick={() => handleDivisionChange('FIESTAS')} 
                     className={cn(
-                        "relative h-full px-[12px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer min-w-[100px]",
+                        // 🔥 FIX: flex-1 en móvil para que tome 50%
+                        "relative h-full flex-1 md:flex-none md:px-[12px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer md:min-w-[100px]",
                         !isToys
                             ? "bg-[#fb3099] border-[#fb3099] z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]" 
                             : "bg-slate-200/50 border-transparent hover:bg-slate-200"
@@ -277,33 +249,17 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             (!isVisible && !isUserMenuOpen) && "-translate-y-full" 
         )}
       >
-        {/* 🔥 FIX: Aumentamos padding Y en móvil ligeramente para acomodar iconos más grandes */}
         <div className="w-full max-w-[1473px] mx-auto flex items-center gap-2 md:gap-4 lg:gap-8 px-2 sm:px-4 lg:px-8 relative h-full">
             
-            {/* --- ORDEN MÓVIL 1: LOGO PRINCIPAL --- */}
             <Link href="/" className="shrink-0 group">
                 <div className="relative w-[40px] h-[40px] md:w-[135px] md:h-[48px] transition-all duration-300">
-                    <Image 
-                        src={activeMainIcon} 
-                        alt={brandName} 
-                        fill 
-                        className="hidden md:block object-contain object-left" 
-                        priority 
-                    />
-                    <Image 
-                        src={activeMobileIcon} 
-                        alt={brandName} 
-                        fill 
-                        className="block md:hidden object-contain object-center" 
-                        priority 
-                    />
+                    <Image src={activeMainIcon} alt={brandName} fill className="hidden md:block object-contain object-left" priority />
+                    <Image src={activeMobileIcon} alt={brandName} fill className="block md:hidden object-contain object-center" priority />
                 </div>
             </Link>
 
-            {/* --- ORDEN MÓVIL 2: MENU HAMBURGUESA --- */}
             <Sheet>
                 <SheetTrigger asChild>
-                    {/* 🔥 FIX: h-10 w-10 y el icono h-6 w-6 */}
                     <Button variant="ghost" className={cn("md:hidden h-10 w-10 rounded-full p-0 hover:bg-slate-100 text-slate-700 shrink-0")}>
                         <Menu className="h-6 w-6" />
                     </Button>
@@ -311,50 +267,23 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 
                 <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-slate-50">
                     <SheetTitle className="sr-only">Menú de Navegación</SheetTitle> 
-                    
                     <SheetHeader className={cn("h-[52px] flex flex-row items-center px-4 py-0 space-y-0 border-b", mobileHeaderClass)}>
                         <div className="relative h-8 w-24">
-                            <Image 
-                                src={activeMobileIcon} 
-                                alt={brandName} 
-                                fill 
-                                className={cn("object-contain object-left", !isToys && "brightness-0 invert")} 
-                            />
+                            <Image src={activeMobileIcon} alt={brandName} fill className={cn("object-contain object-left", !isToys && "brightness-0 invert")} />
                         </div>
                     </SheetHeader>
-
                     <div className="flex-1 overflow-y-auto py-4 px-2">
                         <div className="flex flex-col mb-4">
-                            <SheetClose asChild>
-                                <Link href="/" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">
-                                    <Store className="h-4 w-4 text-slate-400"/>
-                                    Inicio
-                                </Link>
-                            </SheetClose>
-                            <SheetClose asChild>
-                                <Link href="/catalogos" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">
-                                    <BookOpen className="h-4 w-4 text-slate-400"/>
-                                    Catálogos
-                                </Link>
-                            </SheetClose>
-                            <SheetClose asChild>
-                                <Link href="/tiendas" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">
-                                    <MapPin className="h-4 w-4 text-slate-400"/>
-                                    Tiendas
-                                </Link>
-                            </SheetClose>
+                            <SheetClose asChild><Link href="/" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all"><Store className="h-4 w-4 text-slate-400"/>Inicio</Link></SheetClose>
+                            <SheetClose asChild><Link href="/catalogos" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all"><BookOpen className="h-4 w-4 text-slate-400"/>Catálogos</Link></SheetClose>
+                            <SheetClose asChild><Link href="/tiendas" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all"><MapPin className="h-4 w-4 text-slate-400"/>Tiendas</Link></SheetClose>
                         </div>
-
                         <div className="border-t border-slate-200/60 mx-4 mt-2 mb-4"></div>
-
                         <div className="mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Categorías</div>
                         <div className="space-y-1">
                             {filteredCategories.map((cat) => (
                                 <SheetClose asChild key={cat.id}>
-                                    <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">
-                                        {cat.name}
-                                        <ChevronRight className="h-4 w-4 text-slate-300" />
-                                    </Link>
+                                    <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">{cat.name}<ChevronRight className="h-4 w-4 text-slate-300" /></Link>
                                 </SheetClose>
                             ))}
                         </div>
@@ -362,119 +291,63 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                 </SheetContent>
             </Sheet>
 
-            {/* BOTÓN MENÚ DESKTOP */}
             <div className="relative hidden md:block" ref={menuRef}>
-                <Button 
-                    variant="ghost" 
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className={cn(
-                        "flex flex-row items-center gap-2 h-10 px-4 font-bold tracking-wide rounded-full transition-all duration-200",
-                        isMenuOpen 
-                            ? "bg-slate-100 text-slate-900" 
-                            : "text-slate-700 hover:bg-slate-100"
-                    )}
-                >
+                <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)} className={cn("flex flex-row items-center gap-2 h-10 px-4 font-bold tracking-wide rounded-full transition-all duration-200", isMenuOpen ? "bg-slate-100 text-slate-900" : "text-slate-700 hover:bg-slate-100")}>
                     <Menu className="h-5 w-5" />
                     <span>Menú</span>
                 </Button>
-
                 {isMenuOpen && (
                     <div className="absolute top-full left-0 mt-3 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
                         <div className="py-2 max-h-[60vh] overflow-y-auto">
                             {filteredCategories.map((cat) => (
-                                <Link key={cat.id} href={`/category/${cat.slug}`} onClick={() => setIsMenuOpen(false)} className="block px-6 py-3 hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors border-b border-slate-50 last:border-0">
-                                    {cat.name}
-                                </Link>
+                                <Link key={cat.id} href={`/category/${cat.slug}`} onClick={() => setIsMenuOpen(false)} className="block px-6 py-3 hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors border-b border-slate-50 last:border-0">{cat.name}</Link>
                             ))}
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* --- ORDEN MÓVIL 3: BUSCADOR --- */}
             <div className="flex-1 min-w-0">
-                <Suspense>
-                    <SearchInput searchBtnColor={searchBtnBg} />
-                </Suspense>
+                <Suspense><SearchInput searchBtnColor={searchBtnBg} /></Suspense>
             </div>
 
-            {/* --- ORDEN MÓVIL 4 y 5: ICONOS DERECHA --- */}
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
-                
                 {user && (
-                    <Link 
-                        href="/profile/orders" 
-                        className="hidden font-bold lg:flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium text-sm px-3 py-2 rounded-full hover:bg-slate-100 transition-colors"
-                    >
-                        <Package className="h-5 w-5" />
-                        <span>Mis Pedidos</span>
+                    <Link href="/profile/orders" className="hidden font-bold lg:flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium text-sm px-3 py-2 rounded-full hover:bg-slate-100 transition-colors">
+                        <Package className="h-5 w-5" /><span>Mis Pedidos</span>
                     </Link>
                 )}
 
-                {/* USUARIO (DESKTOP) */}
                 <div className="relative hidden lg:block" ref={userMenuRef}>
-                    <Button 
-                        variant="ghost" 
-                        onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                        className={cn(
-                            "flex flex-row items-center gap-2 h-10 pl-2 pr-3 text-left rounded-full transition-all duration-200 relative z-50", 
-                            isUserMenuOpen ? "bg-white text-slate-900 ring-2 ring-slate-100" : "text-slate-700 hover:bg-slate-100"
-                        )}
-                    >
+                    <Button variant="ghost" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className={cn("flex flex-row items-center gap-2 h-10 pl-2 pr-3 text-left rounded-full transition-all duration-200 relative z-50", isUserMenuOpen ? "bg-white text-slate-900 ring-2 ring-slate-100" : "text-slate-700 hover:bg-slate-100")}>
                         {user ? (
                             <>
                                 <Avatar className="h-7 w-7 border border-slate-200 shadow-sm">
                                     <AvatarImage src={user.image || ''} />
                                     <AvatarFallback className="bg-slate-100 text-slate-900 font-bold text-xs">{user.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <span className={cn("text-sm font-bold truncate max-w-[100px]")}>
-                                    {user.name?.split(' ')[0]}
-                                </span>
-                                <ChevronDown 
-                                    className={cn(
-                                        "h-4 w-4 text-slate-400 opacity-70 ml-0.5 transition-transform duration-200",
-                                        isUserMenuOpen && "rotate-180"
-                                    )} 
-                                />
+                                <span className={cn("text-sm font-bold truncate max-w-[100px]")}>{user.name?.split(' ')[0]}</span>
+                                <ChevronDown className={cn("h-4 w-4 text-slate-400 opacity-70 ml-0.5 transition-transform duration-200", isUserMenuOpen && "rotate-180")} />
                             </>
                         ) : (
-                            <>
-                                <div className="bg-slate-100 p-1.5 rounded-full">
-                                    <User className="h-4 w-4" />
-                                </div>
-                                <span className="text-sm font-bold">Ingresar</span>
-                            </>
+                            <><div className="bg-slate-100 p-1.5 rounded-full"><User className="h-4 w-4" /></div><span className="text-sm font-semibold">Ingresar</span></>
                         )}
                     </Button>
-
                     {isUserMenuOpen && (
                         <div className="absolute top-full right-0 mt-3 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 text-slate-800">
-                            {!user && (
-                                <Link href="/auth/login" className={cn("block w-full text-center py-2.5 rounded-xl font-bold text-white mb-2 transition-transform active:scale-95", isToys ? "bg-[#fc4b65]" : "bg-[#fb3099]")}>
-                                    Entrar Ahora
-                                </Link>
-                            )}
-                            <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium">
-                                <User className="h-4 w-4" /> Mi Perfil
-                            </Link>
+                            {!user && <Link href="/auth/login" className={cn("block w-full text-center py-2.5 rounded-xl font-bold text-white mb-2 transition-transform active:scale-95", isToys ? "bg-[#fc4b65]" : "bg-[#fb3099]")}>Entrar Ahora</Link>}
+                            <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium"><User className="h-4 w-4" /> Mi Perfil</Link>
                             {user && (
-                                <>
-                                    <div className="h-px bg-slate-100 my-2"></div>
-                                    <button onClick={handleLogout} className="flex items-center gap-2 w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-500 rounded-lg text-sm font-medium">
-                                        <LogOut className="h-4 w-4" /> Cerrar Sesión
-                                    </button>
-                                </>
+                                <><div className="h-px bg-slate-100 my-2"></div><button onClick={handleLogout} className="flex items-center gap-2 w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-500 rounded-lg text-sm font-medium"><LogOut className="h-4 w-4" /> Cerrar Sesión</button></>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* --- ORDEN MÓVIL 4: USUARIO (MÓVIL) --- */}
                 <div className="lg:hidden">
                     {user ? (
                         <Sheet>
                             <SheetTrigger asChild>
-                                {/* 🔥 FIX: Aumentado tamaño h-10 w-10 en móvil */}
                                 <Button variant="ghost" className="h-10 w-10 rounded-full p-0 shrink-0">
                                     <Avatar className="h-8 w-8 border border-slate-200">
                                         <AvatarImage src={user.image || ''} />
@@ -484,91 +357,41 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[65vw] max-w-[280px] z-[100] p-0 flex flex-col h-full bg-white [&>button]:hidden"> 
                                 <SheetTitle className="sr-only">Mi cuenta de usuario</SheetTitle>
-                                
                                 <div className="flex items-center justify-between p-4 bg-slate-100 border-b border-slate-200">
-                                    <div className="flex items-center gap-2">
-                                        <User className="h-5 w-5 text-slate-700" />
-                                        <span className="font-bold text-slate-800">Mi cuenta</span>
-                                    </div>
-                                    <SheetClose asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:bg-slate-200 rounded-full">
-                                            <X className="h-5 w-5" />
-                                        </Button>
-                                    </SheetClose>
+                                    <div className="flex items-center gap-2"><User className="h-5 w-5 text-slate-700" /><span className="font-bold text-slate-800">Mi cuenta</span></div>
+                                    <SheetClose asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:bg-slate-200 rounded-full"><X className="h-5 w-5" /></Button></SheetClose>
                                 </div>
-
                                 <div className="flex-1 overflow-y-auto px-0 py-4">
                                     <div className="px-5 pb-4 border-b border-slate-100">
-                                        <p className="text-sm  text-slate-800 uppercase tracking-wide">
-                                            BIENVENIDO, {user.name?.split(' ')[0]}
-                                        </p>
+                                        <p className="text-sm text-slate-800 uppercase tracking-wide">BIENVENIDO, {user.name?.split(' ')[0]}</p>
                                         <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
                                     </div>
-
                                     <div className="flex flex-col mt-2">
-                                        <SheetClose asChild>
-                                            <Link href="/profile" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
-                                                <User className="h-4 w-4 text-slate-400" /> Mi Perfil
-                                            </Link>
-                                        </SheetClose>
-
-                                        <SheetClose asChild>
-                                            <Link href="/profile/orders" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
-                                                <Package className="h-4 w-4 text-slate-400" /> Mis Pedidos
-                                            </Link>
-                                        </SheetClose>
-                                        
-                                        <SheetClose asChild>
-                                            <Link href="/profile/addresses" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
-                                                <MapPin className="h-4 w-4 text-slate-400" /> Direcciones de entrega
-                                            </Link>
-                                        </SheetClose>
-
-                                        <SheetClose asChild>
-                                            <Link href="/favorites" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300">
-                                                <Heart className="h-4 w-4 text-slate-400" /> Favoritos
-                                            </Link>
-                                        </SheetClose>
-
-                                        <div className="mt-2 border-t border-slate-100 pt-2">
-                                            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 font-normal text-sm transition-colors text-left border-l-4 border-transparent">
-                                                <LogOut className="h-4 w-4" /> Cerrar Sesión
-                                            </button>
-                                        </div>
+                                        <SheetClose asChild><Link href="/profile" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300"><User className="h-4 w-4 text-slate-400" /> Mi Perfil</Link></SheetClose>
+                                        <SheetClose asChild><Link href="/profile/orders" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300"><Package className="h-4 w-4 text-slate-400" /> Mis Pedidos</Link></SheetClose>
+                                        <SheetClose asChild><Link href="/profile/addresses" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300"><MapPin className="h-4 w-4 text-slate-400" /> Direcciones de entrega</Link></SheetClose>
+                                        <SheetClose asChild><Link href="/favorites" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300"><Heart className="h-4 w-4 text-slate-400" /> Favoritos</Link></SheetClose>
+                                        <div className="mt-2 border-t border-slate-100 pt-2"><button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 font-normal text-sm transition-colors text-left border-l-4 border-transparent"><LogOut className="h-4 w-4" /> Cerrar Sesión</button></div>
                                     </div>
                                 </div>
                             </SheetContent>
                         </Sheet>
                     ) : (
-                        <Link href="/auth/login">
-                            {/* 🔥 FIX: h-10 w-10 y User icon h-6 w-6 */}
-                            <Button variant="ghost" className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100 shrink-0">
-                                <User className="h-6 w-6" />
-                            </Button>
-                        </Link>
+                        <Link href="/auth/login"><Button variant="ghost" className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100 shrink-0"><User className="h-6 w-6" /></Button></Link>
                     )}
                 </div>
 
                 <Link href="/favorites">
                     <Button variant="ghost" className="hidden md:flex relative h-10 w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100">
                         <Heart className="h-5 w-5" />
-                        {loaded && favoritesCount > 0 && (
-                            <span className={cn("absolute top-0 right-0 h-3.5 w-3.5 rounded-full text-[9px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>
-                                {favoritesCount}
-                            </span>
-                        )}
+                        {loaded && favoritesCount > 0 && <span className={cn("absolute top-0 right-0 h-3.5 w-3.5 rounded-full text-[9px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>{favoritesCount}</span>}
                     </Button>
                 </Link>
 
                 <CartSidebar>
-                    {/* 🔥 FIX: h-10 w-10 y ShoppingCart icon h-6 w-6 para que el área táctil sea perfecta en móvil */}
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full items-center justify-center p-0 transition-colors text-slate-700 hover:bg-slate-100 shrink-0">
                         <ShoppingCart className="h-6 w-6" />
-                        {loaded && getTotalItems() > 0 && (
-                            <span className={cn("absolute top-0 right-0 h-4 w-4 rounded-full text-[10px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>
-                                {getTotalItems()}
-                            </span>
-                        )}
+                        {loaded && getTotalItems() > 0 && <span className={cn("absolute top-0 right-0 h-4 w-4 rounded-full text-[10px] flex items-center justify-center font-bold shadow-sm ring-2 ring-white", badgeClass)}>{getTotalItems()}</span>}
                     </Button>
                 </CartSidebar>
             </div>
@@ -577,39 +400,20 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
 
       <div className="hidden md:block w-full bg-white border-b border-slate-200">
             <div className="w-full max-w-[1473px] mx-auto px-4 lg:px-8 h-[40px] flex items-center justify-between text-sm font-medium text-slate-600">
-                
                 <button className="flex items-center gap-2 hover:text-slate-900 transition-colors">
                     <MapPin className="h-4 w-4 text-slate-400" />
                     <Link href="/profile/address"><span>¿Dónde quieres recibir tu pedido?</span></Link>
                     <ChevronDown className="h-3 w-3 opacity-50" />
                 </button>
-
                 <div className="flex items-center gap-6">
-                    <Link href="/catalogos" className="flex items-center gap-2 hover:text-slate-900 transition-colors">
-                        <BookOpen className="h-4 w-4 text-slate-400" />
-                        Catálogos
-                    </Link>
-                    
-                    <Link href="/tiendas" className="flex items-center gap-2 hover:text-slate-900 transition-colors">
-                        <Store className="h-4 w-4 text-slate-400" />
-                        Tiendas
-                    </Link>
-
-                    <Link href="/venta-empresa" className={cn("flex items-center gap-2 transition-colors ", brandColorText)}>
-                        <Truck className="h-4 w-4" />
-                        ¡Abastece tu hogar por volumen!
-                    </Link>
+                    <Link href="/catalogos" className="flex items-center gap-2 hover:text-slate-900 transition-colors"><BookOpen className="h-4 w-4 text-slate-400" />Catálogos</Link>
+                    <Link href="/tiendas" className="flex items-center gap-2 hover:text-slate-900 transition-colors"><Store className="h-4 w-4 text-slate-400" />Tiendas</Link>
+                    <Link href="/venta-empresa" className={cn("flex items-center gap-2 transition-colors ", brandColorText)}><Truck className="h-4 w-4" />¡Abastece tu hogar por volumen!</Link>
                 </div>
-
             </div>
       </div>
       
-      {isUserMenuOpen && (
-        <div 
-            className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 animate-in fade-in"
-            onClick={() => setIsUserMenuOpen(false)}
-        />
-      )}
+      {isUserMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 animate-in fade-in" onClick={() => setIsUserMenuOpen(false)}/>}
     </>
   );
 }
