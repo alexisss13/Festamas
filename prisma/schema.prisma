@@ -1,49 +1,116 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-// 🌍 ENUM DIVISIÓN
+// ==========================================
+// 🌍 ENUMS (COMBINADOS)
+// ==========================================
 enum Division {
   JUGUETERIA
   FIESTAS
 }
 
 enum Role {
+  // Roles E-commerce
   ADMIN
   SELLER
   USER
+  // Roles POS
+  SUPER_ADMIN 
+  OWNER       
+  MANAGER     
+  CASHIER     
 }
 
-// 👤 USUARIOS (Modificado para Google)
+enum PaymentMethod {
+  CASH
+  YAPE
+  PLIN
+  CARD
+  TRANSFER
+}
+
+enum InvoiceType {
+  BOLETA
+  FACTURA
+  NOTA_VENTA
+}
+
+enum InvoiceStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  REJECTED
+  VOIDED
+}
+
+enum NotificationType {
+  CASH_OPENED
+  CASH_CLOSED
+  DAILY_SUMMARY
+  ALERT
+  VOID_REQUEST
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE_SALE
+  VOID_SALE
+  OPEN_CASH
+  CLOSE_CASH
+  UPDATE_STOCK
+  CREATE_USER
+  DELETE_USER
+  SYSTEM_ERROR
+}
+
+// ==========================================
+// 👤 USUARIOS (HÍBRIDO: NEXTAUTH + POS)
+// ==========================================
 model User {
   id            String    @id @default(uuid())
   name          String?
   email         String?   @unique
-  emailVerified DateTime? // 👈 Requerido por Google
-  image         String?   // 👈 Foto de Google
-  password      String?   // 👈 OJO: Ahora es opcional (?)
+  emailVerified DateTime? 
+  image         String?   
+  password      String?   
   role          Role      @default(USER)
   
-  accounts      Account[] // 👈 Relación obligatoria
-  sessions      Session[]
-  
-  // Tus relaciones existentes
+  // Relaciones E-commerce / NextAuth
+  accounts      Account[] 
+  sessions      Session[] // Sesiones web
   orders        Order[]     
   addresses     Address[]   
   favorites     Favorite[]  
   
+  // 👇 NUEVOS CAMPOS POS (Opcionales para no romper E-commerce)
+  businessId    String?
+  branchId      String?
+  pin           String?
+  permissions   Json?    
+  isActive      Boolean   @default(true)
+
+  business      Business? @relation(fields: [businessId], references: [id])
+  branch        Branch?   @relation(fields: [branchId], references: [id])
+  cashSessions  CashSession[] // Renombrado para evitar colisión con Session de NextAuth
+  sales         Sale[]
+  auditLogs     AuditLog[]
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@index([businessId])
+  @@index([branchId])
 }
 
-// 🔐 TABLAS DE NEXTAUTH (OBLIGATORIAS PARA GOOGLE)
+// ==========================================
+// 🔐 TABLAS DE NEXTAUTH (INTACTAS)
+// ==========================================
 model Account {
   id                 String  @id @default(uuid())
   userId             String
@@ -59,7 +126,6 @@ model Account {
   session_state      String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@unique([provider, providerAccountId])
 }
 
@@ -75,14 +141,269 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
-
   @@unique([identifier, token])
 }    
 
-// 📍 DIRECCIONES
+// ==========================================
+// 📦 PRODUCTOS Y CATEGORÍAS (HÍBRIDOS)
+// ==========================================
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  division    Division @default(JUGUETERIA)
+  image       String?  
+
+  // 👇 NUEVOS CAMPOS POS
+  businessId  String?
+  business    Business? @relation(fields: [businessId], references: [id])
+
+  products    Product[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId])
+}
+
+model Product {
+  id                 String   @id @default(uuid())
+  title              String
+  description        String
+  slug               String   @unique
+  price              Decimal  @default(0) @db.Decimal(10, 2)
+  stock              Int      @default(0) // Stock global e-commerce
+  images             String[]
+  isAvailable        Boolean  @default(true)
+  wholesalePrice     Decimal? @db.Decimal(10, 2) 
+  wholesaleMinCount  Int?      
+  discountPercentage Int      @default(0) 
+  tags               String[] 
+  color              String?
+  groupTag           String?
+  division           Division @default(JUGUETERIA)
+  barcode            String?  @unique 
+
+  categoryId         String
+  category           Category @relation(fields: [categoryId], references: [id])
+  orderItems         OrderItem[]
+  favorites          Favorite[] 
+
+  // 👇 NUEVOS CAMPOS POS
+  businessId         String?
+  code               String?   // Alternativa/Complemento a barcode
+  cost               Decimal?  @db.Decimal(12,2)
+  minStock           Int       @default(5)
+  active             Boolean   @default(true)
+
+  business           Business? @relation(fields: [businessId], references: [id])
+  branchStock        Stock[]   // Renombrado para no colisionar con 'stock' Int
+  saleItems          SaleItem[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([businessId, code])
+  @@index([businessId])
+}
+
+// ==========================================
+// 🏢 TABLAS EXCLUSIVAS DEL POS (NUEVAS)
+// ==========================================
+model Business {
+  id              String     @id @default(uuid())
+  name            String
+  ruc             String     @unique
+  address         String?
+  logoUrl         String?
+  brandColors     Json?    
+  isActive        Boolean    @default(true) 
+  maxBranches     Int        @default(1)
+  maxManagers     Int        @default(1)
+  maxEmployees    Int        @default(3)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  branches        Branch[]
+  users           User[]
+  products        Product[]
+  categories      Category[]
+  customers       Customer[]
+  sales           Sale[]     
+  sunatConfig     SunatConfig?
+  auditLogs       AuditLog[]
+}
+
+model Branch {
+  id            String      @id @default(uuid())
+  businessId    String
+  name          String
+  address       String?
+  phone         String?
+
+  business      Business    @relation(fields: [businessId], references: [id])
+  stock         Stock[]
+  users         User[]
+  cashSessions  CashSession[]
+  sales         Sale[]
+
+  @@index([businessId])
+}
+
+model Stock {
+  id          String   @id @default(uuid())
+  branchId    String
+  productId   String
+  quantity    Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@unique([branchId, productId])
+  @@index([branchId])
+}
+
+model CashSession {
+  id          String   @id @default(uuid())
+  branchId    String
+  userId      String
+  openedAt    DateTime @default(now())
+  closedAt    DateTime?
+  initialCash Decimal  @db.Decimal(12,2)
+  finalCash   Decimal? @db.Decimal(12,2)
+  income      Decimal  @default(0) @db.Decimal(12,2)
+  expense     Decimal  @default(0) @db.Decimal(12,2)
+  difference  Decimal? @db.Decimal(12,2)
+  status      String   @default("OPEN")
+
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  sales       Sale[]
+}
+
+model Customer {
+  id          String   @id @default(uuid())
+  businessId  String
+  name        String
+  docType     String?
+  docNumber   String?
+  email       String?
+  phone       String?
+
+  business    Business @relation(fields: [businessId], references: [id])
+  sales       Sale[]
+
+  @@unique([businessId, docNumber])
+}
+
+model Sale {
+  id             String        @id @default(uuid())
+  code           String        @default(cuid())
+  externalId     String?       @unique
+  businessId     String?
+  branchId       String
+  cashSessionId  String?
+  userId         String
+  customerId     String?
+
+  subtotal       Decimal       @db.Decimal(12,2)
+  discount       Decimal       @default(0) @db.Decimal(12,2)
+  total          Decimal       @db.Decimal(12,2)
+  tenderedAmount Decimal       @db.Decimal(12,2) 
+  changeAmount   Decimal       @default(0) @db.Decimal(12,2) 
+  status         String        @default("COMPLETED") 
+  createdAt      DateTime      @default(now())
+
+  business       Business?     @relation(fields: [businessId], references: [id]) 
+  branch         Branch        @relation(fields: [branchId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+  customer       Customer?     @relation(fields: [customerId], references: [id])
+  cashSession    CashSession?  @relation(fields: [cashSessionId], references: [id])
+  items          SaleItem[]
+  payments       SalePayment[]
+  invoice        Invoice?
+}
+
+model SaleItem {
+  id        String   @id @default(uuid())
+  saleId    String
+  productId String
+  quantity  Int
+  price     Decimal  @db.Decimal(12,2)
+  subtotal  Decimal  @db.Decimal(12,2)
+
+  sale      Sale     @relation(fields: [saleId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+}
+
+model SalePayment {
+  id        String        @id @default(uuid())
+  saleId    String
+  method    PaymentMethod
+  amount    Decimal       @db.Decimal(12,2)
+  reference String?
+
+  sale      Sale          @relation(fields: [saleId], references: [id])
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  saleId      String        @unique
+  invoiceType InvoiceType
+  serie       String
+  number      Int
+  status      InvoiceStatus @default(PENDING)
+  pdfUrl      String?
+  xmlUrl      String?
+  cdrUrl      String?
+  issuedAt    DateTime      @default(now())
+
+  sale        Sale          @relation(fields: [saleId], references: [id])
+}
+
+model SunatConfig {
+  id            String   @id @default(uuid())
+  businessId    String   @unique
+  solUser       String?
+  solPassword   String?
+  certPassword  String?
+  active        Boolean  @default(false)
+
+  business      Business @relation(fields: [businessId], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String?
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  businessId  String
+  userId      String?
+  action      AuditAction
+  details     String?
+  ipAddress   String?
+  createdAt   DateTime    @default(now())
+
+  business    Business    @relation(fields: [businessId], references: [id])
+  user        User?       @relation(fields: [userId], references: [id])
+}
+
+// ==========================================
+// 🛒 TABLAS EXCLUSIVAS E-COMMERCE (INTACTAS)
+// ==========================================
 model Address {
   id        String   @id @default(uuid())
-  dni       String?  // 👈 Ya lo tienes, ¡bien!
+  dni       String?  
   firstName String
   lastName  String
   phone     String
@@ -90,7 +411,7 @@ model Address {
   address2  String?  
   city      String   
   province  String?
-  country   String   @default("Perú") // 👈 AGREGA ESTO
+  country   String   @default("Perú") 
   
   user      User     @relation(fields: [userId], references: [id])
   userId    String
@@ -99,84 +420,25 @@ model Address {
   updatedAt DateTime @updatedAt
 }
 
-// ❤️ FAVORITOS
 model Favorite {
   id        String   @id @default(uuid())
-  
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId String
-
-  // 👇 AGREGA ESTAS DOS LÍNEAS:
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@unique([userId, productId])
 }
 
-// 📦 PRODUCTOS
-model Product {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  slug        String   @unique
-  price       Decimal  @default(0) @db.Decimal(10, 2)
-  stock       Int      @default(0)
-  images      String[]
-  
-  isAvailable Boolean  @default(true)
-  
-  wholesalePrice     Decimal? @db.Decimal(10, 2) 
-  wholesaleMinCount  Int?     
-  
-  discountPercentage Int      @default(0) 
-  
-  tags               String[] 
-  
-  color       String?
-  groupTag    String?
-
-  division    Division @default(JUGUETERIA)
-  
-  category    Category @relation(fields: [categoryId], references: [id])
-  categoryId  String
-
-  orderItems  OrderItem[]
-  favorites   Favorite[] 
-
-  barcode     String?  @unique // Para escanear rápido
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// 🗂️ CATEGORÍAS
-model Category {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  division  Division @default(JUGUETERIA)
-  image     String?  
-
-  products  Product[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// 🛍️ PEDIDOS
 model Order {
   id             String      @id @default(uuid())
-  receiptNumber String?     @unique
+  receiptNumber  String?     @unique
   totalAmount    Decimal     @db.Decimal(10, 2)
   totalItems     Int
   status         OrderStatus @default(PENDING)
   isPaid         Boolean     @default(false)
-
-  mercadoPagoId   String?     @unique // ID de la preferencia o del pago de MP
-
+  mercadoPagoId  String?     @unique 
   clientName     String
   clientPhone    String
   deliveryMethod String      @default("PICKUP") 
@@ -186,7 +448,6 @@ model Order {
   
   user           User?       @relation(fields: [userId], references: [id])
   userId         String?
-
   orderItems     OrderItem[]
 
   createdAt      DateTime @default(now())
@@ -197,10 +458,8 @@ model OrderItem {
   id        String  @id @default(uuid())
   quantity  Int
   price     Decimal @db.Decimal(10, 2)
-
   order     Order   @relation(fields: [orderId], references: [id])
   orderId   String
-
   product   Product @relation(fields: [productId], references: [id])
   productId String
 }
@@ -213,34 +472,30 @@ enum OrderStatus {
 }
 
 model StoreConfig {
-  id             String   @id @default(uuid())
-  whatsappPhone  String   @default("51999999999")
-  welcomeMessage String   @default("Hola Festamas, quiero confirmar mi pedido...")
+  id               String   @id @default(uuid())
+  whatsappPhone    String   @default("51999999999")
+  welcomeMessage   String   @default("Hola Festamas, quiero confirmar mi pedido...")
   localDeliveryPrice Decimal @default(10.00) @db.Decimal(10, 2)
-  heroImage       String?
-  heroTitle       String   @default("Juguetes y Alegría")
-  heroSubtitle    String   @default("Encuentra el regalo perfecto en Festamas")
-  heroButtonText  String   @default("Ver Juguetes")
-  heroButtonLink  String   @default("#catalogo")
-  heroBtnColor    String   @default("#fb3099")
-  updatedAt       DateTime @updatedAt
+  heroImage        String?
+  heroTitle        String   @default("Juguetes y Alegría")
+  heroSubtitle     String   @default("Encuentra el regalo perfecto en Festamas")
+  heroButtonText   String   @default("Ver Juguetes")
+  heroButtonLink   String   @default("#catalogo")
+  heroBtnColor     String   @default("#fb3099")
+  updatedAt        DateTime @updatedAt
 }
 
-// 🎫 CUPONES
 model Coupon {
-  id             String      @id @default(uuid())
-  code           String      @unique
-  discount       Decimal     @db.Decimal(10, 2)
-  type           CouponType  @default(FIXED)
-  isActive       Boolean     @default(true)
-  
-  // 🚀 Nuevos Campos
-  expirationDate DateTime?   // Si es null, no expira nunca
-  maxUses        Int?        // Si es null, usos infinitos
-  currentUses    Int         @default(0) // Contador real de usos
-  division       Division    @default(JUGUETERIA) // Scope del cupón
-
-  createdAt      DateTime    @default(now())
+  id             String     @id @default(uuid())
+  code           String     @unique
+  discount       Decimal    @db.Decimal(10, 2)
+  type           CouponType @default(FIXED)
+  isActive       Boolean    @default(true)
+  expirationDate DateTime?  
+  maxUses        Int?       
+  currentUses    Int        @default(0) 
+  division       Division   @default(JUGUETERIA) 
+  createdAt      DateTime   @default(now())
 }
 
 enum CouponType {
@@ -254,7 +509,7 @@ enum BannerPosition {
 }
 
 model Banner {
-  id        String   @id @default(uuid())
+  id        String         @id @default(uuid())
   title     String   
   subtitle  String?
   imageUrl  String   
@@ -262,35 +517,32 @@ model Banner {
   link      String?  
   position  BannerPosition
   division  Division 
-  active    Boolean  @default(true)
-  order     Int      @default(0) 
+  active    Boolean        @default(true)
+  order     Int            @default(0) 
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model HomeSection {
+  id        String   @id @default(uuid())
+  title     String   
+  subtitle  String?  
+  tag       String   
+  division  Division @default(JUGUETERIA)
+  icon      String   @default("star")
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model HomeSection {
-  id          String   @id @default(uuid())
-  title       String   
-  subtitle    String?  
-  tag         String   
-  division    Division @default(JUGUETERIA)
-  icon        String   @default("star")
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// 📖 CATÁLOGOS INTERACTIVOS
 model Catalog {
   id         String   @id @default(uuid())
   title      String   
-  coverImage String   // Imagen de portada
-  iframeUrl  String   // El link de Flipsnack/Heyzine
-  division   Division @default(JUGUETERIA) // Festamas o FiestasYa
-  isActive   Boolean  @default(true) // Para ocultarlo sin borrarlo
-  
+  coverImage String   
+  iframeUrl  String   
+  division   Division @default(JUGUETERIA) 
+  isActive   Boolean  @default(true) 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
-
