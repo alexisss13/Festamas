@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Division as PrismaDivision } from '@prisma/client'; // 🚀 IMPORTAMOS DE PRISMA
 
-export type Division = 'JUGUETERIA' | 'FIESTAS';
+// 🚀 USAMOS EL TIPO OFICIAL (JUGUETERIA | FIESTAS | OTROS)
+export type Division = PrismaDivision; 
 
 interface UIState {
   // 🏪 Tienda Actual

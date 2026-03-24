@@ -9,6 +9,9 @@ import { getFavoriteIds } from '@/actions/favorites';
 export async function Navbar() {
   // 1. Obtener categorías
   const categories = await prisma.category.findMany({
+    where: { 
+      division: { in: ['JUGUETERIA', 'FIESTAS'] } 
+    },
     orderBy: { name: 'asc' },
     select: { 
       id: true, 

@@ -5,6 +5,9 @@ export async function Footer() {
   // 1. Obtenemos MUCHAS categorías (o todas) para poder filtrar en el cliente
   // Necesitamos el campo 'division' para saber a quién pertenecen
   const categories = await prisma.category.findMany({
+    where: { 
+      division: { in: ['JUGUETERIA', 'FIESTAS'] } 
+    },
     orderBy: { name: 'asc' },
     select: { 
         id: true, 
