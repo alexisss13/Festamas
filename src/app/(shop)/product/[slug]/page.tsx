@@ -73,26 +73,9 @@ export default async function ProductPage({ params }: Props) {
   const brandColorText = isToys ? 'text-[#fc4b65]' : 'text-[#ec4899]';
 
   const sanitizedProduct = {
-    id: product.id,
-    title: product.title,
-    slug: product.slug,
-    description: product.description,
+    ...product,
     price: Number(product.price),
-    stock: product.stock,
-    images: product.images,
-    isAvailable: product.isAvailable,
     wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
-    wholesaleMinCount: product.wholesaleMinCount,
-    discountPercentage: product.discountPercentage,
-    tags: product.tags,
-    color: product.color,
-    groupTag: product.groupTag,
-    division: product.division,
-    barcode: product.barcode,
-    categoryId: product.categoryId,
-    createdAt: product.createdAt,
-    updatedAt: product.updatedAt,
-    category: product.category
   };
 
   const jsonLd = {
