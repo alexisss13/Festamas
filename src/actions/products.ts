@@ -30,10 +30,10 @@ const getOrderBy = (sort: string): Prisma.ProductOrderByWithRelationInput[] => {
     switch (sort) {
         case 'price_asc': return [{ price: 'asc' }];
         case 'price_desc': return [{ price: 'desc' }];
-        case 'stock_asc': return [{ stock: 'asc' }]; // Menor stock primero
-        case 'stock_desc': return [{ stock: 'desc' }]; // Mayor stock primero
+        case 'stock_asc': return [{ stock: 'asc' }];
+        case 'stock_desc': return [{ stock: 'desc' }];
         case 'oldest': return [{ createdAt: 'asc' }];
-        case 'newest': 
+        case 'newest':
         default: return [{ createdAt: 'desc' }];
     }
 };
@@ -51,9 +51,9 @@ interface GetProductsOptions {
     take?: number;
 }
 
-export async function getProducts({ 
-  includeInactive = false, 
-  query = '', 
+export async function getProducts({
+  includeInactive = false,
+  query = '',
   sort = 'newest',
   division = 'JUGUETERIA',
   categoryId,
@@ -66,7 +66,7 @@ export async function getProducts({
     const where: Prisma.ProductWhereInput = {
       division,
       isAvailable: includeInactive ? undefined : true,
-      categoryId: categoryId && categoryId !== 'all' ? categoryId : undefined, // FIX: Evitar filtrar por 'all'
+      categoryId: categoryId && categoryId !== 'all' ? categoryId : undefined,
       OR: query ? [
         { title: { contains: query, mode: 'insensitive' } },
         { tags: { has: query.toLowerCase() } },
@@ -75,14 +75,13 @@ export async function getProducts({
       ] : undefined,
     };
 
-    // FIX: Usamos el array de ordenamiento
     const orderBy = getOrderBy(sort);
 
     const [products, totalCount] = await prisma.$transaction([
       prisma.product.findMany({ where, take, skip, orderBy, include: { category: true } }),
       prisma.product.count({ where })
     ]);
-    
+
     const data = products.map(p => ({
       ...p,
       price: Number(p.price),
@@ -93,7 +92,6 @@ export async function getProducts({
     const totalPages = Math.ceil(totalCount / take);
 
     return { success: true, data, meta: { page, totalPages, totalCount, hasNextPage: page < totalPages, hasPrevPage: page > 1 } };
-
   } catch (error) {
     console.error('Error obteniendo productos:', error);
     return {
@@ -134,7 +132,7 @@ export const getProduct = unstable_cache(
 );
 
 // =====================================================================
-// 3. GET PRODUCTS BY CATEGORY (Con Filtros y Paginación) 🚀
+// 3. GET PRODUCTS BY CATEGORY (Con Filtros y Paginación)
 // =====================================================================
 interface CategoryOptions {
   page?: number;
@@ -146,7 +144,7 @@ interface CategoryOptions {
 }
 
 export const getProductsByCategory = async (
-  categorySlug: string, 
+  categorySlug: string,
   { page = 1, take = 12, minPrice, maxPrice, sort = 'newest', tag }: CategoryOptions = {}
 ) => {
   try {
@@ -156,25 +154,21 @@ export const getProductsByCategory = async (
 
     if (!category) return null;
 
-    // 1. MINERÍA DE TAGS: Extraer todos los tags únicos de esta categoría (sin filtros de precio)
-    // Esto sirve para poblar el sidebar con opciones reales
     const allProductsTags = await prisma.product.findMany({
       where: { categoryId: category.id, isAvailable: true },
       select: { tags: true }
     });
 
-    // Aplanamos el array de arrays y quitamos duplicados
     const uniqueTags = Array.from(new Set(allProductsTags.flatMap(p => p.tags))).sort();
 
-    // 2. FILTRADO: Ahora sí aplicamos los filtros para la lista de productos
     const whereClause: Prisma.ProductWhereInput = {
       categoryId: category.id,
       isAvailable: true,
       price: {
-        gte: minPrice, 
-        lte: maxPrice, 
+        gte: minPrice,
+        lte: maxPrice,
       },
-      tags: tag ? { has: tag } : undefined 
+      tags: tag ? { has: tag } : undefined
     };
 
     const totalCount = await prisma.product.count({ where: whereClause });
@@ -202,6 +196,7 @@ export const getProductsByCategory = async (
       tags: product.tags,
       division: product.division,
       createdAt: product.createdAt,
+      barcode: product.barcode,
       category: {
         name: product.category.name,
         slug: product.category.slug,
@@ -212,7 +207,7 @@ export const getProductsByCategory = async (
       categoryName: category.name,
       division: category.division,
       products: cleanProducts,
-      availableTags: uniqueTags, // 👈 Enviamos los tags al frontend
+      availableTags: uniqueTags,
       pagination: {
         currentPage: page,
         totalPages,
@@ -226,62 +221,8 @@ export const getProductsByCategory = async (
 };
 
 // =====================================================================
-// 3. DELETE PRODUCT (Admin)
+// 4. GET PRODUCTS BY TAG (Para la Home Dinámica)
 // =====================================================================
-export async function deleteProduct(id: string) {
-  try {
-    await prisma.product.update({
-      where: { id },
-      data: { 
-        isAvailable: false,
-        slug: `${id}-deleted-${Date.now()}`, 
-      },
-    });
-    
-    revalidatePath('/admin/products'); 
-    revalidatePath('/');
-    
-    return { success: true };
-  } catch (error) {
-    console.error(error);
-    return { success: false, message: 'No se pudo eliminar el producto' };
-  }
-}
-
-// =====================================================================
-// 4. BULK CREATE (Carga Masiva) 🚀
-// =====================================================================
-export async function createBulkProducts(productsData: any[], division: Division) {
-  try {
-    const preparedData = productsData.map(p => ({
-        title: p.title,
-        // Slug único: titulo-random
-        slug: p.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '') + '-' + Math.random().toString(36).substring(2, 7),
-        description: 'Descripción pendiente...',
-        price: Number(p.price),
-        stock: Number(p.stock),
-        categoryId: p.categoryId,
-        division: division,
-        isAvailable: true,
-        images: [] 
-    }));
-
-    await prisma.product.createMany({
-        data: preparedData
-    });
-
-    revalidatePath('/admin/products');
-    return { success: true, count: preparedData.length };
-  } catch (error) {
-    console.error("Bulk Error:", error);
-    return { success: false, error: 'Error en la carga masiva' };
-  }
-}
-
-// =====================================================================
-// 5. GET PRODUCTS BY TAG (Para la Home Dinámica)
-// =====================================================================
-// FIX: Agregamos 'division' opcional para filtrar estrictamente por tienda
 export const getProductsByTag = async (tag: string, take: number = 8, division?: Division) => {
   try {
     const products = await prisma.product.findMany({
@@ -289,7 +230,6 @@ export const getProductsByTag = async (tag: string, take: number = 8, division?:
       where: {
         tags: { has: tag },
         isAvailable: true,
-        // Si nos pasan division, filtramos. Si no, trae de ambas (para mix).
         division: division ? { equals: division } : undefined,
       },
       include: {
@@ -325,7 +265,7 @@ export const getProductsByTag = async (tag: string, take: number = 8, division?:
 };
 
 // =====================================================================
-// 6. GET SIMILAR PRODUCTS (Misma categoría)
+// 5. GET SIMILAR PRODUCTS (Misma categoría)
 // =====================================================================
 export const getSimilarProducts = async (categoryId: string, currentProductId: string, take = 8) => {
   try {
@@ -334,7 +274,7 @@ export const getSimilarProducts = async (categoryId: string, currentProductId: s
       where: {
         categoryId,
         isAvailable: true,
-        NOT: { id: currentProductId }, // Excluimos el producto actual
+        NOT: { id: currentProductId },
       },
       include: {
         category: {
@@ -357,7 +297,7 @@ export const getSimilarProducts = async (categoryId: string, currentProductId: s
 };
 
 // =====================================================================
-// 7. GET NEW ARRIVALS (Catálogo Completo por División) 🚀
+// 6. GET NEW ARRIVALS (Catálogo Completo por División)
 // =====================================================================
 interface NewArrivalsOptions {
   page?: number;
@@ -366,39 +306,37 @@ interface NewArrivalsOptions {
   maxPrice?: number;
   sort?: string;
   tag?: string;
-  division: Division; // 👈 OBLIGATORIO: Saber qué tienda es
+  division: Division;
 }
 
-export const getNewArrivalsProducts = async ({ 
-  page = 1, 
-  take = 12, 
-  minPrice, 
-  maxPrice, 
-  sort = 'newest', 
+export const getNewArrivalsProducts = async ({
+  page = 1,
+  take = 12,
+  minPrice,
+  maxPrice,
+  sort = 'newest',
   tag,
-  division 
+  division
 }: NewArrivalsOptions) => {
   try {
-    // 1. MINERÍA DE TAGS (De toda la tienda)
     const allProductsTags = await prisma.product.findMany({
-      where: { 
-        division, // Solo tags de esta tienda
-        isAvailable: true 
+      where: {
+        division,
+        isAvailable: true
       },
       select: { tags: true }
     });
 
     const uniqueTags = Array.from(new Set(allProductsTags.flatMap(p => p.tags))).sort();
 
-    // 2. FILTRADO
     const whereClause: Prisma.ProductWhereInput = {
-      division, // 🛡️ BLINDAJE: Nunca mezclar tiendas
+      division,
       isAvailable: true,
       price: {
-        gte: minPrice, 
-        lte: maxPrice, 
+        gte: minPrice,
+        lte: maxPrice,
       },
-      tags: tag ? { has: tag } : undefined 
+      tags: tag ? { has: tag } : undefined
     };
 
     const totalCount = await prisma.product.count({ where: whereClause });
@@ -426,6 +364,7 @@ export const getNewArrivalsProducts = async ({
       tags: product.tags,
       division: product.division,
       createdAt: product.createdAt,
+      barcode: product.barcode,
       category: {
         name: product.category.name,
         slug: product.category.slug,
@@ -446,75 +385,3 @@ export const getNewArrivalsProducts = async ({
     return null;
   }
 };
-
-// =====================================================================
-// 🚀 8. BÚSQUEDA POS (Lógica Híbrida: Exacta + Parcial)
-// =====================================================================
-export async function searchProductsPOS(term: string, division: Division) {
-  try {
-    // 1. Prioridad: Match Exacto (Para escáner rápido)
-    // Usamos findFirst en vez de findUnique para poder filtrar por división y estado
-    const exactMatch = await prisma.product.findFirst({
-        where: {
-            barcode: term,
-            division: division,
-            isAvailable: true
-        },
-        select: {
-            id: true,
-            title: true,
-            price: true,
-            stock: true,
-            images: true,
-            barcode: true,
-            wholesalePrice: true,
-            wholesaleMinCount: true,
-            discountPercentage: true,
-            category: { select: { name: true } }
-        }
-    });
-
-    if (exactMatch) {
-        return [exactMatch].map(p => ({
-            ...p,
-            price: Number(p.price),
-            wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0
-        }));
-    }
-
-    // 2. Si no es exacto, búsqueda amplia (Nombre, Slug, Barcode Parcial)
-    const products = await prisma.product.findMany({
-      where: {
-        division,
-        isAvailable: true,
-        OR: [
-          { title: { contains: term, mode: 'insensitive' } },
-          { barcode: { contains: term } }, // 👈 Esto permite escribir "775" y ver sugerencias
-          { slug: { contains: term, mode: 'insensitive' } }
-        ]
-      },
-      take: 20,
-      select: {
-        id: true,
-        title: true,
-        price: true,
-        stock: true,
-        images: true,
-        barcode: true,
-        wholesalePrice: true,
-        wholesaleMinCount: true,
-        discountPercentage: true,
-        category: { select: { name: true } }
-      }
-    });
-
-    return products.map(p => ({
-        ...p,
-        price: Number(p.price),
-        wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0
-    }));
-  } catch (error) {
-    console.error(error);
-    return [];
-  }
-}

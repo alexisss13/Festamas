@@ -41,13 +41,12 @@ export async function createCategory(formData: FormData) {
     name: formData.get('name'),
     slug: formData.get('slug'),
     division: formData.get('division'),
-    image: formData.get('image'), // Recibimos imagen
+    image: formData.get('image'),
   };
 
   const parsed = categorySchema.safeParse(data);
 
   if (!parsed.success) {
-    // 🛡️ FIX: Usamos .issues en lugar de .errors para evitar el error de TS
     return { success: false, error: parsed.error.issues[0].message };
   }
 
@@ -62,7 +61,7 @@ export async function createCategory(formData: FormData) {
     });
 
     revalidatePath('/admin/categories');
-    revalidatePath('/'); // Actualizar Home
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.log(error);
@@ -82,7 +81,6 @@ export async function updateCategory(id: string, formData: FormData) {
   const parsed = categorySchema.safeParse(data);
 
   if (!parsed.success) {
-    // 🛡️ FIX: Usamos .issues
     return { success: false, error: parsed.error.issues[0].message };
   }
 
@@ -115,14 +113,14 @@ export async function deleteCategory(id: string) {
     });
 
     if (category && category._count.products > 0) {
-      return { 
-        success: false, 
-        error: `No se puede eliminar: Tiene ${category._count.products} productos asociados.` 
+      return {
+        success: false,
+        error: `No se puede eliminar: Tiene ${category._count.products} productos asociados.`
       };
     }
 
     await prisma.category.delete({ where: { id } });
-    
+
     revalidatePath('/admin/categories');
     return { success: true };
   } catch (error) {

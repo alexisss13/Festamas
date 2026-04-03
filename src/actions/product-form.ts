@@ -4,45 +4,35 @@ import prisma from '@/lib/prisma';
 import { productSchema } from '@/lib/zod';
 import { revalidatePath } from 'next/cache';
 
-// Helper simple
 const generateBarcode = () => {
   return Math.floor(100000000000 + Math.random() * 900000000000).toString();
 };
 
 export async function createOrUpdateProduct(formData: FormData, id?: string) {
   const data = Object.fromEntries(formData.entries());
-  
-  // FIX: Obtenemos todas las imágenes, filtramos strings vacíos
+
   const images = formData.getAll('images').filter(img => typeof img === 'string' && img.length > 0) as string[];
 
-  // 🧹 SANITIZACIÓN DE DATOS (NUEVO)
-  // Convertimos groupTag a Mayúsculas y quitamos espacios para asegurar coincidencia
   const rawBarcode = data.barcode?.toString().trim();
   const rawGroupTag = data.groupTag?.toString().trim().toUpperCase();
   const groupTag = rawGroupTag && rawGroupTag.length > 0 ? rawGroupTag : null;
   const barcode = (rawBarcode && rawBarcode.length > 0) ? rawBarcode : generateBarcode();
 
-  // Limpiamos el color
   const rawColor = data.color?.toString().trim();
   const color = rawColor && rawColor.length > 0 ? rawColor : null;
 
-  // Preparar objeto crudo para Zod
   const rawData = {
     ...data,
     images: images,
     isAvailable: formData.get('isAvailable') === 'on',
-    
-    // FIX: Conversión robusta de numéricos
     price: data.price === '' ? 0 : data.price,
     stock: data.stock === '' ? 0 : data.stock,
     discountPercentage: data.discountPercentage === '' ? 0 : data.discountPercentage,
     wholesalePrice: data.wholesalePrice === '' ? null : data.wholesalePrice,
     wholesaleMinCount: data.wholesaleMinCount === '' ? null : data.wholesaleMinCount,
-    
-    // Inyectamos los valores limpios
-    groupTag: groupTag ?? undefined, // undefined para que Zod lo tome como opcional si es null
+    groupTag: groupTag ?? undefined,
     color: color ?? undefined,
-    barcode, // Agregar al objeto raw para Zod (si lo agregas al schema) o directo abajo
+    barcode,
   };
 
   const parsed = productSchema.safeParse(rawData);
@@ -51,13 +41,12 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { 
-    title, slug, description, price, stock, categoryId, isAvailable, 
-    division, wholesalePrice, wholesaleMinCount, discountPercentage, tags 
+  const {
+    title, slug, description, price, stock, categoryId, isAvailable,
+    division, wholesalePrice, wholesaleMinCount, discountPercentage, tags
   } = parsed.data;
 
-  // FIX: Procesar tags de búsqueda correctamente
-  const tagsArray = tags 
+  const tagsArray = tags
     ? tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t !== '')
     : [];
 
@@ -71,8 +60,8 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
       categoryId,
       images,
       isAvailable,
-      color,      // Valor limpio (puede ser null)
-      groupTag,   // Valor limpio (puede ser null)
+      color,
+      groupTag,
       division,
       wholesalePrice,
       wholesaleMinCount,
