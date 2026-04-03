@@ -224,7 +224,6 @@ export async function getRecentSales(division: Division = 'JUGUETERIA') {
 
 export async function getTopProducts(division: Division = 'JUGUETERIA') {
   try {
-    // Obtenemos productos con ventas de esta división
     const topProducts = await prisma.product.findMany({
       where: { 
         division,
@@ -234,8 +233,8 @@ export async function getTopProducts(division: Division = 'JUGUETERIA') {
           }
         },
         OR: [
-          { isAvailable: true }, // Productos activos
-          { isAvailable: false, stock: 0 } // Productos sin stock (no ocultos intencionalmente)
+          { isAvailable: true }, 
+          { isAvailable: false, stock: 0 } 
         ]
       },
       orderBy: {
@@ -245,6 +244,8 @@ export async function getTopProducts(division: Division = 'JUGUETERIA') {
       select: {
         id: true,
         title: true,
+        slug: true,       // 👈 AGREGAR ESTO
+        barcode: true,    // 👈 AGREGAR ESTO
         stock: true,
         price: true,
         images: true,
@@ -261,12 +262,12 @@ export async function getTopProducts(division: Division = 'JUGUETERIA') {
       .map(p => ({
         id: p.id,
         title: p.title,
-        slug: p.slug,
+        slug: p.slug, // Ahora TypeScript ya sabe que esto existe
         price: Number(p.price),
         stock: p.stock,
         images: p.images,
         isAvailable: p.isAvailable,
-        barcode: p.barcode,
+        barcode: p.barcode, // Y esto también
         _count: p._count
       }));
   } catch (error) {
