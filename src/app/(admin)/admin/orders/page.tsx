@@ -44,28 +44,19 @@ export default async function AdminOrdersPage() {
     title, 
     value, 
     icon: Icon, 
-    description,
-    color = 'primary'
+    description
   }: { 
     title: string; 
     value: number; 
     icon: LucideIcon; 
     description: string;
-    color?: 'primary' | 'blue' | 'amber' | 'green';
   }) {
-    const colorClasses = {
-      primary: 'bg-primary/10 text-primary',
-      blue: 'bg-blue-500/10 text-blue-600',
-      amber: 'bg-amber-500/10 text-amber-600',
-      green: 'bg-green-500/10 text-green-600',
-    };
-
     return (
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs sm:text-sm font-semibold text-slate-600 leading-tight">{title}</span>
-          <div className={`p-2 sm:p-2.5 rounded-full shrink-0 ${colorClasses[color]}`}>
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="p-2 sm:p-2.5 rounded-full bg-primary/10 shrink-0">
+            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
           </div>
         </div>
         <div className="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{value}</div>
@@ -111,28 +102,24 @@ export default async function AdminOrdersPage() {
           value={stats.total}
           icon={ShoppingCart}
           description="Órdenes registradas"
-          color="primary"
         />
         <StatCard
           title="Por Despachar"
           value={stats.toDispatch}
           icon={Truck}
           description="Pagados pendientes de envío"
-          color="blue"
         />
         <StatCard
           title="Por Pagar"
           value={stats.toPay}
           icon={Clock}
           description="Esperando confirmación"
-          color="amber"
         />
         <StatCard
           title="Completados"
           value={stats.completed}
           icon={CheckCircle2}
           description="Entregados exitosamente"
-          color="green"
         />
       </div>
 
