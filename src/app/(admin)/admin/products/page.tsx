@@ -186,9 +186,9 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                         wholesaleMinCount={product.wholesaleMinCount}
                         discountPercentage={product.discountPercentage}
                         variant="ghost"
-                        className="h-8 w-8 hover:bg-slate-100 rounded-lg"
+                        className="h-8 w-8 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                     />
-                    <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg">
+                    <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
                       <Link href={`/admin/products/${product.slug}`}><Pencil className="h-4 w-4" /></Link>
                     </Button>
                     {product.isAvailable && <div className="[&>button]:h-8 [&>button]:w-8"><DeleteProductBtn id={product.id} /></div>}

@@ -47,10 +47,10 @@ export const AdminProductToolbar = ({ categories }: Props) => {
       
       {/* 🔍 BUSCADOR (Ocupa el espacio restante) */}
       <div className="relative w-full">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60 pointer-events-none" />
         <Input 
           placeholder="Buscar producto..." 
-          className="pl-9 w-full bg-slate-50 border-slate-200 focus-visible:ring-slate-400 h-10 transition-all"
+          className="pl-9 w-full bg-slate-50 border-slate-200 focus-visible:border-primary focus-visible:ring-primary/20 h-10 transition-all"
           defaultValue={searchParams.get('q')?.toString()}
           onChange={(e) => handleSearch(e.target.value)}
         />
