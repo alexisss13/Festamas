@@ -56,6 +56,15 @@ enum NotificationType {
   DAILY_SUMMARY
   ALERT
   VOID_REQUEST
+  TRANSFER_REQUEST // Nuevo
+  TRANSFER_UPDATE  // Nuevo
+}
+
+enum TransferStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
 }
 
 enum AuditAction {
@@ -108,6 +117,7 @@ model User {
 
   @@index([businessId])
   @@index([branchId])
+  stockTransfers StockTransfer[]
 }
 
 // ==========================================
@@ -203,6 +213,7 @@ model Product {
   business           Business? @relation(fields: [businessId], references: [id])
   branchStock        Stock[]   // Renombrado para no colisionar con 'stock' Int
   saleItems          SaleItem[]
+  stockTransfers StockTransfer[]
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -263,6 +274,8 @@ model Branch {
   sales         Sale[]
 
   @@index([businessId])
+  transfersOut  StockTransfer[] @relation("TransferFrom")
+  transfersIn   StockTransfer[] @relation("TransferTo")
 }
 
 model Stock {
@@ -560,4 +573,21 @@ model Catalog {
   isActive   Boolean  @default(true) 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model StockTransfer {
+  id            String         @id @default(uuid())
+  productId     String
+  fromBranchId  String
+  toBranchId    String
+  requestedById String
+  quantity      Int
+  status        TransferStatus @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  product       Product        @relation(fields: [productId], references: [id])
+  fromBranch    Branch         @relation("TransferFrom", fields: [fromBranchId], references: [id])
+  toBranch      Branch         @relation("TransferTo", fields: [toBranchId], references: [id])
+  requestedBy   User           @relation(fields: [requestedById], references: [id])
 }
