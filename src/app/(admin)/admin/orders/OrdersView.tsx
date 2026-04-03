@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Search, X, ChevronLeft, ChevronRight, Store, Globe, Pencil, Trash2, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +47,6 @@ interface Order {
 
 interface OrdersViewProps {
   orders: Order[];
-  initialFilter?: string;
 }
 
 const PAGE_SIZE = 10;
@@ -71,7 +70,7 @@ const isPOS = (order: Order) =>
   order.notes?.trimStart().startsWith('[VENTA POS]') ||
   Boolean(order.receiptNumber);
 
-export function OrdersView({ orders, initialFilter }: OrdersViewProps) {
+export function OrdersView({ orders }: OrdersViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
@@ -79,30 +78,6 @@ export function OrdersView({ orders, initialFilter }: OrdersViewProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
-
-  // Aplicar filtro inicial desde las cards
-  useEffect(() => {
-    if (initialFilter) {
-      switch (initialFilter) {
-        case 'toDispatch':
-          setStatusFilter('PAID');
-          setPaymentFilter('paid');
-          break;
-        case 'toPay':
-          setStatusFilter('PENDING');
-          setPaymentFilter('unpaid');
-          break;
-        case 'completed':
-          setStatusFilter('DELIVERED');
-          break;
-        case 'all':
-        default:
-          setStatusFilter('all');
-          setPaymentFilter('all');
-          break;
-      }
-    }
-  }, [initialFilter]);
 
   const formatPrice = (value: number) =>
     new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);

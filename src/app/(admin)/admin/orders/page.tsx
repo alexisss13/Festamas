@@ -3,14 +3,8 @@ import { OrdersView } from './OrdersView';
 import { ExportButton } from './ExportButton';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Truck, Clock, CheckCircle2, LucideIcon } from 'lucide-react';
-import Link from 'next/link';
 
-export default async function AdminOrdersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ filter?: string }>;
-}) {
-  const { filter } = await searchParams;
+export default async function AdminOrdersPage() {
   const { success, data: orders } = await getOrders();
 
   if (!success || !orders) {
@@ -45,37 +39,32 @@ export default async function AdminOrdersPage({
     })),
   }));
 
-  // Componente de KPI card inline (ahora clickeable)
+  // Componente de KPI card (solo visual, no clickeable)
   function StatCard({ 
     title, 
     value, 
     icon: Icon, 
     description,
-    filterKey,
-    isActive
+    color = 'primary'
   }: { 
     title: string; 
     value: number; 
     icon: LucideIcon; 
     description: string;
-    filterKey?: string;
-    isActive?: boolean;
+    color?: 'primary' | 'blue' | 'amber' | 'green';
   }) {
-    const content = (
-      <div className={`bg-white border rounded-xl p-4 sm:p-5 shadow-sm transition-all ${
-        filterKey 
-          ? 'cursor-pointer hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5' 
-          : ''
-      } ${
-        isActive 
-          ? 'border-primary ring-2 ring-primary/20 shadow-md' 
-          : 'border-slate-200'
-      }`}>
+    const colorClasses = {
+      primary: 'bg-primary/10 text-primary',
+      blue: 'bg-blue-500/10 text-blue-600',
+      amber: 'bg-amber-500/10 text-amber-600',
+      green: 'bg-green-500/10 text-green-600',
+    };
+
+    return (
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs sm:text-sm font-semibold text-slate-600 leading-tight">{title}</span>
-          <div className={`p-2 sm:p-2.5 rounded-full transition-colors shrink-0 ${
-            isActive ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
-          }`}>
+          <div className={`p-2 sm:p-2.5 rounded-full shrink-0 ${colorClasses[color]}`}>
             <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
@@ -83,16 +72,6 @@ export default async function AdminOrdersPage({
         <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 font-medium leading-tight">{description}</p>
       </div>
     );
-
-    if (filterKey) {
-      return (
-        <Link href={`/admin/orders?filter=${filterKey}`} scroll={false}>
-          {content}
-        </Link>
-      );
-    }
-
-    return content;
   }
 
   // Calcular estadísticas
@@ -125,45 +104,41 @@ export default async function AdminOrdersPage({
 
       <Separator />
 
-      {/* KPIs - Ahora clickeables como filtros rápidos */}
+      {/* KPIs - Indicadores visuales */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Pedidos"
           value={stats.total}
           icon={ShoppingCart}
           description="Órdenes registradas"
-          filterKey="all"
-          isActive={!filter || filter === 'all'}
+          color="primary"
         />
         <StatCard
           title="Por Despachar"
           value={stats.toDispatch}
           icon={Truck}
           description="Pagados pendientes de envío"
-          filterKey="toDispatch"
-          isActive={filter === 'toDispatch'}
+          color="blue"
         />
         <StatCard
           title="Por Pagar"
           value={stats.toPay}
           icon={Clock}
           description="Esperando confirmación"
-          filterKey="toPay"
-          isActive={filter === 'toPay'}
+          color="amber"
         />
         <StatCard
           title="Completados"
           value={stats.completed}
           icon={CheckCircle2}
           description="Entregados exitosamente"
-          filterKey="completed"
-          isActive={filter === 'completed'}
+          color="green"
         />
       </div>
 
       {/* Tabla de pedidos */}
       <section>
-        <OrdersView orders={plainOrders} initialFilter={filter} />
+        <OrdersView orders={plainOrders} />
       </section>
 
     </div>
