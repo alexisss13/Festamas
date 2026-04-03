@@ -86,6 +86,7 @@ export async function getProducts({
       ...p,
       price: Number(p.price),
       wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
+      cost: p.cost ? Number(p.cost) : null,
       category: { name: p.category.name, slug: p.category.slug }
     }));
 
@@ -120,6 +121,7 @@ export const getProduct = unstable_cache(
         ...product,
         price: Number(product.price),
         wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
+        cost: product.cost ? Number(product.cost) : null,
         discountPercentage: product.discountPercentage,
       };
     } catch (error) {
@@ -197,6 +199,7 @@ export const getProductsByCategory = async (
       division: product.division,
       createdAt: product.createdAt,
       barcode: product.barcode,
+      cost: product.cost ? Number(product.cost) : null,
       category: {
         name: product.category.name,
         slug: product.category.slug,
@@ -249,6 +252,7 @@ export const getProductsByTag = async (tag: string, take: number = 8, division?:
         ...p,
         price: Number(p.price),
         wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
+        cost: p.cost ? Number(p.cost) : null,
         category: {
             name: p.category.name,
             slug: p.category.slug
@@ -288,6 +292,7 @@ export const getSimilarProducts = async (categoryId: string, currentProductId: s
         ...p,
         price: Number(p.price),
         wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
+        cost: p.cost ? Number(p.cost) : null,
         category: { name: p.category.name, slug: p.category.slug }
     }));
   } catch (error) {
@@ -365,6 +370,7 @@ export const getNewArrivalsProducts = async ({
       division: product.division,
       createdAt: product.createdAt,
       barcode: product.barcode,
+      cost: product.cost ? Number(product.cost) : null,
       category: {
         name: product.category.name,
         slug: product.category.slug,

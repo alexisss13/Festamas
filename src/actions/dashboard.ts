@@ -260,7 +260,8 @@ export async function getTopProducts(division: Division = 'JUGUETERIA') {
       .filter(p => p._count.orderItems > 0)
       .map(p => ({
         ...p,
-        price: Number(p.price)
+        price: Number(p.price),
+        cost: p.cost ? Number(p.cost) : null
       }));
   } catch (error) {
     console.error('Error top products:', error);

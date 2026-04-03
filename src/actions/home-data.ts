@@ -51,6 +51,7 @@ export const getHomeData = async (division: Division) => {
         ...p,
         price: Number(p.price),
         wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
+        cost: p.cost ? Number(p.cost) : null,
         category: { name: p.category.name, slug: p.category.slug }
       })),
       categories,
