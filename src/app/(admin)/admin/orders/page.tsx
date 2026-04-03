@@ -3,8 +3,14 @@ import { OrdersView } from './OrdersView';
 import { ExportButton } from './ExportButton';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Truck, Clock, CheckCircle2, LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 
-export default async function AdminOrdersPage() {
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
+  const { filter } = await searchParams;
   const { success, data: orders } = await getOrders();
 
   if (!success || !orders) {
@@ -39,21 +45,68 @@ export default async function AdminOrdersPage() {
     })),
   }));
 
-  // Componente de KPI card inline
-  function StatCard({ title, value, icon: Icon, description }: { title: string; value: number; icon: LucideIcon; description: string }) {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition-all">
+  // Componente de KPI card inline (ahora clickeable)
+  function StatCard({ 
+    title, 
+    value, 
+    icon: Icon, 
+    description,
+    filterKey,
+    isActive
+  }: { 
+    title: string; 
+    value: number; 
+    icon: LucideIcon; 
+    description: string;
+    filterKey?: string;
+    isActive?: boolean;
+  }) {
+    const content = (
+      <div className={`bg-white border rounded-xl p-4 sm:p-5 shadow-sm transition-all ${
+        filterKey 
+          ? 'cursor-pointer hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5' 
+          : ''
+      } ${
+        isActive 
+          ? 'border-primary ring-2 ring-primary/20 shadow-md' 
+          : 'border-slate-200'
+      }`}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs sm:text-sm font-semibold text-slate-600 leading-tight">{title}</span>
-          <div className="p-2 sm:p-2.5 rounded-full bg-primary/10 shrink-0">
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+          <div className={`p-2 sm:p-2.5 rounded-full transition-colors shrink-0 ${
+            isActive ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+          }`}>
+            <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
-        <div className="text-xl sm:text-2xl font-bold text-slate-900">{value}</div>
-        <p className="text-[10px] sm:text-xs text-slate-500 mt-1 font-medium">{description}</p>
+        <div className="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{value}</div>
+        <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 font-medium leading-tight">{description}</p>
       </div>
     );
+
+    if (filterKey) {
+      return (
+        <Link href={`/admin/orders?filter=${filterKey}`} scroll={false}>
+          {content}
+        </Link>
+      );
+    }
+
+    return content;
   }
+
+  // Calcular estadísticas
+  const stats = {
+    total: plainOrders.length,
+    // Por Despachar: Pagados pero no entregados (PAID status)
+    toDispatch: plainOrders.filter((o: any) => o.isPaid && o.status === 'PAID').length,
+    // Por Pagar: Pendientes de pago (PENDING status y no pagado)
+    toPay: plainOrders.filter((o: any) => !o.isPaid && o.status === 'PENDING').length,
+    // Completados: Entregados
+    completed: plainOrders.filter((o: any) => o.status === 'DELIVERED').length,
+    // Cancelados
+    cancelled: plainOrders.filter((o: any) => o.status === 'CANCELLED').length,
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-slate-50/50 min-h-[calc(100vh-4rem)] [&_::selection]:bg-slate-200 [&_::selection]:text-slate-900">
@@ -72,37 +125,45 @@ export default async function AdminOrdersPage() {
 
       <Separator />
 
-      {/* KPIs */}
+      {/* KPIs - Ahora clickeables como filtros rápidos */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Pedidos"
-          value={plainOrders.length}
+          value={stats.total}
           icon={ShoppingCart}
           description="Órdenes registradas"
+          filterKey="all"
+          isActive={!filter || filter === 'all'}
         />
         <StatCard
           title="Por Despachar"
-          value={plainOrders.filter((o: any) => o.isPaid && o.status === 'PENDING').length}
+          value={stats.toDispatch}
           icon={Truck}
-          description="Pagados sin enviar"
+          description="Pagados pendientes de envío"
+          filterKey="toDispatch"
+          isActive={filter === 'toDispatch'}
         />
         <StatCard
           title="Por Pagar"
-          value={plainOrders.filter((o: any) => !o.isPaid && o.status !== 'CANCELLED').length}
+          value={stats.toPay}
           icon={Clock}
-          description="Sin confirmar pago"
+          description="Esperando confirmación"
+          filterKey="toPay"
+          isActive={filter === 'toPay'}
         />
         <StatCard
           title="Completados"
-          value={plainOrders.filter((o: any) => o.status === 'DELIVERED').length}
+          value={stats.completed}
           icon={CheckCircle2}
-          description="Pedidos entregados"
+          description="Entregados exitosamente"
+          filterKey="completed"
+          isActive={filter === 'completed'}
         />
       </div>
 
       {/* Tabla de pedidos */}
       <section>
-        <OrdersView orders={plainOrders} />
+        <OrdersView orders={plainOrders} initialFilter={filter} />
       </section>
 
     </div>
