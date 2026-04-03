@@ -115,20 +115,24 @@ export default async function ProductPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* BREADCRUMB */}
-      <div className="container mx-auto px-4 py-4">
-        <nav className="flex items-center text-sm text-slate-500 gap-2 overflow-hidden">
-            <Link href="/" className="hover:text-slate-900 transition-colors"><Home className="w-4 h-4" /></Link>
-            <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
-            <Link href={`/category/${product.category.slug}`} className="hover:text-slate-900 transition-colors whitespace-nowrap">{product.category.name}</Link>
-            <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+      <div className="container mx-auto px-4 py-3 md:py-4">
+        <nav className="flex items-center text-xs md:text-sm text-slate-500 gap-1.5 md:gap-2 overflow-x-auto scrollbar-hide">
+            <Link href="/" className="hover:text-slate-900 transition-colors flex-shrink-0">
+              <Home className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-300 flex-shrink-0" />
+            <Link href={`/category/${product.category.slug}`} className="hover:text-slate-900 transition-colors whitespace-nowrap flex-shrink-0">
+              {product.category.name}
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-300 flex-shrink-0" />
             <span className="font-medium text-slate-900 truncate">{product.title}</span>
         </nav>
       </div>
 
-      <div className="container mx-auto px-4 mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16 items-start">
+      <div className="container mx-auto px-4 mt-4 md:mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 lg:gap-16 items-start">
           
-          <div className="sticky top-24">
+          <div className="md:sticky md:top-24">
              <ProductImageGallery 
                 images={product.images} 
                 title={product.title} 
@@ -137,17 +141,17 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           <div className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="mb-4">
-                <span className={`text-xs font-bold tracking-wider uppercase ${brandColorText}`}>
+            <div className="mb-4 md:mb-6">
+                <span className={`text-[10px] md:text-xs font-bold tracking-wider uppercase ${brandColorText}`}>
                     {isToys ? 'Festamas' : 'FiestasYa'}
                 </span>
-                <h1 className="mt-2 text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                <h1 className="mt-1.5 md:mt-2 text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                     {product.title}
                 </h1>
-                <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
-                    <span>SKU: {product.slug.split('-').pop()?.toUpperCase()}</span>
-                    <span>•</span>
-                    <Badge variant="outline" className="text-slate-600 border-slate-200 bg-slate-50">
+                <div className="mt-2 flex items-center gap-2 text-xs md:text-sm text-slate-500 flex-wrap">
+                    <span className="whitespace-nowrap">SKU: {product.slug.split('-').pop()?.toUpperCase()}</span>
+                    <span className="hidden sm:inline">•</span>
+                    <Badge variant="outline" className="text-slate-600 border-slate-200 bg-slate-50 text-xs">
                         {product.category.name}
                     </Badge>
                 </div>
@@ -156,9 +160,9 @@ export default async function ProductPage({ params }: Props) {
             <ProductActions product={sanitizedProduct} />
 
             {siblings.length > 0 && (
-              <div className="mt-8 pt-6 border-t border-slate-100">
+              <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-slate-100">
                   <p className="text-sm font-bold text-slate-900 mb-3">Otras opciones disponibles:</p>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-2 md:gap-3">
                       {siblings.map((variant) => {
                           const isActive = variant.slug === product.slug;
                           return (
@@ -167,7 +171,7 @@ export default async function ProductPage({ params }: Props) {
                                   href={`/product/${variant.slug}`}
                                   title={variant.title}
                                   className={`
-                                      group relative w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all overflow-hidden
+                                      group relative w-10 h-10 md:w-12 md:h-12 rounded-lg border-2 flex items-center justify-center transition-all overflow-hidden
                                       ${isActive ? 'border-slate-900 ring-2 ring-slate-200 ring-offset-2' : 'border-slate-200 hover:border-slate-400'}
                                   `}
                               >
@@ -183,9 +187,9 @@ export default async function ProductPage({ params }: Props) {
               </div>
             )}
 
-            <div className="mt-8 pt-6 border-t border-slate-100">
-                <h3 className="text-lg font-bold text-slate-900 mb-3">Descripción</h3>
-                <div className="prose prose-slate prose-sm max-w-none text-slate-600 leading-relaxed">
+            <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-slate-100">
+                <h3 className="text-base md:text-lg font-bold text-slate-900 mb-2 md:mb-3">Descripción</h3>
+                <div className="prose prose-slate prose-sm max-w-none text-slate-600 leading-relaxed text-sm md:text-base">
                     <p>{product.description}</p>
                 </div>
             </div>
@@ -195,9 +199,9 @@ export default async function ProductPage({ params }: Props) {
 
         {/* 🚀 NUEVA SECCIÓN: PRODUCTOS SIMILARES */}
         {similarProducts.length > 0 && (
-            <div className="mt-24">
-                <Separator className="mb-10" />
-                <h2 className="text-2xl font-bold text-slate-700 mb-6">
+            <div className="mt-12 md:mt-16 lg:mt-24">
+                <Separator className="mb-6 md:mb-10" />
+                <h2 className="text-xl md:text-2xl font-bold text-slate-700 mb-4 md:mb-6 px-2">
                     También te podría gustar
                 </h2>
                 <ProductCarousel products={similarProducts as any} autoPlay={true} />
