@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, Package, ShoppingCart, Settings, LogOut, 
-  Tags, Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, Calculator, Users, BookOpen
+  LayoutDashboard, ShoppingCart, Settings, LogOut, 
+  Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -16,17 +16,13 @@ import { Division } from '@prisma/client';
 
 const storeNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/pos', label: 'Punto de Venta', icon: Calculator },
   { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
-  { href: '/admin/products', label: 'Productos', icon: Package },
-  { href: '/admin/categories', label: 'Categorías', icon: Tags },
   { href: '/admin/catalogs', label: 'Catálogos', icon: BookOpen },
   { href: '/admin/banners', label: 'Banners', icon: Images },
   { href: '/admin/sections', label: 'Secciones Home', icon: Store },
 ];
 
 const globalNavItems = [
-  { href: '/admin/users', label: 'Usuarios y Roles', icon: Users },
   { href: '/admin/coupons', label: 'Cupones', icon: Ticket },
   { href: '/admin/settings', label: 'Configuración', icon: Settings },
 ];
@@ -41,8 +37,7 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Detectar si estamos en un módulo global
-  const isGlobalModule = pathname.startsWith('/admin/users') || 
-                         pathname.startsWith('/admin/coupons') || 
+  const isGlobalModule = pathname.startsWith('/admin/coupons') || 
                          pathname.startsWith('/admin/settings');
 
   const brandName = currentDivision === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa';

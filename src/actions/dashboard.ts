@@ -259,8 +259,15 @@ export async function getTopProducts(division: Division = 'JUGUETERIA') {
     return topProducts
       .filter(p => p._count.orderItems > 0)
       .map(p => ({
-        ...p,
-        price: Number(p.price)
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        price: Number(p.price),
+        stock: p.stock,
+        images: p.images,
+        isAvailable: p.isAvailable,
+        barcode: p.barcode,
+        _count: p._count
       }));
   } catch (error) {
     console.error('Error top products:', error);

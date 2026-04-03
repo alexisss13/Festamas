@@ -2,8 +2,7 @@ import { getOrders } from '@/actions/order';
 import { OrdersView } from './OrdersView';
 import { ExportButton } from './ExportButton';
 import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, Truck, Clock, CheckCircle2 } from 'lucide-react';
-import { LucideIcon } from 'lucide-react';
+import { ShoppingCart, Truck, Clock, CheckCircle2, LucideIcon } from 'lucide-react';
 
 export default async function AdminOrdersPage() {
   const { success, data: orders } = await getOrders();
@@ -29,9 +28,13 @@ export default async function AdminOrdersPage() {
       product: {
         ...item.product,
         price: Number(item.product.price),
-        wholesalePrice: item.product.wholesalePrice
-          ? Number(item.product.wholesalePrice)
+        wholesalePrice: item.product.wholesalePrice 
+          ? Number(item.product.wholesalePrice) 
           : 0,
+        // 👇 SOLUCIÓN AL ERROR: Convertimos 'cost' que venía como Decimal
+        cost: item.product.cost 
+          ? Number(item.product.cost) 
+          : 0, 
       },
     })),
   }));

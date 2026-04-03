@@ -35,6 +35,7 @@ export function PaginationControls({ totalPages, currentPage, hasNext, hasPrev }
           size="sm"
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={!hasPrev}
+          className="hover:text-primary hover:bg-primary/10 hover:border-primary/30 transition-colors"
         >
           <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
         </Button>
@@ -43,6 +44,7 @@ export function PaginationControls({ totalPages, currentPage, hasNext, hasPrev }
           size="sm"
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={!hasNext}
+          className="hover:text-primary hover:bg-primary/10 hover:border-primary/30 transition-colors"
         >
           Siguiente <ChevronRight className="h-4 w-4 ml-1" />
         </Button>

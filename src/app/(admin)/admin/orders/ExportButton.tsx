@@ -112,10 +112,11 @@ export function ExportButton({ orders }: ExportButtonProps) {
   return (
     <Button
       onClick={handleExport}
-      className="gap-2 bg-primary/90 hover:bg-primary text-white border-0 font-medium h-10 transition-colors cursor-pointer shadow-sm"
+      title="Exportar"
+      className="bg-primary hover:bg-primary/90 text-white border-0 h-10 w-full gap-2 px-5 flex items-center justify-center transition-colors cursor-pointer shadow-sm rounded-md font-semibold text-[13px]"
     >
       <Download className="h-4 w-4" />
-      Exportar a Excel
+      Exportar
     </Button>
   );
 }
