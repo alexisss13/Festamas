@@ -175,8 +175,25 @@ export async function getOrders() {
         ...item,
         price: Number(item.price),
         product: {
-          ...item.product,
+          id: item.product.id,
+          title: item.product.title,
+          slug: item.product.slug,
+          description: item.product.description,
           price: Number(item.product.price),
+          stock: item.product.stock,
+          images: item.product.images,
+          isAvailable: item.product.isAvailable,
+          wholesalePrice: item.product.wholesalePrice ? Number(item.product.wholesalePrice) : 0,
+          wholesaleMinCount: item.product.wholesaleMinCount,
+          discountPercentage: item.product.discountPercentage,
+          tags: item.product.tags,
+          color: item.product.color,
+          groupTag: item.product.groupTag,
+          division: item.product.division,
+          barcode: item.product.barcode,
+          categoryId: item.product.categoryId,
+          createdAt: item.product.createdAt,
+          updatedAt: item.product.updatedAt
         }
       }))
     }));
@@ -205,7 +222,39 @@ export async function getOrderById(id: string) {
 
     if (!order) return null;
 
-    return { success: true, order };
+    // Serializar productos para evitar errores de Decimal
+    const serializedOrder = {
+      ...order,
+      totalAmount: Number(order.totalAmount),
+      shippingCost: Number(order.shippingCost),
+      orderItems: order.orderItems.map(item => ({
+        ...item,
+        price: Number(item.price),
+        product: {
+          id: item.product.id,
+          title: item.product.title,
+          slug: item.product.slug,
+          description: item.product.description,
+          price: Number(item.product.price),
+          stock: item.product.stock,
+          images: item.product.images,
+          isAvailable: item.product.isAvailable,
+          wholesalePrice: item.product.wholesalePrice ? Number(item.product.wholesalePrice) : 0,
+          wholesaleMinCount: item.product.wholesaleMinCount,
+          discountPercentage: item.product.discountPercentage,
+          tags: item.product.tags,
+          color: item.product.color,
+          groupTag: item.product.groupTag,
+          division: item.product.division,
+          barcode: item.product.barcode,
+          categoryId: item.product.categoryId,
+          createdAt: item.product.createdAt,
+          updatedAt: item.product.updatedAt
+        }
+      }))
+    };
+
+    return { success: true, order: serializedOrder };
   } catch (error) {
     console.error(error);
     return null;

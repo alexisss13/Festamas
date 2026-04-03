@@ -48,10 +48,25 @@ export const getHomeData = async (division: Division) => {
 
     return {
       newArrivals: newArrivals.map(p => ({
-        ...p,
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        description: p.description,
         price: Number(p.price),
+        stock: p.stock,
+        images: p.images,
+        isAvailable: p.isAvailable,
         wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
-        cost: p.cost ? Number(p.cost) : null,
+        wholesaleMinCount: p.wholesaleMinCount,
+        discountPercentage: p.discountPercentage,
+        tags: p.tags,
+        color: p.color,
+        groupTag: p.groupTag,
+        division: p.division,
+        barcode: p.barcode,
+        categoryId: p.categoryId,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
         category: { name: p.category.name, slug: p.category.slug }
       })),
       categories,

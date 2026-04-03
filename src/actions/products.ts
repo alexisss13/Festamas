@@ -83,10 +83,25 @@ export async function getProducts({
     ]);
 
     const data = products.map(p => ({
-      ...p,
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      description: p.description,
       price: Number(p.price),
+      stock: p.stock,
+      images: p.images,
+      isAvailable: p.isAvailable,
       wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
-      cost: p.cost ? Number(p.cost) : null,
+      wholesaleMinCount: p.wholesaleMinCount,
+      discountPercentage: p.discountPercentage,
+      tags: p.tags,
+      color: p.color,
+      groupTag: p.groupTag,
+      division: p.division,
+      barcode: p.barcode,
+      categoryId: p.categoryId,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
       category: { name: p.category.name, slug: p.category.slug }
     }));
 
@@ -118,11 +133,26 @@ export const getProduct = unstable_cache(
       if (!product) return null;
 
       return {
-        ...product,
+        id: product.id,
+        title: product.title,
+        slug: product.slug,
+        description: product.description,
         price: Number(product.price),
+        stock: product.stock,
+        images: product.images,
+        isAvailable: product.isAvailable,
         wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
-        cost: product.cost ? Number(product.cost) : null,
+        wholesaleMinCount: product.wholesaleMinCount,
         discountPercentage: product.discountPercentage,
+        tags: product.tags,
+        color: product.color,
+        groupTag: product.groupTag,
+        division: product.division,
+        barcode: product.barcode,
+        categoryId: product.categoryId,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
+        category: product.category
       };
     } catch (error) {
       console.log(error);
@@ -249,10 +279,25 @@ export const getProductsByTag = async (tag: string, take: number = 8, division?:
     });
 
     const mappedProducts = products.map(p => ({
-        ...p,
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        description: p.description,
         price: Number(p.price),
+        stock: p.stock,
+        images: p.images,
+        isAvailable: p.isAvailable,
         wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
-        cost: p.cost ? Number(p.cost) : null,
+        wholesaleMinCount: p.wholesaleMinCount,
+        discountPercentage: p.discountPercentage,
+        tags: p.tags,
+        color: p.color,
+        groupTag: p.groupTag,
+        division: p.division,
+        barcode: p.barcode,
+        categoryId: p.categoryId,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
         category: {
             name: p.category.name,
             slug: p.category.slug
@@ -289,10 +334,25 @@ export const getSimilarProducts = async (categoryId: string, currentProductId: s
     });
 
     return products.map(p => ({
-        ...p,
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        description: p.description,
         price: Number(p.price),
+        stock: p.stock,
+        images: p.images,
+        isAvailable: p.isAvailable,
         wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
-        cost: p.cost ? Number(p.cost) : null,
+        wholesaleMinCount: p.wholesaleMinCount,
+        discountPercentage: p.discountPercentage,
+        tags: p.tags,
+        color: p.color,
+        groupTag: p.groupTag,
+        division: p.division,
+        barcode: p.barcode,
+        categoryId: p.categoryId,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
         category: { name: p.category.name, slug: p.category.slug }
     }));
   } catch (error) {
