@@ -252,7 +252,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
               Acciones
             </label>
             <div className="w-full">
-              <ExportButton orders={filteredOrders} />
+              <ExportButton />
             </div>
           </div>
         </div>

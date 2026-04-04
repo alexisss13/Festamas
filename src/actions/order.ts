@@ -170,7 +170,9 @@ export async function getOrders() {
     const safeOrders = orders.map((order) => ({
       ...order,
       totalAmount: Number(order.totalAmount),
-      shippingCost: Number(order.shippingCost), 
+      shippingCost: Number(order.shippingCost),
+      receiptNumber: order.receiptNumber,
+      notes: order.notes,
       orderItems: order.orderItems.map((item) => ({
         ...item,
         price: Number(item.price),
