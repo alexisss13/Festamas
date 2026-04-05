@@ -1,7 +1,7 @@
 import { OrderForExport, TransformedOrderData } from './types';
 
 // Función para transformar datos de pedidos a formato de exportación
-export const transformOrderData = (orders: OrderForExport[]): TransformedOrderData[] => {
+export const transformOrderData = (orders: OrderForExport[], selectedColumns?: string[]): TransformedOrderData[] => {
   return orders.map(order => {
     const dniMatch = order.notes?.match(/DNI:\s*(\d+)/i);
     const dni = dniMatch ? dniMatch[1] : '-';
@@ -33,7 +33,7 @@ export const transformOrderData = (orders: OrderForExport[]): TransformedOrderDa
       hour: '2-digit', minute: '2-digit'
     });
 
-    return {
+    const allData = {
       'N° Pedido': order.receiptNumber || order.id.split('-')[0].toUpperCase(),
       'Fecha': fecha,
       'Hora': hora,
@@ -50,6 +50,41 @@ export const transformOrderData = (orders: OrderForExport[]): TransformedOrderDa
       'Costo Envío': order.shippingCost,
       'Total': order.totalAmount,
     };
+
+    // Si no hay columnas seleccionadas, devolver todo
+    if (!selectedColumns || selectedColumns.length === 0) {
+      return allData;
+    }
+
+    // Mapeo de IDs de columnas a nombres de campos
+    const columnMap: Record<string, keyof TransformedOrderData> = {
+      'receiptNumber': 'N° Pedido',
+      'date': 'Fecha',
+      'time': 'Hora',
+      'origin': 'Origen',
+      'client': 'Cliente',
+      'dni': 'DNI',
+      'phone': 'Celular',
+      'delivery': 'Método Entrega',
+      'address': 'Dirección',
+      'products': 'Productos',
+      'status': 'Estado',
+      'paid': 'Pagado',
+      'subtotal': 'Subtotal',
+      'shipping': 'Costo Envío',
+      'total': 'Total',
+    };
+
+    // Filtrar solo las columnas seleccionadas
+    const filteredData: Partial<TransformedOrderData> = {};
+    selectedColumns.forEach(colId => {
+      const fieldName = columnMap[colId];
+      if (fieldName && fieldName in allData) {
+        filteredData[fieldName] = allData[fieldName];
+      }
+    });
+
+    return filteredData as TransformedOrderData;
   });
 };
 

@@ -1,36 +1,67 @@
 import { OrderForExport } from './types';
 import { generateFileName } from './transformers';
 
-export const exportToJSON = (orders: OrderForExport[]) => {
+export const exportToJSON = (orders: OrderForExport[], selectedColumns?: string[]) => {
+  // Mapeo de columnas
+  const columnMap: Record<string, string> = {
+    'receiptNumber': 'receiptNumber',
+    'date': 'fecha',
+    'time': 'hora',
+    'origin': 'origen',
+    'client': 'cliente',
+    'dni': 'dni',
+    'phone': 'telefono',
+    'delivery': 'metodoEntrega',
+    'address': 'direccion',
+    'products': 'productos',
+    'status': 'estado',
+    'paid': 'pagado',
+    'subtotal': 'subtotal',
+    'shipping': 'costoEnvio',
+    'total': 'total',
+  };
+
+  // Determinar columnas a exportar
+  const columnsToExport = selectedColumns && selectedColumns.length > 0
+    ? selectedColumns
+    : Object.keys(columnMap);
+
   // Exportar datos completos en formato JSON
-  const jsonData = orders.map(order => ({
-    id: order.id,
-    receiptNumber: order.receiptNumber,
-    fecha: new Date(order.createdAt).toISOString(),
-    origen: order.receiptNumber ? 'POS' : 'WEB',
-    cliente: {
-      nombre: order.clientName,
+  const jsonData = orders.map(order => {
+    const allData: Record<string, any> = {
+      receiptNumber: order.receiptNumber,
+      fecha: new Date(order.createdAt).toISOString(),
+      hora: new Date(order.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+      origen: order.receiptNumber ? 'POS' : 'WEB',
+      cliente: order.clientName,
+      dni: order.notes?.match(/DNI:\s*(\d+)/i)?.[1] || null,
       telefono: order.clientPhone,
-      dni: order.notes?.match(/DNI:\s*(\d+)/i)?.[1] || null
-    },
-    entrega: {
-      metodo: order.deliveryMethod,
+      metodoEntrega: order.deliveryMethod,
       direccion: order.shippingAddress,
-      costo: order.shippingCost
-    },
-    productos: order.orderItems.map(item => ({
-      titulo: item.product.title,
-      cantidad: item.quantity,
-      precioUnitario: item.price,
-      subtotal: item.quantity * item.price
-    })),
-    estado: order.status,
-    pagado: order.isPaid,
-    subtotal: order.totalAmount - order.shippingCost,
-    costoEnvio: order.shippingCost,
-    total: order.totalAmount,
-    notas: order.notes
-  }));
+      productos: order.orderItems.map(item => ({
+        titulo: item.product.title,
+        cantidad: item.quantity,
+        precioUnitario: item.price,
+        subtotal: item.quantity * item.price
+      })),
+      estado: order.status,
+      pagado: order.isPaid,
+      subtotal: order.totalAmount - order.shippingCost,
+      costoEnvio: order.shippingCost,
+      total: order.totalAmount,
+    };
+
+    // Filtrar solo las columnas seleccionadas
+    const filteredData: Record<string, any> = {};
+    columnsToExport.forEach(colId => {
+      const fieldName = columnMap[colId];
+      if (fieldName && fieldName in allData) {
+        filteredData[fieldName] = allData[fieldName];
+      }
+    });
+
+    return filteredData;
+  });
 
   const jsonString = JSON.stringify(jsonData, null, 2);
   const blob = new Blob([jsonString], { type: 'application/json' });

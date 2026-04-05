@@ -12,7 +12,7 @@ export default async function AdminLayout({
   const activeTheme = division === 'FIESTAS' ? 'fiestasya' : 'festamas';
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50 overflow-x-hidden" data-theme={activeTheme}>
+    <div className="flex min-h-screen bg-white overflow-x-hidden" data-theme={activeTheme}>
       <AdminSidebar currentDivision={division} />
 
       <main 

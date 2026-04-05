@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Download, SlidersHorizontal, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
   exportToPDF,
   exportToJSON
 } from '@/lib/export';
+import { useUIStore } from '@/store/ui';
 
 // Asumiendo que estos componentes están en la misma carpeta o ajusta las rutas
 import { DateFilters } from './components/DateFilters';
@@ -43,11 +44,38 @@ const COLUMNS = [
 ];
 
 export function ExportView({ orders }: ExportViewProps) {
+  const currentDivision = useUIStore(state => state.currentDivision);
+  const [logo, setLogo] = useState<string>('');
+  
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [deliveryFilter, setDeliveryFilter] = useState('all');
+
+  // Cargar el logo según la división
+  useEffect(() => {
+    const loadLogo = async () => {
+      try {
+        const logoPath = currentDivision === 'FIESTAS' 
+          ? '/images/IconoFY.png' 
+          : '/images/IconoFT.png';
+        
+        const response = await fetch(logoPath);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        
+        reader.onloadend = () => {
+          setLogo(reader.result as string);
+        };
+        
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error('Error cargando logo:', error);
+      }
+    };
+    loadLogo();
+  }, [currentDivision]);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(
     COLUMNS.filter(col => col.default).map(col => col.id)
   );
@@ -115,10 +143,14 @@ export function ExportView({ orders }: ExportViewProps) {
       await new Promise(resolve => setTimeout(resolve, 150)); // UX delay
 
       switch (selectedFormat) {
-        case 'xlsx': exportToExcel(filteredOrders); break;
-        case 'csv': exportToCSV(filteredOrders); break;
-        case 'pdf': exportToPDF(filteredOrders); break;
-        case 'json': exportToJSON(filteredOrders); break;
+        case 'xlsx': exportToExcel(filteredOrders, selectedColumns); break;
+        case 'csv': exportToCSV(filteredOrders, selectedColumns); break;
+        case 'pdf': {
+          const storeName = currentDivision === 'FIESTAS' ? 'FIESTASYA S.A.C.' : 'FESTAMÁS S.A.C.';
+          exportToPDF(filteredOrders, selectedColumns, logo, storeName);
+          break;
+        }
+        case 'json': exportToJSON(filteredOrders, selectedColumns); break;
       }
     } catch (error) {
       console.error(`Error exportando ${selectedFormat}:`, error);
@@ -128,14 +160,14 @@ export function ExportView({ orders }: ExportViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-white">
       {/* Header Limpio */}
       <div className="border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2 text-slate-500 hover:text-slate-900">
+          <Button variant="link" size="sm" asChild className="mb-4 -ml-2 text-slate-500 hover:text-slate-900 p-0 h-auto group">
             <Link href="/admin/orders" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              <span>Volver a pedidos</span>
+              <span className="group-hover:underline">Volver a pedidos</span>
             </Link>
           </Button>
           <div>
@@ -234,14 +266,16 @@ export function ExportView({ orders }: ExportViewProps) {
             <div className="sticky top-6 space-y-6">
               
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4 flex items-center gap-2">
+                  <Download className="h-4 w-4 text-primary" />
+                  <h2 className="font-semibold text-slate-800 text-sm">Exportación</h2>
+                </div>
                 <div className="p-5 space-y-6">
                   {/* Formato */}
                   <FormatSelector
                     selectedFormat={selectedFormat}
                     onFormatChange={setSelectedFormat}
                   />
-                  
-                  <div className="h-px bg-slate-100 w-full" />
                   
                   {/* Usando el ExportSummary que tenías ignorado */}
                   <ExportSummary 
@@ -255,11 +289,10 @@ export function ExportView({ orders }: ExportViewProps) {
                   <Button
                     onClick={handleExport}
                     disabled={filteredOrders.length === 0 || selectedColumns.length === 0 || isExporting}
-                    className="w-full h-12 text-sm font-medium shadow-sm transition-all"
-                    size="lg"
+                    className="w-full h-11 text-sm font-medium shadow-sm transition-all"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    {isExporting ? 'Generando archivo...' : `Exportar ${filteredOrders.length} registros`}
+                    {isExporting ? 'Generando...' : 'Exportar datos'}
                   </Button>
                 </div>
               </div>

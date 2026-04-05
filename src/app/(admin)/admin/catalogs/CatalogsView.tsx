@@ -85,7 +85,7 @@ export function CatalogsView({ initialCatalogs, division }: { initialCatalogs: a
                 <div className="w-full overflow-x-auto">
                     <Table className="min-w-[800px]">
                         <TableHeader>
-                            <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-200">
+                            <TableRow className="bg-white hover:bg-white border-b border-slate-200">
                                 <TableHead className="h-11 px-4 lg:px-6 w-[120px]">Portada</TableHead>
                                 <TableHead className="h-11 px-4 font-semibold text-slate-700 min-w-[200px]">Título</TableHead>
                                 <TableHead className="h-11 px-4 font-semibold text-slate-700 w-[180px]">Link (iframe)</TableHead>

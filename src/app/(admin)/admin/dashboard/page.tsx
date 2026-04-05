@@ -44,7 +44,7 @@ export default async function DashboardPage() {
   return (
     <div 
       key={currentDivision}
-      className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-slate-50/50 min-h-[calc(100vh-4rem)]"
+      className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-white min-h-[calc(100vh-4rem)]"
       data-theme={isFiestas ? 'fiestasya' : ''}
     >
       <div className="pb-2 lg:pb-4">

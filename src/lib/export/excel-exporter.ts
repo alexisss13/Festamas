@@ -6,7 +6,7 @@ import { createDetailSheet } from './sheets/detail-sheet';
 import { createProductsSheet } from './sheets/products-sheet';
 import { createDeliverySheet } from './sheets/delivery-sheet';
 
-export const exportToExcel = (orders: OrderForExport[]) => {
+export const exportToExcel = (orders: OrderForExport[], selectedColumns?: string[]) => {
   const { totalSubtotal, totalShipping, totalGeneral } = calculateTotals(orders);
 
   const workbook = XLSX.utils.book_new();
@@ -19,7 +19,7 @@ export const exportToExcel = (orders: OrderForExport[]) => {
   
   // Crear las 4 hojas
   const summarySheet = createSummarySheet(orders, { totalSubtotal, totalShipping, totalGeneral });
-  const detailSheet = createDetailSheet(orders, { totalSubtotal, totalShipping, totalGeneral });
+  const detailSheet = createDetailSheet(orders, { totalSubtotal, totalShipping, totalGeneral }, selectedColumns);
   const productsSheet = createProductsSheet(orders);
   const deliverySheet = createDeliverySheet(orders);
   

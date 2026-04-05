@@ -2,27 +2,28 @@ import * as XLSX from 'xlsx-js-style';
 import { OrderForExport } from './types';
 import { transformOrderData, calculateTotals, generateFileName } from './transformers';
 
-export const exportToCSV = (orders: OrderForExport[]) => {
-  const dataToExport = transformOrderData(orders);
+export const exportToCSV = (orders: OrderForExport[], selectedColumns?: string[]) => {
+  const dataToExport = transformOrderData(orders, selectedColumns);
   const { totalSubtotal, totalShipping, totalGeneral } = calculateTotals(orders);
 
-  dataToExport.push({
-    'N° Pedido': '',
-    'Fecha': '',
-    'Hora': '',
-    'Origen': '',
-    'Cliente': '',
-    'DNI': '',
-    'Celular': '',
-    'Método Entrega': '',
-    'Dirección': '',
-    'Productos': 'TOTALES',
-    'Estado': '',
-    'Pagado': '',
-    'Subtotal': totalSubtotal,
-    'Costo Envío': totalShipping,
-    'Total': totalGeneral,
+  // Crear fila de totales solo con las columnas seleccionadas
+  const totalsRow: any = {};
+  const firstRow = dataToExport[0] || {};
+  Object.keys(firstRow).forEach(key => {
+    if (key === 'Productos') {
+      totalsRow[key] = 'TOTALES';
+    } else if (key === 'Subtotal') {
+      totalsRow[key] = totalSubtotal;
+    } else if (key === 'Costo Envío') {
+      totalsRow[key] = totalShipping;
+    } else if (key === 'Total') {
+      totalsRow[key] = totalGeneral;
+    } else {
+      totalsRow[key] = '';
+    }
   });
+
+  dataToExport.push(totalsRow);
 
   const worksheet = XLSX.utils.json_to_sheet(dataToExport);
   const csv = XLSX.utils.sheet_to_csv(worksheet);

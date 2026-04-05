@@ -7,8 +7,32 @@ interface Totals {
   totalGeneral: number;
 }
 
-export const createDetailSheet = (orders: OrderForExport[], totals: Totals) => {
+export const createDetailSheet = (orders: OrderForExport[], totals: Totals, selectedColumns?: string[]) => {
   const { totalSubtotal, totalShipping, totalGeneral } = totals;
+  
+  // Mapeo de IDs de columnas a nombres de campos
+  const columnMap: Record<string, string> = {
+    'receiptNumber': 'N° Pedido',
+    'date': 'Fecha',
+    'time': 'Hora',
+    'origin': 'Origen',
+    'client': 'Cliente',
+    'dni': 'DNI',
+    'phone': 'Celular',
+    'delivery': 'Método Entrega',
+    'address': 'Dirección',
+    'products': 'Productos',
+    'status': 'Estado',
+    'paid': 'Pagado',
+    'subtotal': 'Subtotal',
+    'shipping': 'Costo Envío',
+    'total': 'Total',
+  };
+
+  // Determinar qué columnas mostrar
+  const columnsToShow = selectedColumns && selectedColumns.length > 0
+    ? selectedColumns.map(id => columnMap[id]).filter(Boolean)
+    : Object.values(columnMap);
   
   const dataToExport = orders.map(order => {
     const products = order.orderItems
@@ -18,7 +42,7 @@ export const createDetailSheet = (orders: OrderForExport[], totals: Totals) => {
     const dniMatch = order.notes?.match(/DNI:\s*(\d+)/);
     const dni = dniMatch ? dniMatch[1] : '';
     
-    return {
+    const allData: Record<string, any> = {
       'N° Pedido': order.receiptNumber || `#${order.id}`,
       'Fecha': new Date(order.createdAt).toLocaleDateString('es-PE'),
       'Hora': new Date(order.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
@@ -35,52 +59,63 @@ export const createDetailSheet = (orders: OrderForExport[], totals: Totals) => {
       'Costo Envío': Number(order.shippingCost) || 0,
       'Total': Number(order.totalAmount) || 0,
     };
+
+    // Filtrar solo las columnas seleccionadas
+    const filteredData: Record<string, any> = {};
+    columnsToShow.forEach(col => {
+      if (col in allData) {
+        filteredData[col] = allData[col];
+      }
+    });
+
+    return filteredData;
   });
 
   const worksheet = XLSX.utils.json_to_sheet(dataToExport);
   
-  // ─── FÓRMULAS DINÁMICAS PARA TOTALES ─────────────────────────────────────
-  const lastDataRow = dataToExport.length + 1; // +1 porque la fila 1 es el header
+  const totalCols = columnsToShow.length;
+  const lastDataRow = dataToExport.length + 1;
   const totalRow = lastDataRow + 1;
   
-  // Agregar fila de totales con fórmulas
-  worksheet[`A${totalRow}`] = { t: 's', v: '' };
-  worksheet[`B${totalRow}`] = { t: 's', v: '' };
-  worksheet[`C${totalRow}`] = { t: 's', v: '' };
-  worksheet[`D${totalRow}`] = { t: 's', v: '' };
-  worksheet[`E${totalRow}`] = { t: 's', v: '' };
-  worksheet[`F${totalRow}`] = { t: 's', v: '' };
-  worksheet[`G${totalRow}`] = { t: 's', v: '' };
-  worksheet[`H${totalRow}`] = { t: 's', v: '' };
-  worksheet[`I${totalRow}`] = { t: 's', v: '' };
-  worksheet[`J${totalRow}`] = { t: 's', v: 'TOTAL GENERAL', s: {} };
-  worksheet[`K${totalRow}`] = { t: 's', v: '' };
-  worksheet[`L${totalRow}`] = { t: 's', v: '' };
-  
-  // Fórmulas SUM para los totales
-  worksheet[`M${totalRow}`] = { t: 'n', f: `SUM(M2:M${lastDataRow})`, s: {} };
-  worksheet[`N${totalRow}`] = { t: 'n', f: `SUM(N2:N${lastDataRow})`, s: {} };
-  worksheet[`O${totalRow}`] = { t: 'n', f: `SUM(O2:O${lastDataRow})`, s: {} };
+  // Agregar fila de totales
+  const totalRowData: Record<string, any> = {};
+  columnsToShow.forEach((col, index) => {
+    if (col === 'Subtotal' || col === 'Costo Envío' || col === 'Total') {
+      const colLetter = XLSX.utils.encode_col(index);
+      worksheet[`${colLetter}${totalRow}`] = { 
+        t: 'n', 
+        f: `SUM(${colLetter}2:${colLetter}${lastDataRow})`,
+        s: {}
+      };
+    } else if (index === columnsToShow.length - 4 || (index === 0 && !columnsToShow.includes('Subtotal'))) {
+      const colLetter = XLSX.utils.encode_col(index);
+      worksheet[`${colLetter}${totalRow}`] = { t: 's', v: 'TOTAL GENERAL', s: {} };
+    } else {
+      const colLetter = XLSX.utils.encode_col(index);
+      worksheet[`${colLetter}${totalRow}`] = { t: 's', v: '', s: {} };
+    }
+  });
   
   // Actualizar el rango de la hoja
   const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-  range.e.r = totalRow - 1; // Ajustar el rango para incluir la fila de totales
+  range.e.r = totalRow - 1;
+  range.e.c = totalCols - 1;
   worksheet['!ref'] = XLSX.utils.encode_range(range);
   
-  const wscols = [
-    { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 25 },
-    { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 30 }, { wch: 60 },
-    { wch: 10 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
-  ];
+  // Anchos de columna dinámicos
+  const wscols = columnsToShow.map(col => {
+    if (col === 'Productos') return { wch: 60 };
+    if (col === 'Dirección') return { wch: 30 };
+    if (col === 'Cliente') return { wch: 25 };
+    if (col === 'Método Entrega') return { wch: 18 };
+    if (col === 'N° Pedido' || 'Fecha' || 'DNI' || 'Celular' || 'Subtotal' || 'Costo Envío' || 'Total') return { wch: 12 };
+    return { wch: 10 };
+  });
   worksheet['!cols'] = wscols;
   
-  // OMITIR AUTOFILTRO EN LA FILA DE TOTALES
-  // El rango original (range.e.r) incluye la fila de totales, lo cual rompe el filtro.
-  // Restamos 1 al rango para que el filtro solo aplique a los datos reales.
-  worksheet['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(range.e.c)}${lastDataRow}` };
+  worksheet['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(totalCols - 1)}${lastDataRow}` };
 
-  const totalRows = totalRow; // Total de filas incluyendo header y totales
-  const totalCols = 15;
+  const totalRows = totalRow;
   
   // --- ESTILOS CORPORATIVOS ---
 
@@ -90,196 +125,74 @@ export const createDetailSheet = (orders: OrderForExport[], totals: Totals) => {
     if (!worksheet[cellAddress]) continue;
     
     worksheet[cellAddress].s = {
-      font: { bold: true, color: { rgb: "000000" }, sz: 11, name: "Calibri" }, // Texto Negro
-      fill: { fgColor: { rgb: "F2F2F2" } }, // Gris corporativo (igual al resumen ejecutivo)
+      font: { bold: true, color: { rgb: "000000" }, sz: 11, name: "Calibri" },
+      fill: { fgColor: { rgb: "F2F2F2" } },
       alignment: { horizontal: "center", vertical: "center", wrapText: false },
       border: {
-        top: { style: "thin", color: { rgb: "000000" } }, // Borde negro arriba
-        bottom: { style: "thin", color: { rgb: "000000" } } // Borde negro abajo
-        // Eliminamos bordes laterales para un look más limpio
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } }
       }
     };
   }
 
   // 2. Estilos para filas de datos
-  // Recorremos desde la fila 1 hasta el final
   for (let row = 1; row <= totalRow - 1; row++) {
-    const isLastRow = row === totalRow - 1; // La última fila ahora es la de totales
+    const isLastRow = row === totalRow - 1;
     
     for (let col = 0; col < totalCols; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
       if (!worksheet[cellAddress]) continue;
 
+      const colName = columnsToShow[col];
+      const isMoneyCol = colName === 'Subtotal' || colName === 'Costo Envío' || colName === 'Total';
+
       if (isLastRow) {
         // --- FILA DE TOTALES ---
         worksheet[cellAddress].s = {
           font: { bold: true, sz: 11, name: "Calibri", color: { rgb: "000000" } },
-          fill: { fgColor: { rgb: "F2F2F2" } }, // Gris claro en vez de azul oscuro
+          fill: { fgColor: { rgb: "F2F2F2" } },
           alignment: { 
-            horizontal: col >= 12 ? "right" : (col === 9 ? "right" : "left"), // Alineamos 'TOTAL GENERAL' a la derecha
+            horizontal: isMoneyCol ? "right" : "left",
             vertical: "center" 
           },
           border: {
-            top: { style: "medium", color: { rgb: "000000" } }, // Línea gruesa para separar totales
-            bottom: { style: "double", color: { rgb: "000000" } } // Línea doble al final del documento
+            top: { style: "medium", color: { rgb: "000000" } },
+            bottom: { style: "double", color: { rgb: "000000" } }
           }
         };
         
-        // Formato moneda
-        if (col >= 12 && col <= 14 && typeof worksheet[cellAddress].v === 'number') {
+        if (isMoneyCol && typeof worksheet[cellAddress].v === 'number') {
           worksheet[cellAddress].z = '"S/ "#,##0.00';
         }
       } else {
         // --- FILAS DE DATOS NORMALES ---
         worksheet[cellAddress].s = {
           font: { sz: 10, name: "Calibri", color: { rgb: "000000" } },
-          fill: { fgColor: { rgb: "FFFFFF" } }, // Todo blanco, sin bandas celestes
+          fill: { fgColor: { rgb: "FFFFFF" } },
           alignment: { 
-            horizontal: col >= 12 ? "right" : "left", 
+            horizontal: isMoneyCol ? "right" : "left", 
             vertical: "center",
             wrapText: false
           },
           border: {
-            bottom: { style: "hair", color: { rgb: "BFBFBF" } } // Solo separador horizontal muy fino
+            bottom: { style: "hair", color: { rgb: "BFBFBF" } }
           }
         };
         
-        // Formato moneda
-        if (col >= 12 && col <= 14 && typeof worksheet[cellAddress].v === 'number') {
+        if (isMoneyCol && typeof worksheet[cellAddress].v === 'number') {
           worksheet[cellAddress].z = '"S/ "#,##0.00';
         }
       }
     }
   }
 
-  // Alturas de fila proporcionales
   worksheet['!rows'] = [
-    { hpt: 25 }, // Header un poco más alto
-    ...Array(lastDataRow - 1).fill({ hpt: 20 }), // Filas de datos
-    { hpt: 25 } // Fila de totales
+    { hpt: 25 },
+    ...Array(lastDataRow - 1).fill({ hpt: 20 }),
+    { hpt: 25 }
   ];
 
-  // ─── VALIDACIÓN DE DATOS ──────────────────────────────────────────────────
-  // Agregar validaciones solo si hay datos (más de 1 fila = header + al menos 1 dato)
-  if (lastDataRow > 1) {
-    
-    // Inicializar array de validaciones
-    if (!worksheet['!dataValidation']) {
-      worksheet['!dataValidation'] = [];
-    }
-    
-    // Lista desplegable para Estado (columna K, filas 2 hasta última fila de datos)
-    worksheet['!dataValidation'].push({
-      type: 'list',
-      allowBlank: false,
-      sqref: `K2:K${lastDataRow}`,
-      formulas: ['"Pendiente,Pagado,Entregado,Cancelado"'],
-      promptTitle: 'Estado del Pedido',
-      prompt: 'Selecciona el estado del pedido',
-      errorTitle: 'Valor inválido',
-      error: 'Debes seleccionar un estado válido de la lista',
-      errorStyle: 'stop',
-      showDropDown: true
-    });
-    
-    // Lista desplegable para Pagado (columna L, filas 2 hasta última fila de datos)
-    worksheet['!dataValidation'].push({
-      type: 'list',
-      allowBlank: false,
-      sqref: `L2:L${lastDataRow}`,
-      formulas: ['"Sí,No"'],
-      promptTitle: 'Estado de Pago',
-      prompt: 'Indica si el pedido está pagado',
-      errorTitle: 'Valor inválido',
-      error: 'Debes seleccionar Sí o No',
-      errorStyle: 'stop',
-      showDropDown: true
-    });
-    
-    // Lista desplegable para Método Entrega (columna H, filas 2 hasta última fila de datos)
-    worksheet['!dataValidation'].push({
-      type: 'list',
-      allowBlank: false,
-      sqref: `H2:H${lastDataRow}`,
-      formulas: ['"Recoger,Delivery,Provincia"'],
-      promptTitle: 'Método de Entrega',
-      prompt: 'Selecciona el método de entrega',
-      errorTitle: 'Valor inválido',
-      error: 'Debes seleccionar un método válido de la lista',
-      errorStyle: 'stop',
-      showDropDown: true
-    });
-    
-    // Validación numérica para Subtotal (columna M)
-    worksheet['!dataValidation'].push({
-      type: 'decimal',
-      operator: 'greaterThanOrEqual',
-      allowBlank: false,
-      sqref: `M2:M${lastDataRow}`,
-      formulas: ['0'],
-      promptTitle: 'Subtotal',
-      prompt: 'Ingresa un valor numérico mayor o igual a 0',
-      errorTitle: 'Valor inválido',
-      error: 'El subtotal debe ser un número mayor o igual a 0',
-      errorStyle: 'stop'
-    });
-    
-    // Validación numérica para Costo Envío (columna N)
-    worksheet['!dataValidation'].push({
-      type: 'decimal',
-      operator: 'greaterThanOrEqual',
-      allowBlank: false,
-      sqref: `N2:N${lastDataRow}`,
-      formulas: ['0'],
-      promptTitle: 'Costo de Envío',
-      prompt: 'Ingresa un valor numérico mayor o igual a 0',
-      errorTitle: 'Valor inválido',
-      error: 'El costo de envío debe ser un número mayor o igual a 0',
-      errorStyle: 'stop'
-    });
-    
-    // Validación numérica para Total (columna O)
-    worksheet['!dataValidation'].push({
-      type: 'decimal',
-      operator: 'greaterThanOrEqual',
-      allowBlank: false,
-      sqref: `O2:O${lastDataRow}`,
-      formulas: ['0'],
-      promptTitle: 'Total',
-      prompt: 'Ingresa un valor numérico mayor o igual a 0',
-      errorTitle: 'Valor inválido',
-      error: 'El total debe ser un número mayor o igual a 0',
-      errorStyle: 'stop'
-    });
-    
-    // Validación de formato para Celular (columna G) - 9 dígitos
-    worksheet['!dataValidation'].push({
-      type: 'textLength',
-      operator: 'equal',
-      allowBlank: true,
-      sqref: `G2:G${lastDataRow}`,
-      formulas: ['9'],
-      promptTitle: 'Número de Celular',
-      prompt: 'Ingresa un número de celular de 9 dígitos',
-      errorTitle: 'Formato inválido',
-      error: 'El celular debe tener exactamente 9 dígitos',
-      errorStyle: 'warning'
-    });
-    
-    // Validación de formato para DNI (columna F) - 8 dígitos
-    worksheet['!dataValidation'].push({
-      type: 'textLength',
-      operator: 'equal',
-      allowBlank: true,
-      sqref: `F2:F${lastDataRow}`,
-      formulas: ['8'],
-      promptTitle: 'DNI',
-      prompt: 'Ingresa un DNI de 8 dígitos',
-      errorTitle: 'Formato inválido',
-      error: 'El DNI debe tener exactamente 8 dígitos',
-      errorStyle: 'warning'
-    });
-  }
-
+  // Data validation removed for dynamic columns
+  
   return worksheet;
 };

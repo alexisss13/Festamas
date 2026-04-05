@@ -157,7 +157,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
               placeholder="Buscar por nombre, DNI o email"
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10 pr-10 h-11 text-base bg-slate-50/50 border-slate-200 focus-visible:border-primary focus-visible:ring-primary/20"
+              className="pl-10 pr-10 h-11 text-base bg-white border-slate-200 focus-visible:border-primary focus-visible:ring-primary/20"
             />
             {searchTerm && (
               <button
@@ -196,7 +196,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
             <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2.5 block">
               Pago
             </label>
-            <div className="bg-slate-50/80 p-1 rounded-lg inline-flex flex-wrap items-center gap-1 sm:gap-2 border border-slate-100/50">
+            <div className="bg-white p-1 rounded-lg inline-flex flex-wrap items-center gap-1 sm:gap-2 border border-slate-100/50">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'paid', label: 'Pagado' },
@@ -223,7 +223,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
             <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2.5 block">
               Envío
             </label>
-            <div className="bg-slate-50/80 p-1 rounded-lg inline-flex flex-wrap items-center gap-1 sm:gap-2 border border-slate-100/50">
+            <div className="bg-white p-1 rounded-lg inline-flex flex-wrap items-center gap-1 sm:gap-2 border border-slate-100/50">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'PICKUP', label: 'Recoger' },
@@ -296,7 +296,7 @@ export function OrdersView({ orders }: OrdersViewProps) {
                 const cfg = statusConfig[currentStatus] || statusConfig.PENDING;
 
                 return (
-                  <TableRow key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <TableRow key={order.id} className="border-b border-slate-100 hover:bg-slate-50/30 transition-colors">
                     <TableCell className="py-3 px-4 lg:px-6">
                       {(() => { const { datePart, timePart } = formatDateParts(order.createdAt); return (
                         <div className="flex flex-col tabular-nums">
