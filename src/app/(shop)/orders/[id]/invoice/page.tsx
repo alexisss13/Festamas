@@ -59,16 +59,21 @@ export default async function InvoicePage({ params }: Props) {
 
   const isFestamas = order.notes?.includes('JUGUETERIA') ?? true;
   
+  // Al no estar almacenando los logos crudos y las imágenes estáticas han sido eliminadas,
+  // recaeremos en el modo solo-texto para el nombre de la tienda hasta que haya
+  // un refactor del modelo Order que contenga los logotipos.
+  const dbLogo = '';
+
   const brandConfig = isFestamas 
     ? {
         name: 'FESTAMÁS',
-        logo: '/images/IconoFestamas.png',
+        logo: dbLogo,
         color: '#fc4b65',
         razonSocial: 'INVERSIONES FESTAMAS S.A.C.' // Ejemplo, ajusta si tienes razón social distinta
       }
     : {
         name: 'FIESTASYA',
-        logo: '/images/IconoFiestasYa.png',
+        logo: dbLogo,
         color: '#fb3099',
         razonSocial: 'CORPORACIÓN FIESTASYA S.A.C.'
       };
@@ -138,15 +143,19 @@ export default async function InvoicePage({ params }: Props) {
           <div className="flex justify-between items-start mb-8 border-b pb-8 border-slate-100">
             <div className="flex flex-col gap-1 max-w-[50%]">
                <div className="relative w-48 h-20 mb-3">
-                  <Image 
-                    loader={cloudinaryLoader}
-                    src={brandConfig.logo} 
-                    alt={brandConfig.name} 
-                    fill 
-                    sizes="192px"
-                    className="object-contain object-left" 
-                    priority
-                  />
+                  {brandConfig.logo ? (
+                      <Image 
+                        loader={cloudinaryLoader}
+                        src={brandConfig.logo} 
+                        alt={brandConfig.name} 
+                        fill 
+                        sizes="192px"
+                        className="object-contain object-left" 
+                        priority
+                      />
+                  ) : (
+                      <div className="flex h-full items-center font-black text-2xl text-slate-800">{brandConfig.name}</div>
+                  )}
                </div>
                <h1 className="text-lg font-bold text-slate-900 uppercase tracking-wide leading-tight">
                  {companyInfo.razonSocial}

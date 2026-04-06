@@ -22,25 +22,7 @@ interface Props {
 export function FeaturedCategories({ categories }: Props) {
   const { activeBranchId, branches } = useUIStore();
   
-  // Función para extraer public_id
-  const getPublicId = (url: string): string => {
-    if (!url || url.trim() === '') return '';
-    if (!url.includes('res.cloudinary.com')) return url;
-    
-    try {
-      const parts = url.split('/upload/');
-      if (parts.length < 2) return url;
-      
-      const pathAfterUpload = parts[1];
-      const pathParts = pathAfterUpload.split('/');
-      const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
-      return withoutVersion.join('/').split('.')[0];
-    } catch {
-      return url;
-    }
-  };
-  
-  // 1. Filtrar por tienda activa
+  // Filtrar por tienda activa
   const activeBranch = branches.find(b => b.id === activeBranchId) ?? branches[0];
   const displayCategories = categories.filter((cat: any) => cat.ecommerceCode === activeBranch?.ecommerceCode);
   
@@ -112,9 +94,10 @@ export function FeaturedCategories({ categories }: Props) {
                             {cat.image ? (
                                 <Image 
                                     loader={cloudinaryLoader}
-                                    src={getPublicId(cat.image)} 
+                                    src={cat.image.startsWith('http') || cat.image.startsWith('/') ? cat.image : `/${cat.image}`} 
                                     alt={cat.name} 
                                     fill 
+                                    priority={displayCategories.indexOf(cat) < 6}
                                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
                                 />

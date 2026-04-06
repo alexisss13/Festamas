@@ -96,15 +96,19 @@ export default async function InvoicePage({ params }: Props) {
             <div className="flex flex-col gap-1">
                {/* LOGO DINÁMICO */}
                <div className="relative w-40 h-16 mb-2">
-                  <Image 
-                    loader={cloudinaryLoader}
-                    src={brandConfig.logo} 
-                    alt={brandConfig.name} 
-                    fill 
-                    sizes="160px"
-                    className="object-contain object-left" 
-                    priority
-                  />
+                  {brandConfig.logo ? (
+                      <Image 
+                        loader={cloudinaryLoader}
+                        src={brandConfig.logo} 
+                        alt={brandConfig.name} 
+                        fill 
+                        sizes="160px"
+                        className="object-contain object-left" 
+                        priority
+                      />
+                  ) : (
+                      <div className="flex h-full items-center font-black text-2xl text-slate-800">{brandConfig.name}</div>
+                  )}
                </div>
                {/* DATOS FISCALES */}
                <h1 className="text-xl font-bold text-slate-900 uppercase tracking-wide mt-1">{companyInfo.razonSocial}</h1>

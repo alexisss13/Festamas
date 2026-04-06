@@ -55,8 +55,7 @@ export function HeroClient({ banners }: HeroClientProps) {
 
   const displayBanners: DisplayBanner[] = mainBanners.length > 0 ? mainBanners : [defaultBanner];
   const hasMultipleBanners = displayBanners.length > 1;
-
-  const handleMouseEnter = () => {
+  const handleMouseEnter = () => {
     if (swiperRef.current?.autoplay) {
       swiperRef.current.autoplay.stop();
     }
@@ -66,11 +65,6 @@ export function HeroClient({ banners }: HeroClientProps) {
     if (swiperRef.current?.autoplay) {
       swiperRef.current.autoplay.start();
     }
-  };
-
-  const getSafeSrc = (url: string | null) => {
-    if (!url) return '';
-    return url.startsWith('http') || url.startsWith('/') ? url : `/${url}`;
   };
 
   return (
@@ -104,7 +98,7 @@ export function HeroClient({ banners }: HeroClientProps) {
                    '--swiper-navigation-size': '32px'
                } as React.CSSProperties}
            >
-               {displayBanners.map((banner) => (
+               {displayBanners.map((banner, idx) => (
                <SwiperSlide key={banner.id} className="w-full h-full bg-slate-100">
                    
                    {!banner.isDefault && banner.imageUrl ? (
@@ -118,11 +112,12 @@ export function HeroClient({ banners }: HeroClientProps) {
                            )}>
                                <Image 
                                    loader={cloudinaryLoader}
-                                   src={getSafeSrc(banner.imageUrl)} 
+                                   src={banner.imageUrl.startsWith('http') || banner.imageUrl.startsWith('/') ? banner.imageUrl : `/${banner.imageUrl}`} 
                                    alt={banner.title} 
                                    fill 
                                    className="object-cover"
-                                   priority
+                                   priority={idx === 0}
+                                   loading={idx === 0 ? "eager" : "lazy"}
                                    sizes="100vw"
                                />
                            </div>
@@ -131,11 +126,12 @@ export function HeroClient({ banners }: HeroClientProps) {
                                <div className="relative w-full h-full md:hidden">
                                    <Image 
                                        loader={cloudinaryLoader}
-                                       src={getSafeSrc(banner.mobileUrl)} 
+                                       src={banner.mobileUrl.startsWith('http') || banner.mobileUrl.startsWith('/') ? banner.mobileUrl : `/${banner.mobileUrl}`} 
                                        alt={banner.title} 
                                        fill 
                                        className="object-cover" 
-                                       priority
+                                       priority={idx === 0}
+                                       loading={idx === 0 ? "eager" : "lazy"}
                                        sizes="100vw"
                                    />
                                </div>
