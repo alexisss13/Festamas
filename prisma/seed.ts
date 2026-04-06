@@ -103,7 +103,7 @@ async function main() {
   });
 
   // 5. PRODUCTOS
-  console.log('🧸 Creando productos...');
+  console.log('Creando productos...');
 
   // -- Juguetes --
   await prisma.product.create({
