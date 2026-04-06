@@ -17,7 +17,7 @@ import {
   DialogTitle, 
   DialogDescription, 
 } from '@/components/ui/dialog';
-import { ChevronDown, Check, AlertTriangle, Trash2, X, Globe } from 'lucide-react';
+import { ChevronDown, Check, AlertTriangle, Trash2, X, Globe, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { setAdminBranch } from '@/actions/admin-settings';
 import { usePOSStore } from '@/store/pos-store';
@@ -45,7 +45,7 @@ export const AdminStoreSwitcher = ({ activeBranch, branches, isCollapsed, isGlob
     setIsMounted(true);
   }, []);
 
-  const logoFestamas = activeBranch?.logos?.isotipo ?? activeBranch?.logos?.imagotipo ?? '/images/IconoFestamas2.png';
+  const logoFestamas = activeBranch?.logos?.isotipo ?? activeBranch?.logos?.imagotipo ?? '';
   const brandName = activeBranch?.name || "Tienda";
 
   const handleSwitchRequest = (newBranch: any) => {
@@ -115,15 +115,19 @@ export const AdminStoreSwitcher = ({ activeBranch, branches, isCollapsed, isGlob
                   {isGlobalModule ? (
                     <Globe className="text-slate-600" style={{ width: '24px', height: '24px' }} />
                   ) : (
-                    <div className="relative w-full h-full">
-                      <Image 
-                          loader={cloudinaryLoader}
-                          src={logoFestamas}
-                          alt="Logo" 
-                          fill 
-                          sizes="32px"
-                          className="object-contain" 
-                      />
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      {logoFestamas ? (
+                        <Image 
+                            loader={cloudinaryLoader}
+                            src={logoFestamas}
+                            alt="Logo" 
+                            fill 
+                            sizes="32px"
+                            className="object-contain" 
+                        />
+                      ) : (
+                        <Store className="w-5 h-5 text-slate-400" />
+                      )}
                     </div>
                   )}
               </div>
@@ -167,8 +171,12 @@ export const AdminStoreSwitcher = ({ activeBranch, branches, isCollapsed, isGlob
                   className={cn("gap-3 cursor-pointer p-2 mb-1 rounded-lg focus:bg-slate-50 transition-colors", isActive && "bg-slate-50")}
               >
                 <div className="flex items-center justify-center w-8 h-8 shrink-0">
-                    <div className="relative w-full h-full">
-                        <Image loader={cloudinaryLoader} src={b.logoUrl || '/images/default-store.png'} alt={b.name} fill sizes="32px" className="object-contain" />
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        {(b.logos?.isotipo || b.logos?.imagotipo) ? (
+                          <Image loader={cloudinaryLoader} src={b.logos?.isotipo || b.logos?.imagotipo} alt={b.name} fill sizes="32px" className="object-contain" />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-xs font-bold text-slate-500 bg-slate-100 rounded-full">{b.name[0]}</span>
+                        )}
                     </div>
                 </div>
                 <div className="flex flex-col flex-1">

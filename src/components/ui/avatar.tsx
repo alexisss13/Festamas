@@ -21,15 +21,25 @@ function Avatar({
   )
 }
 
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
+
 function AvatarImage({
   className,
+  src,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  // Integramos el optimizador para Avatares que provengan nativamente de Cloudinary o locales cortos
+  let finalSrc = src;
+  if (typeof src === 'string' && (src.includes('res.cloudinary.com') || (src.length > 0 && !src.includes('/')))) {
+    finalSrc = cloudinaryLoader({ src, width: 256, quality: 75 });
+  }
+
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      className={cn("aspect-square size-full object-cover", className)}
       {...props}
+      src={finalSrc as any}
     />
   )
 }

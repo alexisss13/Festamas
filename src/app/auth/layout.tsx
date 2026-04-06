@@ -6,13 +6,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       
       {/* 🖼️ COLUMNA IZQUIERDA (Imagen de Marca) */}
       <div className="hidden lg:block relative h-full w-full bg-slate-900">
-        <Image
-          src="/images/logo.jpg" // 👈 Asegúrate de tener una foto bonita aquí (o usa una URL de ejemplo)
-          alt="Celebración Festamas"
-          fill
-          className="object-cover opacity-60"
-          priority
-        />
         
         {/* Overlay de Marca */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent flex flex-col justify-end p-12">

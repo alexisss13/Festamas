@@ -29,24 +29,6 @@ export function CategoryCarousel({ categories }: Props) {
 
   const activeColor = "var(--primary)";
 
-  // Función para extraer public_id
-  const getPublicId = (url: string): string => {
-    if (!url || url.trim() === '') return '';
-    if (!url.includes('res.cloudinary.com')) return url;
-    
-    try {
-      const parts = url.split('/upload/');
-      if (parts.length < 2) return url;
-      
-      const pathAfterUpload = parts[1];
-      const pathParts = pathAfterUpload.split('/');
-      const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
-      return withoutVersion.join('/').split('.')[0];
-    } catch {
-      return url;
-    }
-  };
-
   const checkScroll = useCallback(() => {
     if (carouselRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
@@ -181,11 +163,12 @@ export function CategoryCarousel({ categories }: Props) {
                 {category.image ? (
                   <Image
                     loader={cloudinaryLoader}
-                    src={getPublicId(category.image)}
+                    src={category.image.startsWith('http') || category.image.startsWith('/') ? category.image : `/${category.image}`}
                     alt={category.name}
                     fill
                     className="object-cover transition-transform duration-500 group-hover/item:scale-110"
                     sizes="(max-width: 768px) 80px, 140px"
+                    priority={idx < 8}
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">

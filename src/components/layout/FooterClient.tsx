@@ -27,7 +27,7 @@ export function FooterClient({ allCategories }: FooterClientProps) {
   const brandName = activeBranch?.name || 'Festamas';
   const primaryColor = activeBranch?.brandColors?.primary ?? '#fc4b65';
 
-  const activeLogo = activeBranch?.logos?.imagotipoWhite ?? activeBranch?.logos?.alternate ?? '/images/IconoFestamas.png';
+  const activeLogo = activeBranch?.logos?.imagotipoWhite ?? activeBranch?.logos?.alternate ?? '';
   const branchAddress = activeBranch?.address ?? 'Trujillo, Perú';
   const branchPhone = activeBranch?.phone ?? '---';
 
@@ -53,7 +53,11 @@ export function FooterClient({ allCategories }: FooterClientProps) {
           <div className="flex flex-col gap-3 md:gap-6 pb-6 md:pb-0 border-b md:border-none border-white/20">
             <div className="flex items-center justify-between md:items-start md:flex-col md:gap-6">
               <div className="relative h-8 w-32 md:h-10 md:w-40">
-                <Image loader={cloudinaryLoader} src={activeLogo} alt={brandName} fill sizes="(max-width: 768px) 128px, 160px" className="object-contain object-left" />
+                {activeLogo ? (
+                  <Image loader={cloudinaryLoader} src={activeLogo} alt={brandName} fill sizes="(max-width: 768px) 128px, 160px" className="object-contain object-left" />
+                ) : (
+                  <span className="flex h-full items-center font-black text-2xl text-white">{brandName}</span>
+                )}
               </div>
               <div className="flex gap-2 md:gap-4">
                 <a href="#" className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center rounded-full transition-colors shadow-sm bg-white/10 text-white hover:bg-white/20">

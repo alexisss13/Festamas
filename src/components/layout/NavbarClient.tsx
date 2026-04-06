@@ -182,9 +182,8 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
   const searchBtnBg = primaryColor;
   const mobileHeaderClass = "bg-primary";
 
-  const isToysFallback = activeBranch?.ecommerceCode?.toLowerCase().includes('festa') !== false;
-  const activeMainIcon = activeBranch?.logos?.imagotipo ?? (isToysFallback ? '/images/IconoFestamas1.png' : '/images/IconoFiestasYa1.png');
-  const activeMobileIcon = activeBranch?.logos?.isotipo ?? (isToysFallback ? '/images/IconoFestamas2.png' : '/images/IconoFiestasYa2.png');
+  const activeMainIcon = activeBranch?.logos?.imagotipo ?? '';
+  const activeMobileIcon = activeBranch?.logos?.isotipo ?? '';
   const activeMobileIconWhite = activeBranch?.logos?.isotipoWhite ?? activeMobileIcon;
 
   return (
@@ -248,8 +247,11 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
             
             <Link href="/" className="shrink-0 group">
                 <div className="relative w-[40px] h-[40px] md:w-[135px] md:h-[48px] transition-all duration-300">
-                    <Image loader={cloudinaryLoader} src={activeMainIcon} alt={brandName} fill sizes="135px" className="hidden md:block object-contain object-left" priority />
-                    <Image loader={cloudinaryLoader} src={activeMobileIcon} alt={brandName} fill sizes="40px" className="block md:hidden object-contain object-center" priority />
+                    {activeMainIcon && <Image loader={cloudinaryLoader} src={activeMainIcon} alt={brandName} fill sizes="135px" className="hidden md:block object-contain object-left" priority />}
+                    {!activeMainIcon && <span className="hidden md:flex h-full items-center font-black text-xl text-primary">{brandName}</span>}
+                    
+                    {activeMobileIcon && <Image loader={cloudinaryLoader} src={activeMobileIcon} alt={brandName} fill sizes="40px" className="block md:hidden object-contain object-center" priority />}
+                    {!activeMobileIcon && <span className="flex md:hidden h-full items-center justify-center font-black text-2xl text-primary rounded-xl bg-orange-50">{brandName[0]}</span>}
                 </div>
             </Link>
 
@@ -264,7 +266,11 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                     <SheetTitle className="sr-only">Menú de Navegación</SheetTitle> 
                     <SheetHeader className={cn("h-[52px] flex flex-row items-center px-4 py-0 space-y-0 border-b", mobileHeaderClass)}>
                         <div className="relative h-8 w-24">
-                            <Image loader={cloudinaryLoader} src={activeMobileIconWhite} alt={brandName} fill sizes="96px" className="object-contain object-left" />
+                            {activeMobileIconWhite ? (
+                              <Image loader={cloudinaryLoader} src={activeMobileIconWhite} alt={brandName} fill sizes="96px" className="object-contain object-left" />
+                            ) : (
+                              <span className="flex h-full items-center font-black text-xl text-white">{brandName}</span>
+                            )}
                         </div>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4 px-2">

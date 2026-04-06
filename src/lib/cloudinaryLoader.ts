@@ -72,5 +72,7 @@ export default function cloudinaryLoader({
     'c_limit' // No hacer upscale de imágenes pequeñas
   ];
 
+  // Devolvemos la URL limpia sin extensión forzada, permitiendo que f_auto 
+  // decida el mejor formato basándose en los headers del navegador.
   return `https://res.cloudinary.com/${cloudName}/image/upload/${params.join(',')}/${cleanSrc}`;
 }
