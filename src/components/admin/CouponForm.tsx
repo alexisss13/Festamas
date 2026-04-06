@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarIcon, Loader2, Save, Tag, Percent, DollarSign, Users, Clock } from 'lucide-react';
-import { Division } from '@prisma/client';
+
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,7 @@ const formSchema = z.object({
   }),
   
   type: z.enum(["FIXED", "PERCENTAGE"]),
-  division: z.nativeEnum(Division),
+  branchId: z.string().optional(),
   expirationDate: z.date().optional(),
   
   // Validamos que sea un entero si existe
@@ -44,18 +44,16 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface Props {
-  defaultDivision: Division;
+  defaultBranchId?: string;
 }
 
-export const CouponForm = ({ defaultDivision }: Props) => {
+export const CouponForm = ({ defaultBranchId }: Props) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-
-  const isFestamas = defaultDivision === 'JUGUETERIA';
   
   // 🎨 Colores de Marca
-  const activeColor = isFestamas ? "bg-festamas-primary hover:bg-festamas-primary/90" : "bg-fiestasya-accent hover:bg-fiestasya-accent/90";
-  const ringColor = isFestamas ? "focus-visible:ring-festamas-primary" : "focus-visible:ring-fiestasya-accent";
+  const activeColor = "bg-primary hover:bg-primary/90";
+  const ringColor = "focus-visible:ring-primary";
 
   // Inicializamos el formulario con Strings vacíos para los números
   const form = useForm<FormValues>({
@@ -64,7 +62,7 @@ export const CouponForm = ({ defaultDivision }: Props) => {
       code: '',
       discount: '', // String vacío compatible con el input
       type: 'FIXED',
-      division: defaultDivision,
+      branchId: defaultBranchId,
       maxUses: '',  // String vacío
     },
   });
@@ -94,8 +92,8 @@ export const CouponForm = ({ defaultDivision }: Props) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
         
-        {/* INPUT OCULTO PARA DIVISIÓN */}
-        <input type="hidden" {...form.register("division")} />
+        {/* INPUT OCULTO PARA BRANCHID */}
+        <input type="hidden" {...form.register("branchId")} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* CÓDIGO */}

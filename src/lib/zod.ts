@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import { Division } from '@prisma/client'; // 👈 ¡FALTABA ESTO!
 
-// Usamos el enum nativo de Prisma para asegurar que coincida con la BD
-export const divisionEnum = z.nativeEnum(Division);
 
 // --- ESQUEMA DE PRODUCTOS ---
 export const productSchema = z.object({
@@ -25,15 +22,15 @@ export const productSchema = z.object({
 
   color: z.string().optional(), 
   groupTag: z.string().optional(),
-  division: divisionEnum,
+  businessId: z.string().optional(),
+  branchOwnerId: z.string().optional(),
 });
 
 // --- ESQUEMA DE CATEGORÍAS ---
 export const categorySchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   slug: z.string().min(3, 'El slug debe tener al menos 3 caracteres'),
-  
-  division: z.nativeEnum(Division), // 👈 Ahora sí funcionará porque importamos Division
-  
+  businessId: z.string().min(1, 'Business requerido'),
+  ecommerceCode: z.string().optional().nullable(),
   image: z.string().optional().nullable(),
 });

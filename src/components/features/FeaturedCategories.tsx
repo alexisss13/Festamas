@@ -19,14 +19,14 @@ interface Props {
 }
 
 export function FeaturedCategories({ categories }: Props) {
-  const { currentDivision } = useUIStore();
+  const { activeBranchId, branches } = useUIStore();
   
   // 1. Filtrar por tienda activa
-  const displayCategories = categories.filter(cat => cat.division === currentDivision);
+  const activeBranch = branches.find(b => b.id === activeBranchId) ?? branches[0];
+  const displayCategories = categories.filter((cat: any) => cat.ecommerceCode === activeBranch?.ecommerceCode);
   
   // 2. Color de la marca para detalles
-  const isToys = currentDivision === 'JUGUETERIA';
-  const brandColor = isToys ? '#fc4b65' : '#ec4899';
+  const brandColor = 'var(--primary)';
 
   if (displayCategories.length === 0) return null;
 

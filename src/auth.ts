@@ -33,15 +33,25 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
           const user = await prisma.user.findUnique({ where: { email } });
-          
+
           if (!user || !user.password) return null;
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
-          if (passwordsMatch) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { password: _, ...userWithoutPassword } = user;
-            return userWithoutPassword as any;
+          if (!passwordsMatch) return null;
+
+          // Roles permitidos para acceder al sistema
+          const allowedRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
+          if (!allowedRoles.includes(user.role)) return null;
+
+          // Si es OWNER, verificar que pertenezca al negocio configurado
+          if (user.role === 'OWNER') {
+            const businessId = process.env.NEXT_PUBLIC_BUSINESS_ID;
+            if (!businessId || user.businessId !== businessId) return null;
           }
+
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { password: _, ...userWithoutPassword } = user;
+          return userWithoutPassword as any;
         }
         return null;
       },

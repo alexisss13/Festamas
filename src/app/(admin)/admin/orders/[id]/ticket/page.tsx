@@ -15,9 +15,7 @@ export default async function TicketPage({ params }: Props) {
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      orderItems: {
-        include: { product: true }
-      }
+      orderItems: true
     }
   });
 
@@ -114,7 +112,7 @@ export default async function TicketPage({ params }: Props) {
             {order.orderItems.map((item) => (
               <tr key={item.id} className="align-top">
                 <td className="pt-1">{item.quantity}</td>
-                <td className="pt-1 pr-1 truncate max-w-[40mm]">{item.product.title}</td>
+                <td className="pt-1 pr-1 truncate max-w-[40mm]">{item.productName} {item.variantName ? `(${item.variantName})` : ''}</td>
                 <td className="pt-1 text-right">{formatCurrency(Number(item.price) * item.quantity)}</td>
               </tr>
             ))}

@@ -36,19 +36,11 @@ const REELS = [
 ];
 
 export default function TiendasPage() {
-  // Leemos la tienda activa para definir el color base
-  const currentDivision = useUIStore((state) => state.currentDivision);
-  const isToys = currentDivision === 'JUGUETERIA';
-
   // Tema reactivo que aplicará a los íconos y botones de AMBAS tarjetas
-  const theme = isToys ? {
-    text: 'text-[#fc4b65]',
-    bg: 'bg-[#fc4b65]',
-    hover: 'hover:bg-[#fc4b65]/90',
-  } : {
-    text: 'text-[#fb3099]',
-    bg: 'bg-[#fb3099]',
-    hover: 'hover:bg-[#fb3099]/90',
+  const theme = {
+    text: 'text-primary',
+    bg: 'bg-primary',
+    hover: 'hover:opacity-90',
   };
 
   return (

@@ -1,22 +1,23 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { Division } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export interface CatalogData {
   title: string;
   coverImage: string;
   iframeUrl: string;
-  division: Division;
+  branchId?: string | null;
   isActive: boolean;
 }
 
-// 1. Obtener todos los catálogos activos para la tienda (Front-end)
 export async function getCatalogs() {
   try {
+    const { activeBranch } = await getEcommerceContextFromCookie();
     const catalogs = await prisma.catalog.findMany({
       where: {
+        OR: [{ branchId: activeBranch.id }, { branchId: null }],
         isActive: true,
       },
       orderBy: {
@@ -47,8 +48,12 @@ export async function getAdminCatalogs() {
 // 3. Crear un catálogo
 export async function createCatalog(data: CatalogData) {
   try {
+    const { activeBranch } = await getEcommerceContextFromCookie();
     const catalog = await prisma.catalog.create({
-      data,
+      data: {
+        ...data,
+        branchId: data.branchId ?? activeBranch.id,
+      },
     });
     revalidatePath('/');
     revalidatePath('/admin/catalogs');

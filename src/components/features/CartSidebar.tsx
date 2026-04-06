@@ -25,19 +25,16 @@ interface Props {
 
 export function CartSidebar({ children }: Props) {
   const { cart, removeProduct, updateProductQuantity, getSubtotalPrice } = useCartStore();
-  const { currentDivision } = useUIStore(); 
+  // --- 🎨 COLORES DINÁMICOS ---
+  const themeColor = "text-primary";
+  const btnBg = "bg-primary hover:opacity-90 text-white";
+  const progressBg = "bg-primary/10";
   
   const [loaded, setLoaded] = useState(false);
   useEffect(() => setLoaded(true), []);
 
   const items = cart || [];
   const subTotal = getSubtotalPrice ? getSubtotalPrice() : 0;
-  const isToys = currentDivision === 'JUGUETERIA';
-
-  // --- 🎨 COLORES DINÁMICOS ---
-  const themeColor = isToys ? 'text-[#fc4b65]' : 'text-[#ec4899]';
-  const btnBg = isToys ? 'bg-[#fc4b65] hover:bg-[#e11d48]' : 'bg-[#ec4899] hover:bg-[#db2777]';
-  const progressBg = isToys ? 'bg-rose-100' : 'bg-pink-100';
 
   const formatPrice = (value: number) =>
     new Intl.NumberFormat('es-PE', {

@@ -16,7 +16,6 @@ export interface CartProduct {
   image: string;
   quantity: number;
   stock: number;
-  division: string;
   wholesalePrice?: number | null;
   wholesaleMinCount?: number | null;
   discountPercentage?: number;

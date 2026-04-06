@@ -47,7 +47,9 @@ export async function createPreference(data: CheckoutData) {
         notes: data.notes,
         orderItems: {
           create: data.items.map((item) => ({
-            productId: item.id,
+            variantId: null,
+            productName: item.title,
+            variantName: null,
             quantity: item.quantity,
             price: item.price,
           })),

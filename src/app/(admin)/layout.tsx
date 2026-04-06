@@ -1,4 +1,5 @@
-import { getAdminDivision } from '@/actions/admin-settings';
+import { getAdminBranch } from '@/actions/admin-settings';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 
 export default async function AdminLayout({
@@ -6,14 +7,17 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const division = await getAdminDivision();
+  const { branches } = await getEcommerceContextFromCookie();
+  const branchId = await getAdminBranch();
+  
+  const activeBranch = branches.find(b => b.id === branchId) ?? branches[0];
   
   // Determinamos el tema dinámicamente
-  const activeTheme = division === 'FIESTAS' ? 'fiestasya' : 'festamas';
+  const activeTheme = 'festamas';
 
   return (
     <div className="flex min-h-screen bg-white overflow-x-hidden" data-theme={activeTheme}>
-      <AdminSidebar currentDivision={division} />
+      <AdminSidebar activeBranch={activeBranch} branches={branches} />
 
       <main 
         id="admin-main-content"

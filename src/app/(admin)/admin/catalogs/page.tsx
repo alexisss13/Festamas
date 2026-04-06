@@ -1,17 +1,18 @@
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAdminCatalogs } from '@/actions/catalogs';
-import { getAdminDivision } from '@/actions/admin-settings';
+import { getAdminBranch } from '@/actions/admin-settings';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { CatalogsView } from './CatalogsView';
 import { cn } from '@/lib/utils';
-import { Division } from '@prisma/client';
 
 export default async function AdminCatalogsPage() {
-  const selectedDivision = await getAdminDivision();
+  const branchId = await getAdminBranch();
   const { data: catalogs } = await getAdminCatalogs(); 
+  const { branches } = await getEcommerceContextFromCookie();
   
-  const isFestamas = selectedDivision === 'JUGUETERIA';
-  const filteredCatalogs = catalogs?.filter((c: any) => c.division === selectedDivision) || [];
+  const activeBranch = branches.find((b: any) => b.id === branchId) ?? branches[0];
+  const filteredCatalogs = catalogs?.filter((c: any) => c.branchId === activeBranch?.id) || [];
 
   return (
     <div className="p-4 md:p-8 w-full max-w-7xl mx-auto">
@@ -21,13 +22,13 @@ export default async function AdminCatalogsPage() {
           <p className="text-sm text-slate-500 mt-1">
             Organización: <span className={cn(
               "font-bold px-2 py-0.5 rounded-md text-xs uppercase",
-              isFestamas ? "bg-festamas-primary/10 text-festamas-primary" : "bg-fiestasya-accent/10 text-fiestasya-accent"
-            )}>{selectedDivision}</span>
+              "bg-primary/10 text-primary"
+            )}>{activeBranch?.name || 'Tienda'}</span>
           </p>
         </div>
       </div>
 
-      <CatalogsView initialCatalogs={filteredCatalogs} division={selectedDivision} />
+      <CatalogsView initialCatalogs={filteredCatalogs} activeBranch={activeBranch} />
     </div>
   );
 }

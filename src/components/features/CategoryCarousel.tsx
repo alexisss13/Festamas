@@ -26,13 +26,7 @@ export function CategoryCarousel({ categories }: Props) {
   const [pageCount, setPageCount] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const currentDivision = useUIStore((state) => state.currentDivision);
-  const isToys = currentDivision === 'JUGUETERIA';
-
-  // COLORES DE MARCA
-  const colorFestamas = "#fc4b65";
-  const colorFiestasYa = "#fb3099";
-  const activeColor = isToys ? colorFestamas : colorFiestasYa;
+  const activeColor = "var(--primary)";
 
   const checkScroll = useCallback(() => {
     if (carouselRef.current) {

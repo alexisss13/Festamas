@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveHomeSection } from '@/actions/home-sections';
-import { Division } from '@prisma/client';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +26,7 @@ interface SectionData {
     title: string;
     subtitle: string | null;
     tag: string;
-    division: Division;
+    branchId: string | null;
     icon: string;
     isActive: boolean;
     // order ya no es necesario aquí
@@ -34,22 +34,19 @@ interface SectionData {
 
 interface Props {
   section?: SectionData | null;
-  defaultDivision?: Division;
+  defaultBranchId?: string;
 }
 
-export function SectionForm({ section, defaultDivision = 'JUGUETERIA' }: Props) {
+export function SectionForm({ section, defaultBranchId }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
-  const currentDivision = section?.division || defaultDivision;
-  const isFestamas = currentDivision === 'JUGUETERIA';
+  const branchId = section?.branchId || defaultBranchId || null;
 
   // Estilos Marca
-  const brandFocusClass = isFestamas ? "focus-visible:ring-festamas-primary" : "focus-visible:ring-fiestasya-accent";
-  const brandTextClass = isFestamas ? "text-festamas-primary" : "text-fiestasya-accent";
-  const brandButtonClass = isFestamas 
-    ? "bg-festamas-primary hover:bg-festamas-primary/90" 
-    : "bg-fiestasya-accent hover:bg-fiestasya-accent/90";
+  const brandFocusClass = "focus-visible:ring-primary";
+  const brandTextClass = "text-primary";
+  const brandButtonClass = "bg-primary hover:bg-primary/90";
 
   // --- ESTADOS ---
   const [title, setTitle] = useState(section?.title || '');
@@ -106,7 +103,7 @@ export function SectionForm({ section, defaultDivision = 'JUGUETERIA' }: Props) 
         subtitle: subtitle || undefined,
         tag,
         icon,
-        division: currentDivision,
+        branchId,
         isActive,
         order: 0 // El server action ignora esto si es update, o lo calcula si es create
     };
@@ -141,7 +138,7 @@ export function SectionForm({ section, defaultDivision = 'JUGUETERIA' }: Props) 
             <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2">
                 {section ? 'Editar Sección' : 'Nueva Sección'}
                 <span className={cn("text-xs px-2 py-1 rounded-md bg-slate-100 uppercase font-extrabold tracking-wide", brandTextClass)}>
-                    {isFestamas ? 'Festamas' : 'FiestasYa'}
+                    Tienda
                 </span>
                 {isDirty && (
                     <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-200 font-medium flex items-center gap-1">
@@ -249,13 +246,13 @@ export function SectionForm({ section, defaultDivision = 'JUGUETERIA' }: Props) 
                             id="active" 
                             checked={isActive} 
                             onCheckedChange={setIsActive} 
-                            className={isFestamas ? "data-[state=checked]:bg-festamas-primary" : "data-[state=checked]:bg-fiestasya-accent"}
+                            className={"data-[state=checked]:bg-primary"}
                         />
                     </div>
 
                     <div className="p-3 bg-slate-50 border rounded-md text-xs text-slate-500 flex justify-between items-center">
-                        <span>Tienda: <strong>{isFestamas ? 'Festamas' : 'FiestasYa'}</strong></span>
-                        <div className={cn("w-2 h-2 rounded-full", isFestamas ? "bg-festamas-primary" : "bg-fiestasya-accent")} />
+                        <span>Visible en tienda</span>
+                        <div className={cn("w-2 h-2 rounded-full", "bg-primary")} />
                     </div>
                 </div>
             </div>

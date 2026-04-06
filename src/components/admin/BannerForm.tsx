@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBanner, updateBanner } from '@/actions/banners';
-import { BannerPosition, Division } from '@prisma/client';
+import { BannerPosition } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea'; // 👈 Usaremos Textarea para el subtítulo
@@ -22,26 +22,21 @@ interface BannerData {
     mobileUrl?: string | null;
     link?: string | null;
     position: BannerPosition;
-    division: Division;
+    branchId?: string | null;
 }
 
 interface Props {
     banner?: BannerData | null;
-    defaultDivision?: Division;
+    activeBranch?: any;
 }
 
-export function BannerForm({ banner, defaultDivision = 'JUGUETERIA' }: Props) {
+export function BannerForm({ banner, activeBranch }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    
-    const currentDivision = banner?.division || defaultDivision;
-    const isFestamas = currentDivision === 'JUGUETERIA';
 
-    const brandFocusClass = isFestamas ? "focus-visible:ring-festamas-primary" : "focus-visible:ring-fiestasya-accent";
-    const brandTextClass = isFestamas ? "text-festamas-primary" : "text-fiestasya-accent";
-    const brandButtonClass = isFestamas 
-        ? "bg-festamas-primary hover:bg-festamas-primary/90" 
-        : "bg-fiestasya-accent hover:bg-fiestasya-accent/90";
+    const brandFocusClass = "focus-visible:ring-primary";
+    const brandTextClass = "text-primary";
+    const brandButtonClass = "bg-primary hover:bg-primary/90";
 
     // --- ESTADOS ---
     const [title, setTitle] = useState(banner?.title || '');
@@ -119,7 +114,7 @@ export function BannerForm({ banner, defaultDivision = 'JUGUETERIA' }: Props) {
             mobileUrl: mobileUrl || undefined,
             link: link || undefined,
             position,
-            division: currentDivision
+            branchId: activeBranch?.id
         };
 
         let result;
@@ -157,7 +152,7 @@ export function BannerForm({ banner, defaultDivision = 'JUGUETERIA' }: Props) {
                     <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2">
                         {banner ? 'Editar Banner' : 'Nuevo Banner'}
                         <span className={cn("text-xs px-2 py-1 rounded-md bg-slate-100 uppercase font-extrabold tracking-wide", brandTextClass)}>
-                            {isFestamas ? 'Festamas' : 'FiestasYa'}
+                            {activeBranch?.name || 'Tienda'}
                         </span>
                         {isDirty && (
                             <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-200 font-medium flex items-center gap-1">
@@ -247,8 +242,8 @@ export function BannerForm({ banner, defaultDivision = 'JUGUETERIA' }: Props) {
                             </div>
 
                             <div className="p-3 bg-slate-50 border rounded-md text-sm text-slate-500 flex justify-between items-center">
-                                <span>Tienda: <strong>{isFestamas ? 'Festamas' : 'FiestasYa'}</strong></span>
-                                <div className={cn("w-2 h-2 rounded-full", isFestamas ? "bg-festamas-primary" : "bg-fiestasya-accent")} />
+                                <span>Tienda: <strong>{activeBranch?.name || 'Tienda'}</strong></span>
+                                <div className={cn("w-2 h-2 rounded-full bg-primary")} />
                             </div>
                         </div>
                     </div>

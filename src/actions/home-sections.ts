@@ -2,21 +2,19 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { Division } from '@prisma/client';
 
 export interface HomeSectionInput {
   title: string;
   subtitle?: string;
   tag: string;
-  division: Division;
+  branchId?: string | null;
   icon: string;
   isActive: boolean;
-  // Eliminamos 'order' del input manual, lo calculamos
 }
 
-export const getHomeSections = async (division: Division, onlyActive: boolean = true) => {
+export const getHomeSections = async (branchId: string, onlyActive: boolean = true) => {
   try {
-    const whereClause: any = { division };
+    const whereClause: any = { branchId };
     if (onlyActive) whereClause.isActive = true;
 
     const sections = await prisma.homeSection.findMany({
@@ -47,7 +45,7 @@ export const saveHomeSection = async (data: HomeSectionInput, id?: string) => {
     } else {
       // Crear nuevo: Buscar el último orden para ponerlo al final
       const lastSection = await prisma.homeSection.findFirst({
-        where: { division: data.division },
+        where: { branchId: data.branchId ?? null },
         orderBy: { order: 'desc' },
         select: { order: true }
       });

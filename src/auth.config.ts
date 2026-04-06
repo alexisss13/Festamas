@@ -29,8 +29,9 @@ export const authConfig: NextAuthConfig = {
       // Proteger rutas de admin
       const isAdminRoute = nextUrl.pathname.startsWith('/admin');
       if (isAdminRoute) {
-        if (isLoggedIn && auth.user.role === 'ADMIN') return true;
-        return false; // Redirigir a login o 403
+        const adminRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
+        if (isLoggedIn && adminRoles.includes(auth.user.role as string)) return true;
+        return false;
       }
 
       return true;

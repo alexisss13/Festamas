@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createCatalog, updateCatalog } from '@/actions/catalogs';
-import { Division } from '@prisma/client';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,24 +15,20 @@ import ImageUpload from '@/components/ui/image-upload';
 import { cn } from '@/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function CatalogForm({ catalog, defaultDivision = 'JUGUETERIA' }: { catalog?: any | null, defaultDivision?: Division }) {
+export function CatalogForm({ catalog, defaultBranchId, activeBranch }: { catalog?: any | null, defaultBranchId?: string, activeBranch: any }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
-    const currentDivision = catalog?.division || defaultDivision;
-    const isFestamas = currentDivision === 'JUGUETERIA';
+    const branchId = catalog?.branchId || defaultBranchId;
 
-    const brandFocusClass = isFestamas ? "focus-visible:ring-festamas-primary" : "focus-visible:ring-fiestasya-accent";
-    const brandTextClass = isFestamas ? "text-festamas-primary" : "text-fiestasya-accent";
-    const brandButtonClass = isFestamas 
-        ? "bg-festamas-primary hover:bg-festamas-primary/90" 
-        : "bg-fiestasya-accent hover:bg-fiestasya-accent/90";
+    const brandFocusClass = "focus-visible:ring-primary";
+    const brandTextClass = "text-primary";
+    const brandButtonClass = "bg-primary hover:bg-primary/90";
 
     // --- ESTADOS ---
     const [title, setTitle] = useState(catalog?.title || '');
     const [iframeUrl, setIframeUrl] = useState(catalog?.iframeUrl || '');
     const [coverImage, setCoverImage] = useState(catalog?.coverImage || '');
-    const [division, setDivision] = useState<Division>(catalog?.division || defaultDivision);
     const [isActive, setIsActive] = useState<boolean>(catalog?.isActive ?? true);
 
     // --- SNAPSHOT INICIAL ---
@@ -40,7 +36,7 @@ export function CatalogForm({ catalog, defaultDivision = 'JUGUETERIA' }: { catal
         title: catalog?.title || '',
         iframeUrl: catalog?.iframeUrl || '',
         coverImage: catalog?.coverImage || '',
-        division: catalog?.division || defaultDivision,
+        branchId: catalog?.branchId || defaultBranchId,
         isActive: catalog?.isActive ?? true,
     });
     
@@ -48,7 +44,6 @@ export function CatalogForm({ catalog, defaultDivision = 'JUGUETERIA' }: { catal
         title !== initialData.title || 
         iframeUrl !== initialData.iframeUrl ||
         coverImage !== initialData.coverImage ||
-        division !== initialData.division ||
         isActive !== initialData.isActive;
 
     useEffect(() => {
@@ -83,7 +78,7 @@ export function CatalogForm({ catalog, defaultDivision = 'JUGUETERIA' }: { catal
             title,
             iframeUrl,
             coverImage,
-            division,
+            branchId,
             isActive
         };
 
@@ -96,7 +91,7 @@ export function CatalogForm({ catalog, defaultDivision = 'JUGUETERIA' }: { catal
 
         if (result.success) {
             toast.success(catalog ? 'Catálogo actualizado' : 'Catálogo creado');
-            setInitialData({ title, iframeUrl, coverImage, division, isActive });
+            setInitialData({ title, iframeUrl, coverImage, branchId, isActive });
             router.push('/admin/catalogs');
             router.refresh();
         } else {
@@ -121,7 +116,7 @@ export function CatalogForm({ catalog, defaultDivision = 'JUGUETERIA' }: { catal
                     <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2">
                         {catalog ? 'Editar Catálogo' : 'Nuevo Catálogo'}
                         <span className={cn("text-xs px-2 py-1 rounded-md bg-slate-100 uppercase font-extrabold tracking-wide", brandTextClass)}>
-                            {isFestamas ? 'Festamas' : 'FiestasYa'}
+                            {activeBranch?.name || 'Tienda'}
                         </span>
                         {isDirty && (
                             <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-200 font-medium flex items-center gap-1">
@@ -185,17 +180,6 @@ export function CatalogForm({ catalog, defaultDivision = 'JUGUETERIA' }: { catal
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                {/* DIVISIÓN */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="division">División</Label>
-                                    <Select value={division} onValueChange={(val) => setDivision(val as Division)}>
-                                        <SelectTrigger className={brandFocusClass}><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="JUGUETERIA">Festamas (Juguetería)</SelectItem>
-                                            <SelectItem value="FIESTAS">FiestasYa</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
 
                                 {/* ESTADO */}
                                 <div className="space-y-2 flex flex-col justify-center">

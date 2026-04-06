@@ -95,10 +95,7 @@ export default async function OrderDetailPage({ params }: Props) {
                   {order.orderItems.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="flex items-center gap-4">
-                        <div className="relative h-12 w-12 overflow-hidden rounded border bg-slate-100">
-                          {item.product.images[0] && <Image src={item.product.images[0]} alt={item.product.title} fill className="object-cover" />}
-                        </div>
-                        <span className="font-medium text-slate-900">{item.product.title}</span>
+                        <span className="font-medium text-slate-900">{item.productName} {item.variantName ? `(${item.variantName})` : ''}</span>
                       </TableCell>
                       <TableCell className="text-right">{formatPrice(Number(item.price))}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>

@@ -1,10 +1,11 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { Prisma, Division } from '@prisma/client';
-import { revalidatePath, unstable_cache } from 'next/cache';
+import { Prisma } from '@prisma/client';
+import { unstable_cache } from 'next/cache';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+import { inferLegacyDivision } from '@/lib/ecommerce-helpers';
 
-// Tipado fuerte para uso en componentes
 export type ProductWithCategory = {
   id: string;
   title: string;
@@ -17,7 +18,7 @@ export type ProductWithCategory = {
   wholesaleMinCount: number | null;
   discountPercentage: number;
   tags: string[];
-  division: Division;
+
   createdAt: Date;
   barcode: string | null;
   category: {
@@ -26,146 +27,117 @@ export type ProductWithCategory = {
   };
 };
 
-const getOrderBy = (sort: string): Prisma.ProductOrderByWithRelationInput[] => {
-    switch (sort) {
-        case 'price_asc': return [{ price: 'asc' }];
-        case 'price_desc': return [{ price: 'desc' }];
-        case 'stock_asc': return [{ stock: 'asc' }];
-        case 'stock_desc': return [{ stock: 'desc' }];
-        case 'oldest': return [{ createdAt: 'asc' }];
-        case 'newest':
-        default: return [{ createdAt: 'desc' }];
-    }
+const mapProduct = (product: any, branchId: string, ecommerceCode?: string | null): ProductWithCategory => {
+  const firstVariant = product.variants[0];
+  const stock = firstVariant?.stock?.find((item: any) => item.branchId === branchId)?.quantity ?? 0;
+  const price = Number(firstVariant?.price ?? product.basePrice ?? 0);
+
+  return {
+    id: product.id,
+    title: product.title,
+    slug: product.slug,
+    price,
+    stock,
+    images: firstVariant?.images?.length ? firstVariant.images : product.images,
+    isAvailable: product.isAvailable,
+    wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
+    wholesaleMinCount: product.wholesaleMinCount,
+    discountPercentage: product.discountPercentage,
+    tags: product.tags,
+
+    createdAt: product.createdAt,
+    barcode: firstVariant?.barcode ?? null,
+    category: {
+      name: product.category.name,
+      slug: product.category.slug,
+    },
+  };
 };
 
-// =====================================================================
-// 1. GET PRODUCTS (Catálogo General con Filtros)
-// =====================================================================
+const getOrderBy = (sort: string): Prisma.ProductOrderByWithRelationInput[] => {
+  if (sort === 'oldest') return [{ createdAt: 'asc' }];
+  if (sort === 'newest') return [{ createdAt: 'desc' }];
+  return [{ createdAt: 'desc' }];
+};
+
 interface GetProductsOptions {
-    includeInactive?: boolean;
-    query?: string;
-    sort?: string;
-    division?: Division;
-    categoryId?: string;
-    page?: number;
-    take?: number;
+  includeInactive?: boolean;
+  query?: string;
+  sort?: string;
+  division?: string;
+  categoryId?: string;
+  page?: number;
+  take?: number;
 }
 
 export async function getProducts({
   includeInactive = false,
   query = '',
   sort = 'newest',
-  division = 'JUGUETERIA',
   categoryId,
   page = 1,
   take = 12
 }: GetProductsOptions = {}) {
   try {
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
     const skip = (page - 1) * take;
 
     const where: Prisma.ProductWhereInput = {
-      division,
+      businessId: business.id,
+      branchOwnerId: activeBranch.id,
+      active: includeInactive ? undefined : true,
       isAvailable: includeInactive ? undefined : true,
       categoryId: categoryId && categoryId !== 'all' ? categoryId : undefined,
-      OR: query ? [
-        { title: { contains: query, mode: 'insensitive' } },
-        { tags: { has: query.toLowerCase() } },
-        { slug: { contains: query, mode: 'insensitive' } },
-        { barcode: { contains: query } }
-      ] : undefined,
+      OR: query
+        ? [
+            { title: { contains: query, mode: 'insensitive' } },
+            { tags: { has: query.toLowerCase() } },
+            { slug: { contains: query, mode: 'insensitive' } },
+          ]
+        : undefined,
     };
 
-    const orderBy = getOrderBy(sort);
-
     const [products, totalCount] = await prisma.$transaction([
-      prisma.product.findMany({ where, take, skip, orderBy, include: { category: true } }),
-      prisma.product.count({ where })
+      prisma.product.findMany({
+        where,
+        take,
+        skip,
+        orderBy: getOrderBy(sort),
+        include: {
+          category: true,
+          variants: {
+            where: { active: true },
+            include: { stock: { where: { branchId: activeBranch.id } } },
+            orderBy: { createdAt: 'asc' },
+            take: 1,
+          },
+        },
+      }),
+      prisma.product.count({ where }),
     ]);
 
-    const data = products.map(p => ({
-      id: p.id,
-      title: p.title,
-      slug: p.slug,
-      description: p.description,
-      price: Number(p.price),
-      stock: p.stock,
-      images: p.images,
-      isAvailable: p.isAvailable,
-      wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
-      wholesaleMinCount: p.wholesaleMinCount,
-      discountPercentage: p.discountPercentage,
-      tags: p.tags,
-      color: p.color,
-      groupTag: p.groupTag,
-      division: p.division,
-      barcode: p.barcode,
-      categoryId: p.categoryId,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-      category: { name: p.category.name, slug: p.category.slug }
-    }));
-
-    const totalPages = Math.ceil(totalCount / take);
-
+    const data = products.map((product) => mapProduct(product, activeBranch.id, activeBranch.ecommerceCode));
+    const totalPages = Math.max(1, Math.ceil(totalCount / take));
     return { success: true, data, meta: { page, totalPages, totalCount, hasNextPage: page < totalPages, hasPrevPage: page > 1 } };
   } catch (error) {
     console.error('Error obteniendo productos:', error);
-    return {
-      success: false,
-      message: 'No se pudieron cargar los productos.',
-      data: [],
-      meta: { page: 1, totalPages: 1, totalCount: 0, hasNextPage: false, hasPrevPage: false }
-    };
+    return { success: false, message: 'No se pudieron cargar los productos.', data: [], meta: { page: 1, totalPages: 1, totalCount: 0, hasNextPage: false, hasPrevPage: false } };
   }
 }
 
-// =====================================================================
-// 2. GET PRODUCT (Detalle Individual)
-// =====================================================================
-export const getProduct = unstable_cache(
-  async (slug: string) => {
-    try {
-      const product = await prisma.product.findFirst({
-        where: { slug: slug, isAvailable: true },
-        include: { category: true },
-      });
+export const getProduct = unstable_cache(async (slug: string) => {
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const product = await prisma.product.findFirst({
+    where: { slug, businessId: business.id, branchOwnerId: activeBranch.id, active: true, isAvailable: true },
+    include: {
+      category: true,
+      variants: { where: { active: true }, include: { stock: { where: { branchId: activeBranch.id } } }, take: 1 },
+    },
+  });
+  if (!product) return null;
+  return mapProduct(product, activeBranch.id, activeBranch.ecommerceCode);
+}, ['get-single-product'], { tags: ['products'] });
 
-      if (!product) return null;
-
-      return {
-        id: product.id,
-        title: product.title,
-        slug: product.slug,
-        description: product.description,
-        price: Number(product.price),
-        stock: product.stock,
-        images: product.images,
-        isAvailable: product.isAvailable,
-        wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
-        wholesaleMinCount: product.wholesaleMinCount,
-        discountPercentage: product.discountPercentage,
-        tags: product.tags,
-        color: product.color,
-        groupTag: product.groupTag,
-        division: product.division,
-        barcode: product.barcode,
-        categoryId: product.categoryId,
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-        category: product.category
-      };
-    } catch (error) {
-      console.log(error);
-      return null;
-    }
-  },
-  ['get-single-product'],
-  { tags: ['products'] }
-);
-
-// =====================================================================
-// 3. GET PRODUCTS BY CATEGORY (Con Filtros y Paginación)
-// =====================================================================
 interface CategoryOptions {
   page?: number;
   take?: number;
@@ -177,75 +149,45 @@ interface CategoryOptions {
 
 export const getProductsByCategory = async (
   categorySlug: string,
-  { page = 1, take = 12, minPrice, maxPrice, sort = 'newest', tag }: CategoryOptions = {}
+  { page = 1, take = 12, sort = 'newest', tag }: CategoryOptions = {}
 ) => {
   try {
-    const category = await prisma.category.findUnique({
-      where: { slug: categorySlug },
-    });
-
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const category = await prisma.category.findFirst({ where: { slug: categorySlug, businessId: business.id } });
     if (!category) return null;
-
-    const allProductsTags = await prisma.product.findMany({
-      where: { categoryId: category.id, isAvailable: true },
-      select: { tags: true }
-    });
-
-    const uniqueTags = Array.from(new Set(allProductsTags.flatMap(p => p.tags))).sort();
 
     const whereClause: Prisma.ProductWhereInput = {
       categoryId: category.id,
+      businessId: business.id,
+      branchOwnerId: activeBranch.id,
+      active: true,
       isAvailable: true,
-      price: {
-        gte: minPrice,
-        lte: maxPrice,
-      },
-      tags: tag ? { has: tag } : undefined
+      tags: tag ? { has: tag } : undefined,
     };
 
-    const totalCount = await prisma.product.count({ where: whereClause });
-    const totalPages = Math.ceil(totalCount / take);
+    const [products, totalCount] = await prisma.$transaction([
+      prisma.product.findMany({
+        where: whereClause,
+        include: {
+          category: true,
+          variants: { where: { active: true }, include: { stock: { where: { branchId: activeBranch.id } } }, take: 1 },
+        },
+        orderBy: getOrderBy(sort),
+        take,
+        skip: (page - 1) * take,
+      }),
+      prisma.product.count({ where: whereClause }),
+    ]);
 
-    const products = await prisma.product.findMany({
-      where: whereClause,
-      include: { category: true },
-      orderBy: getOrderBy(sort),
-      take: take,
-      skip: (page - 1) * take,
-    });
-
-    const cleanProducts = products.map((product) => ({
-      id: product.id,
-      title: product.title,
-      slug: product.slug,
-      price: Number(product.price),
-      stock: product.stock,
-      images: product.images,
-      isAvailable: product.isAvailable,
-      wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
-      wholesaleMinCount: product.wholesaleMinCount,
-      discountPercentage: product.discountPercentage,
-      tags: product.tags,
-      division: product.division,
-      createdAt: product.createdAt,
-      barcode: product.barcode,
-      cost: product.cost ? Number(product.cost) : null,
-      category: {
-        name: product.category.name,
-        slug: product.category.slug,
-      },
-    }));
+    const availableTags = Array.from(new Set(products.flatMap((product) => product.tags))).sort();
+    const mappedProducts = products.map((product) => mapProduct(product, activeBranch.id, activeBranch.ecommerceCode));
 
     return {
       categoryName: category.name,
-      division: category.division,
-      products: cleanProducts,
-      availableTags: uniqueTags,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalCount
-      }
+      division: inferLegacyDivision(activeBranch.ecommerceCode),
+      products: mappedProducts,
+      availableTags,
+      pagination: { currentPage: page, totalPages: Math.max(1, Math.ceil(totalCount / take)), totalCount },
     };
   } catch (error) {
     console.log(error);
@@ -253,201 +195,100 @@ export const getProductsByCategory = async (
   }
 };
 
-// =====================================================================
-// 4. GET PRODUCTS BY TAG (Para la Home Dinámica)
-// =====================================================================
-export const getProductsByTag = async (tag: string, take: number = 8, division?: Division) => {
+export const getProductsByTag = async (tag: string, take: number = 8) => {
   try {
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
     const products = await prisma.product.findMany({
-      take: take,
+      take,
       where: {
+        businessId: business.id,
+        branchOwnerId: activeBranch.id,
         tags: { has: tag },
         isAvailable: true,
-        division: division ? { equals: division } : undefined,
+        active: true,
       },
       include: {
-        category: {
-            select: {
-                name: true,
-                slug: true
-            }
-        }
+        category: { select: { name: true, slug: true } },
+        variants: { where: { active: true }, include: { stock: { where: { branchId: activeBranch.id } } }, take: 1 },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
-
-    const mappedProducts = products.map(p => ({
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
-        description: p.description,
-        price: Number(p.price),
-        stock: p.stock,
-        images: p.images,
-        isAvailable: p.isAvailable,
-        wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
-        wholesaleMinCount: p.wholesaleMinCount,
-        discountPercentage: p.discountPercentage,
-        tags: p.tags,
-        color: p.color,
-        groupTag: p.groupTag,
-        division: p.division,
-        barcode: p.barcode,
-        categoryId: p.categoryId,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-        category: {
-            name: p.category.name,
-            slug: p.category.slug
-        }
-    }));
-
-    return {
-      products: mappedProducts,
-    };
+    return { products: products.map((product) => mapProduct(product, activeBranch.id, activeBranch.ecommerceCode)) };
   } catch (error) {
     console.log(error);
     return { products: [] };
   }
 };
 
-// =====================================================================
-// 5. GET SIMILAR PRODUCTS (Misma categoría)
-// =====================================================================
 export const getSimilarProducts = async (categoryId: string, currentProductId: string, take = 8) => {
   try {
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
     const products = await prisma.product.findMany({
       take,
       where: {
         categoryId,
+        businessId: business.id,
+        branchOwnerId: activeBranch.id,
         isAvailable: true,
+        active: true,
         NOT: { id: currentProductId },
       },
       include: {
-        category: {
-            select: { name: true, slug: true }
-        }
+        category: { select: { name: true, slug: true } },
+        variants: { where: { active: true }, include: { stock: { where: { branchId: activeBranch.id } } }, take: 1 },
       },
       orderBy: { createdAt: 'desc' }
     });
-
-    return products.map(p => ({
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
-        description: p.description,
-        price: Number(p.price),
-        stock: p.stock,
-        images: p.images,
-        isAvailable: p.isAvailable,
-        wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
-        wholesaleMinCount: p.wholesaleMinCount,
-        discountPercentage: p.discountPercentage,
-        tags: p.tags,
-        color: p.color,
-        groupTag: p.groupTag,
-        division: p.division,
-        barcode: p.barcode,
-        categoryId: p.categoryId,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-        category: { name: p.category.name, slug: p.category.slug }
-    }));
+    return products.map((product) => mapProduct(product, activeBranch.id, activeBranch.ecommerceCode));
   } catch (error) {
     console.error(error);
     return [];
   }
 };
 
-// =====================================================================
-// 6. GET NEW ARRIVALS (Catálogo Completo por División)
-// =====================================================================
 interface NewArrivalsOptions {
   page?: number;
   take?: number;
-  minPrice?: number;
-  maxPrice?: number;
   sort?: string;
   tag?: string;
-  division: Division;
+  division?: string;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export const getNewArrivalsProducts = async ({
   page = 1,
   take = 12,
-  minPrice,
-  maxPrice,
   sort = 'newest',
   tag,
-  division
 }: NewArrivalsOptions) => {
-  try {
-    const allProductsTags = await prisma.product.findMany({
-      where: {
-        division,
-        isAvailable: true
-      },
-      select: { tags: true }
-    });
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const whereClause: Prisma.ProductWhereInput = {
+    businessId: business.id,
+    branchOwnerId: activeBranch.id,
+    active: true,
+    isAvailable: true,
+    tags: tag ? { has: tag } : undefined,
+  };
 
-    const uniqueTags = Array.from(new Set(allProductsTags.flatMap(p => p.tags))).sort();
-
-    const whereClause: Prisma.ProductWhereInput = {
-      division,
-      isAvailable: true,
-      price: {
-        gte: minPrice,
-        lte: maxPrice,
-      },
-      tags: tag ? { has: tag } : undefined
-    };
-
-    const totalCount = await prisma.product.count({ where: whereClause });
-    const totalPages = Math.ceil(totalCount / take);
-
-    const products = await prisma.product.findMany({
+  const [products, totalCount] = await prisma.$transaction([
+    prisma.product.findMany({
       where: whereClause,
-      include: { category: true },
-      orderBy: getOrderBy(sort),
-      take: take,
-      skip: (page - 1) * take,
-    });
-
-    const cleanProducts = products.map((product) => ({
-      id: product.id,
-      title: product.title,
-      slug: product.slug,
-      price: Number(product.price),
-      stock: product.stock,
-      images: product.images,
-      isAvailable: product.isAvailable,
-      wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
-      wholesaleMinCount: product.wholesaleMinCount,
-      discountPercentage: product.discountPercentage,
-      tags: product.tags,
-      division: product.division,
-      createdAt: product.createdAt,
-      barcode: product.barcode,
-      cost: product.cost ? Number(product.cost) : null,
-      category: {
-        name: product.category.name,
-        slug: product.category.slug,
+      include: {
+        category: true,
+        variants: { where: { active: true }, include: { stock: { where: { branchId: activeBranch.id } } }, take: 1 },
       },
-    }));
+      orderBy: getOrderBy(sort),
+      take,
+      skip: (page - 1) * take,
+    }),
+    prisma.product.count({ where: whereClause }),
+  ]);
 
-    return {
-      products: cleanProducts,
-      availableTags: uniqueTags,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalCount
-      }
-    };
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
+  const availableTags = Array.from(new Set(products.flatMap((product) => product.tags))).sort();
+  return {
+    products: products.map((product) => mapProduct(product, activeBranch.id, activeBranch.ecommerceCode)),
+    availableTags,
+    pagination: { currentPage: page, totalPages: Math.max(1, Math.ceil(totalCount / take)), totalCount }
+  };
 };

@@ -1,49 +1,44 @@
 import prisma from '@/lib/prisma';
 import { NavbarClient } from './NavbarClient';
-import { cookies } from 'next/headers';
-import { Division } from '@prisma/client';
 import { auth } from '@/auth'; 
 import { FavoritesInitializer } from '@/components/features/FavoritesInitializer'; 
 import { getFavoriteIds } from '@/actions/favorites'; 
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export async function Navbar() {
-  // 1. Obtener categorías
+  const { business, branches, activeBranch } = await getEcommerceContextFromCookie();
+
   const categories = await prisma.category.findMany({
-    where: { 
-      division: { in: ['JUGUETERIA', 'FIESTAS'] } 
+    where: {
+      businessId: business.id,
     },
     orderBy: { name: 'asc' },
-    select: { 
+    select: {
       id: true, 
       name: true, 
       slug: true,
-      division: true
+      ecommerceCode: true
     }
   });
 
-  // 2. Manejo seguro de Cookies
-  const cookieStore = await cookies();
-  const rawDivision = cookieStore.get('festamas_division')?.value;
-  
-  // Validamos que sea un valor permitido, si no, fallback a JUGUETERIA
-  const defaultDivision: Division = (rawDivision === 'FIESTAS' || rawDivision === 'JUGUETERIA') 
-    ? rawDivision 
-    : 'JUGUETERIA';
-
-  // 3. Sesión
   const session = await auth();
-
-  // 4. Favoritos
   const favoriteIds = await getFavoriteIds();
 
   return (
     <>
       <FavoritesInitializer favoriteIds={favoriteIds} />
-      
-      {/* Pasamos defaultDivision explícitamente para evitar mismatch */}
       <NavbarClient 
         categories={categories} 
-        defaultDivision={defaultDivision}
+        branches={branches.map((branch) => ({
+          id: branch.id,
+          name: branch.name,
+          ecommerceCode: branch.ecommerceCode,
+          brandColors: branch.brandColors as Record<string, string> | null,
+          logos: (branch as any).logos as { isotipo?: string; isotipoWhite?: string; imagotipo?: string; imagotipoWhite?: string; alternate?: string } | null,
+          address: branch.address,
+          phone: branch.phone,
+        }))}
+        defaultBranchId={activeBranch.id}
         user={session?.user}
       />
     </>

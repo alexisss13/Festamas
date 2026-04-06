@@ -14,10 +14,11 @@ interface Props {
 }
 
 export default function CatalogosClient({ catalogs }: Props) {
-  const currentDivision = useUIStore((state) => state.currentDivision);
+  const activeBranchId = useUIStore((state) => state.activeBranchId);
+  const branches = useUIStore((state) => state.branches);
   
-  const filteredCatalogs = catalogs.filter(c => c.division === currentDivision);
-  const isToys = currentDivision === 'JUGUETERIA';
+  const activeBranch = branches.find(b => b.id === activeBranchId);
+  const filteredCatalogs = catalogs.filter(c => c.branchId === activeBranchId || !c.branchId);
 
   return (
     <main className="min-h-screen bg-white py-6 md:py-10">
@@ -72,9 +73,7 @@ export default function CatalogosClient({ catalogs }: Props) {
                         variant="outline"
                         className={cn(
                           "w-full h-9 md:h-10 rounded-xl border font-semibold text-[12px] md:text-[13px] transition-all uppercase tracking-wide",
-                          isToys 
-                            ? "border-[#fc4b65] text-[#fc4b65] hover:bg-[#fc4b65] hover:text-white" 
-                            : "border-[#fb3099] text-[#fb3099] hover:bg-[#fb3099] hover:text-white"
+                          "border-primary text-primary hover:bg-primary hover:text-white"
                         )}
                       >
                         Abrir catálogo

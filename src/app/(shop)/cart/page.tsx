@@ -22,7 +22,6 @@ import { toast } from 'sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { Division } from '@prisma/client';
 import { useSession } from 'next-auth/react'; // Para validar sesión en cliente
 
 export default function CartPage() {
@@ -39,9 +38,9 @@ export default function CartPage() {
     coupon 
   } = useCartStore();
 
-  const { currentDivision } = useUIStore();
-  const { data: session } = useSession(); // Hook de sesión 
-  
+  const { activeBranchId, branches } = useUIStore();
+  const activeBranch = branches.find(b => b.id === activeBranchId) ?? branches[0];
+  const { data: session } = useSession();
   const [isMounted, setIsMounted] = useState(false);
   const [recommended, setRecommended] = useState<any[]>([]);
   
@@ -60,10 +59,9 @@ export default function CartPage() {
     localDeliveryPrice: 0
   });
 
-  const isToys = currentDivision === 'JUGUETERIA';
-  const themeColor = isToys ? 'text-[#fc4b65]' : 'text-[#ec4899]';
-  const btnBg = isToys ? 'bg-[#fc4b65] hover:bg-[#e11d48]' : 'bg-[#ec4899] hover:bg-[#db2777]';
-  const ringColor = isToys ? 'focus-visible:ring-[#fc4b65]' : 'focus-visible:ring-[#ec4899]';
+  const themeColor = "text-primary";
+  const btnBg = "bg-primary hover:opacity-90 text-white";
+  const ringColor = "focus-visible:ring-primary";
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -94,8 +92,7 @@ export default function CartPage() {
         if (items.length === 0) return;
 
         const res = await getProducts({ 
-            sort: 'newest', 
-            division: currentDivision as Division 
+            sort: 'newest'
         });
         if (res.success) {
             const cartIds = items.map(i => i.id);
@@ -105,7 +102,7 @@ export default function CartPage() {
     }
     if (isMounted) loadRecommended();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDivision, isMounted]);
+  }, [activeBranchId, isMounted]);
 
   useEffect(() => {
       if (!coupon) {
@@ -117,10 +114,7 @@ export default function CartPage() {
   const handleApplyCoupon = async () => {
     if (!couponCode) return;
 
-    const res = await validateCoupon(
-      couponCode,
-      currentDivision as Division
-    );
+    const res = await validateCoupon(couponCode);
 
     if (res.success && res.coupon) {
       applyCoupon({

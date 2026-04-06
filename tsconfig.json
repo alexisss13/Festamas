@@ -30,5 +30,15 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "prisma/seed.ts",
+    "src/app/(admin)/**",
+    "src/components/admin/**",
+    "src/store/pos-store.ts",
+    "src/actions/admin-settings.ts",
+    "src/actions/dashboard.ts",
+    "src/actions/banners.ts",
+    "src/actions/product-form.ts"
+  ]
 }

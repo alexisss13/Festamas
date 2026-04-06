@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createCategory, updateCategory } from '@/actions/categories';
-import { Category, Division } from '@prisma/client';
+import { Category } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +14,10 @@ import { cn } from '@/lib/utils';
 
 interface Props {
   category?: Category | null;
-  defaultDivision?: Division;
+  activeBranch?: any;
 }
 
-export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props) {
+export function CategoryForm({ category, activeBranch }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
@@ -72,11 +72,8 @@ export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props
     return () => document.removeEventListener('click', handleAnchorClick, true);
   }, [isDirty]);
   
-  const currentDivision = category?.division || defaultDivision;
-  const isFestamas = currentDivision === 'JUGUETERIA';
-
-  const brandFocusClass = isFestamas ? "focus-visible:ring-festamas-primary" : "focus-visible:ring-fiestasya-accent";
-  const brandTextClass = isFestamas ? "text-festamas-primary" : "text-fiestasya-accent";
+  const brandFocusClass = "focus-visible:ring-primary";
+  const brandTextClass = "text-primary";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +83,10 @@ export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props
     formData.append('name', name);
     formData.append('slug', slug);
     formData.append('image', image);
-    formData.append('division', currentDivision);
+    if (activeBranch) {
+        formData.append('ecommerceCode', activeBranch.ecommerceCode || '');
+        formData.append('businessId', activeBranch.businessId);
+    }
 
     const result = category 
       ? await updateCategory(category.id, formData)
@@ -134,7 +134,7 @@ export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props
             <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2">
                 {category ? 'Editar Categoría' : 'Nueva Categoría'}
                 <span className={cn("text-xs px-2 py-1 rounded-md bg-slate-100 uppercase font-extrabold tracking-wide", brandTextClass)}>
-                    {isFestamas ? 'Festamas' : 'FiestasYa'}
+                    {activeBranch?.name || 'Tienda'}
                 </span>
                 {/* 🚨 AVISO VISUAL */}
                 {isDirty && (
@@ -156,7 +156,7 @@ export function CategoryForm({ category, defaultDivision = 'JUGUETERIA' }: Props
             </Button>
             <Button 
                 type="submit" 
-                className={cn("text-white flex-1 md:flex-none min-w-[140px]", isFestamas ? "bg-festamas-primary hover:bg-festamas-primary/90" : "bg-fiestasya-accent hover:bg-fiestasya-accent/90")}
+                className={cn("text-white flex-1 md:flex-none min-w-[140px]", "bg-primary hover:bg-primary/90")}
                 disabled={loading || !isDirty} // Deshabilitado si no hay cambios
             >
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

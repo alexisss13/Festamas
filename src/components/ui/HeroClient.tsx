@@ -26,25 +26,26 @@ type DisplayBanner = Banner & {
 };
 
 export function HeroClient({ banners }: HeroClientProps) {
-  const { currentDivision } = useUIStore();
+  const { activeBranchId, branches } = useUIStore();
   
-  // 1. Filtrar Main Hero de la división actual
+  // 1. Filtrar Main Hero por branchId actual o default
   const mainBanners = banners.filter(
-      b => b.division === currentDivision && b.position === BannerPosition.MAIN_HERO
+      b => (b.branchId === activeBranchId || !b.branchId) && b.position === BannerPosition.MAIN_HERO
   );
 
-  const isToys = currentDivision === 'JUGUETERIA';
+  const activeBranch = branches.find(b => b.id === activeBranchId) ?? branches[0];
+  const brandName = activeBranch?.name || 'Tienda';
 
   // 2. Banner por defecto (Fallback visual si no hay imágenes subidas)
   const defaultBanner: DisplayBanner = {
       id: 'default-hero',
-      title: isToys ? '¡La diversión comienza aquí!' : 'Celebra a lo grande',
-      subtitle: isToys ? 'Encuentra los juguetes más soñados.' : 'Todo para tu fiesta en un solo lugar.',
+      title: `¡Bienvenido a ${brandName}!`,
+      subtitle: 'Encuentra los mejores productos.',
       imageUrl: '', 
       mobileUrl: null,
       link: '/category/novedades',
       position: BannerPosition.MAIN_HERO,
-      division: currentDivision,
+      branchId: activeBranchId,
       active: true,
       order: 0,     
       createdAt: new Date(),
@@ -123,14 +124,12 @@ export function HeroClient({ banners }: HeroClientProps) {
                        /* 👉 CASO B: BANNER DEFAULT */
                        <div className={cn(
                            "w-full h-full relative overflow-hidden flex items-center justify-center",
-                           isToys 
-                               ? "bg-gradient-to-br from-[#fc4b65] via-[#fb3f5c] to-[#e11d48]" 
-                               : "bg-gradient-to-br from-[#eab308] via-[#fbbf24] to-[#d97706]"
+                           "bg-primary"
                        )}>
                            <div className="relative z-10 text-center px-4 max-w-3xl mx-auto flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-700">
                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-[10px] md:text-xs font-bold uppercase tracking-wider">
                                    <Sparkles className="h-3 w-3" />
-                                   {isToys ? 'Nuevos Juguetes' : 'Fiesta y Decoración'}
+                                   {brandName}
                                </div>
                                <h2 className="text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-md">
                                    {banner.title}

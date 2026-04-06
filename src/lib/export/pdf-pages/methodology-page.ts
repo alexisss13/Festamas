@@ -157,6 +157,4 @@ export const createMethodologyPage = (
   doc.text('Documento de carácter confidencial para uso interno.', rightColX, yPos);
   
   doc.setFontSize(8);
-  doc.text('MET_V1_2026', pageWidth - marginX - 25, yPos);
-
 };

@@ -30,8 +30,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Division } from '@prisma/client';
-
 // Mapa de iconos
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICON_COMPONENTS: Record<string, any> = {
@@ -137,7 +135,7 @@ function SortableSectionItem({ section, onDelete, brandColorText }: { section: a
 
 // --- COMPONENTE PRINCIPAL ---
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function SectionList({ sections: initialSections, division }: { sections: any[], division: Division }) {
+export function SectionList({ sections: initialSections, branchId }: { sections: any[], branchId?: string | null }) {
     const router = useRouter();
     const [sections, setSections] = useState(initialSections);
     
@@ -146,9 +144,8 @@ export function SectionList({ sections: initialSections, division }: { sections:
         setSections(sorted); 
     }, [initialSections]);
 
-    const isFestamas = division === 'JUGUETERIA';
-    const brandColorBg = isFestamas ? "bg-festamas-primary/10" : "bg-fiestasya-accent/10";
-    const brandColorText = isFestamas ? "text-festamas-primary" : "text-fiestasya-accent";
+    const brandColorBg = "bg-primary/10";
+    const brandColorText = "text-primary";
 
     // Configuración de Sensores para Móvil y Desktop
     const sensors = useSensors(
@@ -196,7 +193,7 @@ export function SectionList({ sections: initialSections, division }: { sections:
                 </div>
                 <h4 className="text-slate-900 font-semibold text-lg">No hay secciones activas</h4>
                 <p className="text-slate-500 max-w-sm mt-1 mb-6">
-                    Aún no has configurado secciones para la Home de {isFestamas ? 'Festamas' : 'FiestasYa'}.
+                    Aún no has configurado secciones para la Home de esta tienda.
                 </p>
                 <Button asChild variant="outline">
                     <Link href="/admin/sections/new">Crear Sección</Link>

@@ -1,29 +1,73 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { Division } from '@prisma/client'; // Importamos el Enum real
 import { getHomeSections } from './home-sections';
+import { inferLegacyDivision } from '@/lib/ecommerce-helpers';
 
-// 🛡️ FIX: La función ahora exige saber en qué división estamos
-export const getHomeData = async (division: Division) => {
+const mapProductForBranch = (product: any, branchId: string, ecommerceCode?: string | null) => {
+  const firstVariant = product.variants[0];
+  const variantStock = firstVariant?.stock?.find((item: any) => item.branchId === branchId);
+  const stock = variantStock?.quantity ?? 0;
+  const price = Number(firstVariant?.price ?? product.basePrice ?? 0);
+  return {
+    id: product.id,
+    title: product.title,
+    slug: product.slug,
+    description: product.description,
+    price,
+    stock,
+    images: firstVariant?.images?.length ? firstVariant.images : product.images,
+    isAvailable: product.isAvailable,
+    wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
+    wholesaleMinCount: product.wholesaleMinCount,
+    discountPercentage: product.discountPercentage,
+    tags: product.tags,
+    groupTag: product.groupTag,
+    division: inferLegacyDivision(ecommerceCode),
+    categoryId: product.categoryId,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+    category: { name: product.category.name, slug: product.category.slug },
+  };
+};
+
+export const getHomeData = async (businessId: string, branchId: string, ecommerceCode?: string | null) => {
   try {
-    // 1. Novedades (Últimos 8 productos DE LA DIVISIÓN ACTUAL)
     const newArrivals = await prisma.product.findMany({
       take: 8,
-      where: { 
+      where: {
+        businessId,
+        branchOwnerId: branchId,
         isAvailable: true,
-        division: division // 👈 ¡Faltaba esto!
+        active: true,
       },
       orderBy: { createdAt: 'desc' },
-      include: { category: true } 
+      include: {
+        category: true,
+        variants: {
+          where: { active: true },
+          include: {
+            stock: { where: { branchId } },
+          },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+        },
+      },
     });
 
-    // 2. Categorías Destacadas (Solo de esta división)
     const categories = await prisma.category.findMany({
       take: 6, 
-      where: { 
-        division: division, // 👈 ¡Faltaba esto!
-        products: { some: {} } // Que tengan al menos un producto
+      where: {
+        businessId,
+        ecommerceCode: ecommerceCode ?? undefined,
+        products: {
+          some: {
+            businessId,
+            branchOwnerId: branchId,
+            isAvailable: true,
+            active: true,
+          },
+        },
       },
       orderBy: {
         products: { _count: 'desc' } 
@@ -33,47 +77,26 @@ export const getHomeData = async (division: Division) => {
       }
     });
 
-    // 3. Banner Intermedio (Opcional: Si tus banners tienen división, fíltralos también)
-    // Asumo que el banner "MIDDLE_SECTION" es global por ahora, si no, agrega el where.
     const middleBanner = await prisma.banner.findFirst({
       where: { 
+        OR: [{ branchId }, { branchId: null }],
         position: 'MIDDLE_SECTION',
-        active: true 
+        active: true,
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    // 4. Secciones por Tag (Le pasamos la división)
-    const { sections } = await getHomeSections(division, true);
+    const { sections } = await getHomeSections(branchId, true);
 
     return {
-      newArrivals: newArrivals.map(p => ({
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
-        description: p.description,
-        price: Number(p.price),
-        stock: p.stock,
-        images: p.images,
-        isAvailable: p.isAvailable,
-        wholesalePrice: p.wholesalePrice ? Number(p.wholesalePrice) : 0,
-        wholesaleMinCount: p.wholesaleMinCount,
-        discountPercentage: p.discountPercentage,
-        tags: p.tags,
-        color: p.color,
-        groupTag: p.groupTag,
-        division: p.division,
-        barcode: p.barcode,
-        categoryId: p.categoryId,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-        category: { name: p.category.name, slug: p.category.slug }
-      })),
+      newArrivals: newArrivals.map((product) => mapProductForBranch(product, branchId, ecommerceCode)),
       categories,
       middleBanner,
-      sections
+      sections: sections.map((section: any) => ({
+        ...section,
+        division: inferLegacyDivision(ecommerceCode),
+      })),
     };
-
   } catch (error) {
     console.error(error);
     return {

@@ -13,6 +13,7 @@ interface Props {
   // 🛡️ FIX CRÍTICO: Sobrescribimos los tipos Decimal por number
   // Esto soluciona el error de "Type number is not assignable to type Decimal"
   product: Omit<Product, 'price' | 'wholesalePrice'> & {
+    stock: number;
     price: number;
     wholesalePrice?: number | null;
     wholesaleMinCount?: number | null;
@@ -24,9 +25,8 @@ export function ProductActions({ product }: Props) {
   const [quantity, setQuantity] = useState(1);
   const addProductToCart = useCartStore(state => state.addProductToCart);
   
-  const isToys = product.division === 'JUGUETERIA';
-  const themeColor = isToys ? 'text-[#fc4b65]' : 'text-[#ec4899]';
-  const btnBg = isToys ? 'bg-[#fc4b65] hover:bg-[#e11d48]' : 'bg-[#ec4899] hover:bg-[#db2777]';
+  const themeColor = "text-primary";
+  const btnBg = "bg-primary hover:opacity-90 text-white";
   
   // Lógica de precios
   const discount = product.discountPercentage || 0;
@@ -55,7 +55,6 @@ export function ProductActions({ product }: Props) {
       quantity: quantity,
       image: product.images[0] || '/placeholder.jpg',
       stock: product.stock,
-      division: product.division,
       wholesalePrice: wholesalePrice,
       wholesaleMinCount: minCount,
       discountPercentage: discount,

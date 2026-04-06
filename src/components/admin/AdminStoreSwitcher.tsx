@@ -18,24 +18,24 @@ import {
 } from '@/components/ui/dialog';
 import { ChevronDown, Check, AlertTriangle, Trash2, X, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { setAdminDivision } from '@/actions/admin-settings';
-import { Division } from '@prisma/client';
+import { setAdminBranch } from '@/actions/admin-settings';
 import { usePOSStore } from '@/store/pos-store';
 import { toast } from 'sonner';
 
 interface Props {
-  currentDivision: Division;
+  activeBranch: any;
+  branches: any[];
   isCollapsed?: boolean;
   isGlobalModule?: boolean;
 }
 
-export const AdminStoreSwitcher = ({ currentDivision, isCollapsed, isGlobalModule = false }: Props) => {
+export const AdminStoreSwitcher = ({ activeBranch, branches, isCollapsed, isGlobalModule = false }: Props) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [division, setDivision] = useState<Division>(currentDivision);
+  const [branch, setBranch] = useState(activeBranch);
   
   const [modalOpen, setModalOpen] = useState(false);
-  const [targetDivision, setTargetDivision] = useState<Division | null>(null);
+  const [targetBranch, setTargetBranch] = useState<any | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   const { cart, clearCart, clearCustomer } = usePOSStore();
@@ -44,28 +44,25 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed, isGlobalModul
     setIsMounted(true);
   }, []);
 
-  const isFestamas = division === 'JUGUETERIA';
-  const logoFestamas = '/images/IconoFestamas2.png';
-  const logoFiestasYa = '/images/IconoFiestasYa2.png';
+  const logoFestamas = activeBranch?.logos?.isotipo ?? activeBranch?.logos?.imagotipo ?? '/images/IconoFestamas2.png';
+  const brandName = activeBranch?.name || "Tienda";
 
-  const brandName = isFestamas ? "Festamas" : "FiestasYa";
-
-  const handleSwitchRequest = (newDivision: Division) => {
-    if (newDivision === division) return; 
+  const handleSwitchRequest = (newBranch: any) => {
+    if (newBranch.id === branch?.id) return; 
 
     if (cart.length > 0) {
-      setTargetDivision(newDivision); 
+      setTargetBranch(newBranch); 
       setModalOpen(true);             
     } else {
-      executeSwitch(newDivision);
+      executeSwitch(newBranch);
     }
   };
 
-  const executeSwitch = (newDivision: Division) => {
-    setDivision(newDivision);
+  const executeSwitch = (newBranch: any) => {
+    setBranch(newBranch);
     startTransition(async () => {
       try {
-        await setAdminDivision(newDivision);
+        await setAdminBranch(newBranch.id);
         router.refresh();
       } catch (error) {
         console.error(error);
@@ -75,11 +72,11 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed, isGlobalModul
   };
 
   const handleConfirmSwitch = () => {
-    if (targetDivision) {
+    if (targetBranch) {
       clearCart();     
       clearCustomer(); 
       setModalOpen(false);
-      executeSwitch(targetDivision); 
+      executeSwitch(targetBranch); 
     }
   };
 
@@ -119,7 +116,7 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed, isGlobalModul
                   ) : (
                     <div className="relative w-full h-full">
                       <Image 
-                          src={isFestamas ? logoFestamas : logoFiestasYa}
+                          src={logoFestamas}
                           alt="Logo" 
                           fill 
                           sizes="32px"
@@ -159,28 +156,27 @@ export const AdminStoreSwitcher = ({ currentDivision, isCollapsed, isGlobalModul
             align="start" 
             side={isCollapsed ? "right" : "bottom"}
         >
-          
-          <DropdownMenuItem onClick={() => handleSwitchRequest('JUGUETERIA')} className={cn("gap-3 cursor-pointer p-2 mb-1 rounded-lg focus:bg-slate-50 transition-colors", isFestamas && "bg-slate-50")}>
-            <div className="flex items-center justify-center w-8 h-8 shrink-0">
-                <div className="relative w-full h-full"><Image src={logoFestamas} alt="Festamas" fill sizes="32px" className="object-contain" /></div>
-            </div>
-            <div className="flex flex-col flex-1">
-                <span className={cn("font-bold text-sm", isFestamas ? "text-primary" : "text-slate-700")}>Festamas</span>
-                <span className="text-[10px] text-slate-500">Juguetes y Diversión</span>
-            </div>
-            {isFestamas && <Check className="w-4 h-4 text-primary" />}
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem onClick={() => handleSwitchRequest('FIESTAS')} className={cn("gap-3 cursor-pointer p-2 rounded-lg focus:bg-slate-50 transition-colors", !isFestamas && "bg-slate-50")}>
-            <div className="flex items-center justify-center w-8 h-8 shrink-0">
-              <div className="relative w-full h-full"><Image src={logoFiestasYa} alt="FiestasYa" fill sizes="32px" className="object-contain" /></div>
-            </div>
-            <div className="flex flex-col flex-1">
-                <span className={cn("font-bold text-sm", !isFestamas ? "text-primary" : "text-slate-700")}>FiestasYa</span>
-                <span className="text-[10px] text-slate-500">Decoración y Piñatas</span>
-            </div>
-            {!isFestamas && <Check className="w-4 h-4 text-primary" />}
-          </DropdownMenuItem>
+          {branches.map((b: any) => {
+            const isActive = b.id === branch?.id;
+            return (
+              <DropdownMenuItem 
+                  key={b.id}
+                  onClick={() => handleSwitchRequest(b)} 
+                  className={cn("gap-3 cursor-pointer p-2 mb-1 rounded-lg focus:bg-slate-50 transition-colors", isActive && "bg-slate-50")}
+              >
+                <div className="flex items-center justify-center w-8 h-8 shrink-0">
+                    <div className="relative w-full h-full">
+                        <Image src={b.logoUrl || '/images/default-store.png'} alt={b.name} fill sizes="32px" className="object-contain" />
+                    </div>
+                </div>
+                <div className="flex flex-col flex-1">
+                    <span className={cn("font-bold text-sm", isActive ? "text-primary" : "text-slate-700")}>{b.name}</span>
+                    <span className="text-[10px] text-slate-500">{b.ecommerceCode || 'Tienda'}</span>
+                </div>
+                {isActive && <Check className="w-4 h-4 text-primary" />}
+              </DropdownMenuItem>
+            );
+          })}
 
         </DropdownMenuContent>
       </DropdownMenu>

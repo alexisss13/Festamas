@@ -2,33 +2,24 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { Division } from '@prisma/client';
 
 /**
- * Guarda la preferencia de división del administrador en una cookie.
- * @param division 'JUGUETERIA' | 'FIESTAS'
+ * Guarda la preferencia de sucursal del administrador en una cookie.
+ * @param branchId ID de la sucursal (Branch)
  */
-export async function setAdminDivision(division: Division) {
+export async function setAdminBranch(branchId: string) {
   const cookieStore = await cookies();
-  // Guardamos la cookie por defecto (sin expiración explícita es de sesión, pero podemos ponerle maxAge si queremos persistencia larga)
-  cookieStore.set('admin_division', division, { path: '/' });
+  cookieStore.set('admin_branch', branchId, { path: '/' });
   
-  // Revalidamos todas las rutas del admin para que se actualicen con la nueva división
+  // Revalidamos todas las rutas del admin
   revalidatePath('/admin', 'layout');
 }
 
 /**
- * Obtiene la división actual que el administrador está gestionando.
- * Por defecto retorna 'JUGUETERIA' si no hay cookie.
+ * Obtiene el ID de la sucursal actual que el administrador está gestionando.
+ * Retorna null si no hay cookie, para que el layout pueda usar la primera por defecto.
  */
-export async function getAdminDivision(): Promise<Division> {
+export async function getAdminBranch(): Promise<string | null> {
   const cookieStore = await cookies();
-  const division = cookieStore.get('admin_division')?.value;
-  
-  // Validación de seguridad para asegurar que el valor sea un Enum válido
-  if (division === 'FIESTAS' || division === 'JUGUETERIA') {
-    return division as Division;
-  }
-  
-  return 'JUGUETERIA'; // Default
+  return cookieStore.get('admin_branch')?.value || null;
 }

@@ -1,16 +1,17 @@
 import Link from 'next/link';
 import { ArrowLeft, Ticket } from 'lucide-react';
 import { CouponForm } from '@/components/admin/CouponForm';
-import { getAdminDivision } from '@/actions/admin-settings';
+import { getAdminBranch } from '@/actions/admin-settings';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export default async function NewCouponPage() {
-  const currentDivision = await getAdminDivision();
-  const isFestamas = currentDivision === 'JUGUETERIA';
+  const branchId = await getAdminBranch();
+  const { branches } = await getEcommerceContextFromCookie();
+  
+  const activeBranch = branches.find(b => b.id === branchId) ?? branches[0];
 
   // Estilos dinámicos para el badge
-  const badgeClass = isFestamas 
-    ? "bg-festamas-primary/10 text-festamas-primary border-festamas-primary/20" 
-    : "bg-fiestasya-accent/10 text-fiestasya-accent border-fiestasya-accent/20";
+  const badgeClass = "bg-primary/10 text-primary border-primary/20";
 
   return (
     <div className="p-4 md:p-8 w-full max-w-4xl mx-auto animate-in fade-in duration-500">
@@ -35,12 +36,12 @@ export default async function NewCouponPage() {
             </div>
             
             <div className={`px-4 py-2 rounded-full border text-sm font-bold uppercase tracking-wider ${badgeClass}`}>
-                Tienda: {isFestamas ? 'Festamas' : 'FiestasYa'}
+                Tienda: {activeBranch?.name || 'Tienda'}
             </div>
         </div>
       </div>
 
-      <CouponForm defaultDivision={currentDivision} />
+      <CouponForm defaultBranchId={activeBranch?.id} />
     </div>
   );
 }

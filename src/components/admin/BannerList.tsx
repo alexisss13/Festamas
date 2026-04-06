@@ -28,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, GripVertical, Smartphone, Monitor, Link as LinkIcon, Image as ImageIcon, GalleryHorizontal, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Division, BannerPosition } from '@prisma/client';
+import { BannerPosition } from '@prisma/client';
 
 // --- ITEM INDIVIDUAL ---
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,9 +188,8 @@ function BannerSectionGroup({ dndId, title, icon: Icon, banners, onReorder, onDe
     );
 }
 
-// --- COMPONENTE PRINCIPAL ---
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function BannerList({ initialBanners, division }: { initialBanners: any[], division: Division }) {
+export function BannerList({ initialBanners, activeBranch }: { initialBanners: any[], activeBranch: any }) {
     const router = useRouter();
     const [banners, setBanners] = useState(initialBanners);
 
@@ -216,13 +215,11 @@ export function BannerList({ initialBanners, division }: { initialBanners: any[]
         toast.success("Banner eliminado");
     };
 
-    const isFestamas = division === 'JUGUETERIA';
-
     // Filtrado y Ordenado (SOLO MAIN_HERO y MIDDLE_SECTION)
-    const heroBanners = banners.filter(b => b.division === division && b.position === 'MAIN_HERO').sort((a,b) => a.order - b.order);
-    const middleBanners = banners.filter(b => b.division === division && b.position === 'MIDDLE_SECTION').sort((a,b) => a.order - b.order);
+    const heroBanners = banners.filter(b => (b.branchId === activeBranch?.id || !b.branchId) && b.position === 'MAIN_HERO').sort((a,b) => a.order - b.order);
+    const middleBanners = banners.filter(b => (b.branchId === activeBranch?.id || !b.branchId) && b.position === 'MIDDLE_SECTION').sort((a,b) => a.order - b.order);
 
-    if (banners.filter(b => b.division === division).length === 0) {
+    if (banners.filter(b => b.branchId === activeBranch?.id || !b.branchId).length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-dashed border-slate-200 text-center animate-in fade-in">
                 <div className="p-4 bg-slate-50 rounded-full mb-4">
@@ -230,7 +227,7 @@ export function BannerList({ initialBanners, division }: { initialBanners: any[]
                 </div>
                 <h4 className="text-slate-900 font-semibold text-lg">No hay banners configurados</h4>
                 <p className="text-slate-500 max-w-sm mt-1 mb-6">
-                    Aún no hay banners para {isFestamas ? 'Festamas' : 'FiestasYa'}.
+                    Aún no hay banners para {activeBranch?.name || 'la tienda'}.
                 </p>
                 <Button asChild variant="outline">
                     <Link href="/admin/banners/new">Crear el primero</Link>

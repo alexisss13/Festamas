@@ -6,8 +6,8 @@ import { Pagination } from '@/components/ui/pagination';
 import { SlidersHorizontal, SearchX, Layers } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Division } from '@prisma/client';
-import { redirect } from 'next/navigation';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+import { inferLegacyDivision } from '@/lib/ecommerce-helpers';
 
 interface Props {
   searchParams: Promise<{ 
@@ -16,7 +16,6 @@ interface Props {
     max?: string;
     page?: string;
     tag?: string;
-    division?: string; 
   }>;
 }
 
@@ -30,20 +29,14 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function CollectionsPage({ searchParams }: Props) {
-  const { sort, min, max, page, tag, division } = await searchParams;
-
-  // Si no hay tag ni división, mandamos al home por seguridad
-  if (!division) redirect('/');
+  const { sort, min, max, page, tag } = await searchParams;
+  const { activeBranch } = await getEcommerceContextFromCookie();
 
   const currentPage = Number(page) || 1;
   const minPrice = min ? Number(min) : undefined;
   const maxPrice = max ? Number(max) : undefined;
   
-  // Detección de tienda segura
-  let activeDivision: Division = 'JUGUETERIA';
-  if (division === 'FIESTAS' || division === 'DECORACION') {
-     activeDivision = 'FIESTAS' as Division; 
-  }
+  const activeDivision = inferLegacyDivision(activeBranch.ecommerceCode);
 
   const isToys = activeDivision === 'JUGUETERIA';
   const brandColor = isToys ? '#fc4b65' : '#ec4899';
@@ -151,7 +144,7 @@ export default async function CollectionsPage({ searchParams }: Props) {
                         No encontramos productos con estos filtros en esta colección.
                     </p>
                     <Button 
-                        onClick={() => window.location.href = `/new-arrivals?division=${activeDivision}`} 
+                        onClick={() => window.location.href = '/new-arrivals'} 
                         variant="link" 
                         className="mt-2 text-slate-900 font-bold"
                     >

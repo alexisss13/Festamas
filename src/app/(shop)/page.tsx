@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers'; 
 import { getHomeData } from '@/actions/home-data';
 import { getProductsByTag } from '@/actions/products';
 import { getCategories } from '@/actions/categories';
@@ -9,20 +8,14 @@ import { ProductCarousel } from '@/components/features/ProductCarousel';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { Division } from '@prisma/client';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export default async function Home() {
-  const cookieStore = await cookies();
-  const divisionCookie = cookieStore.get('festamas_division')?.value as Division;
-  
-  const currentDivision = (divisionCookie === 'FIESTAS' || divisionCookie === 'JUGUETERIA') 
-    ? divisionCookie 
-    : 'JUGUETERIA';
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
 
-  // 1. Ejecutamos las promesas en paralelo para velocidad
   const [homeData, categoriesResult] = await Promise.all([
-    getHomeData(currentDivision),
-    getCategories(currentDivision)
+    getHomeData(business.id, activeBranch.id, activeBranch.ecommerceCode),
+    getCategories({ businessId: business.id, ecommerceCode: activeBranch.ecommerceCode })
   ]);
 
   const { newArrivals, middleBanner, sections } = homeData;
@@ -33,7 +26,7 @@ export default async function Home() {
 
   const sectionsWithProducts = await Promise.all(
     sections.map(async (section) => {
-      const { products } = await getProductsByTag(section.tag, 8, section.division);
+      const { products } = await getProductsByTag(section.tag, 8);
       return { ...section, products };
     })
   );
@@ -58,7 +51,7 @@ export default async function Home() {
               </div>
               
               <Button variant="link" asChild className="text-slate-500 hover:text-slate-900 font-medium px-0 pb-0 h-auto">
-                <Link href={`/new-arrivals?division=${currentDivision}`}>
+                <Link href="/new-arrivals">
                   Ver todo <ArrowRight className="ml-1.5 w-4 h-4" />
                 </Link>
               </Button>
@@ -94,7 +87,7 @@ export default async function Home() {
                 
                 {/* 🔗 BOTÓN UNIFICADO: Link minimalista en PC y Móvil en lugar de botones pesados */}
                 <Button variant="link" asChild className="text-slate-500 hover:text-slate-900 font-medium px-0 pb-0 h-auto whitespace-nowrap ml-4">
-                    <Link href={`/collections?tag=${section.tag}&division=${section.division}`}>
+                    <Link href={`/collections?tag=${section.tag}`}>
                         Ver todo <ArrowRight className="ml-1.5 w-4 h-4" />
                     </Link>
                 </Button>

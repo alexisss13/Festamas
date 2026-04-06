@@ -15,25 +15,11 @@ type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
-  const { currentDivision } = useUIStore()
-  const isToys = currentDivision === 'JUGUETERIA'
-
-  // --- 🎨 CONFIGURACIÓN DE COLORES DE MARCA ---
-  // Usamos hexadecimales exactos para asegurar la identidad visual
-  const brandColors = isToys 
-    ? {
-        // Festamas (Rojo/Rose)
-        primary: "#fc4b65",      // Color del borde e icono
-        background: "#fff1f2",   // Fondo muy suave (Rose-50)
-        text: "#881337",         // Texto oscuro para lectura (Rose-900)
-        border: "#fecdd3"        // Borde sutil (Rose-200)
-      }
-    : {
-        // FiestasYa (Rosa/Pink)
-        primary: "#ec4899",      // Color del borde e icono
-        background: "#fdf2f8",   // Fondo muy suave (Pink-50)
-        text: "#831843",         // Texto oscuro para lectura (Pink-900)
-        border: "#fbcfe8"        // Borde sutil (Pink-200)
+  const brandColors = {
+        primary: "var(--primary)",      // Color del borde e icono
+        background: "#ffffff",   // Fondo muy suave
+        text: "#1e293b",         // Texto oscuro para lectura 
+        border: "#e2e8f0"        // Borde sutil
       }
 
   return (

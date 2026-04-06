@@ -1,23 +1,21 @@
 import prisma from '@/lib/prisma';
 import { FooterClient } from './FooterClient';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export async function Footer() {
-  // 1. Obtenemos MUCHAS categorías (o todas) para poder filtrar en el cliente
-  // Necesitamos el campo 'division' para saber a quién pertenecen
+  const { business } = await getEcommerceContextFromCookie();
   const categories = await prisma.category.findMany({
-    where: { 
-      division: { in: ['JUGUETERIA', 'FIESTAS'] } 
+    where: {
+      businessId: business.id,
     },
     orderBy: { name: 'asc' },
-    select: { 
+    select: {
         id: true, 
         name: true, 
         slug: true,
-        division: true // ¡Importante!
+        ecommerceCode: true
     },
-    take: 20 // Traemos suficientes para llenar ambas tiendas
+    take: 20
   });
-
-  // 2. Renderizamos el Cliente pasándole los datos
   return <FooterClient allCategories={categories} />;
 }

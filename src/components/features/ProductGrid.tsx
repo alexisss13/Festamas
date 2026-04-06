@@ -10,10 +10,10 @@ interface Props {
 }
 
 export function ProductGrid({ products }: Props) {
-  const { currentDivision } = useUIStore();
+  const { activeBranchId } = useUIStore();
 
   // 🛡️ FILTRO: Solo mostramos productos de la tienda activa
-  const displayProducts = products.filter(p => p.division === currentDivision);
+  const displayProducts = products.filter(p => p.branchOwnerId === activeBranchId || p.branchOwnerId === undefined);
 
   if (displayProducts.length === 0) {
     return (

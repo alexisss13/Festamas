@@ -12,16 +12,11 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Division } from '@prisma/client';
-
-export function CatalogsView({ initialCatalogs, division }: { initialCatalogs: any[], division: Division }) {
+export function CatalogsView({ initialCatalogs, activeBranch }: { initialCatalogs: any[], activeBranch?: any }) {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
 
-    const isFestamas = division === 'JUGUETERIA';
-    const brandButtonClass = isFestamas 
-        ? "bg-festamas-primary hover:bg-festamas-primary/90" 
-        : "bg-fiestasya-accent hover:bg-fiestasya-accent/90";
+    const brandButtonClass = "bg-primary hover:bg-primary/90";
 
     const filteredCatalogs = initialCatalogs.filter(catalog => 
         catalog.title?.toLowerCase().includes(searchTerm.toLowerCase())

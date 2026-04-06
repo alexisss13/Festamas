@@ -31,19 +31,9 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   
-  // --- Lógica de Tienda y Temas ---
-  const currentDivision = useUIStore((state) => state.currentDivision);
-  const isActiveFestamas = currentDivision === 'JUGUETERIA';
-
-  // Solo necesitamos el color del texto y bordes para la UI minimalista
-  const theme = isActiveFestamas 
-    ? {
-        brandText: 'text-[#fc4b65]',
-        discountBadge: 'bg-[#fc4b65] text-white',
-      }
-    : {
-        brandText: 'text-[#fb3099]',
-        discountBadge: 'bg-[#fb3099] text-white',
+  const theme = {
+        brandText: 'text-primary',
+        discountBadge: 'bg-primary text-white',
       };
 
   // --- Lógica de Precios ---

@@ -44,7 +44,8 @@ const COLUMNS = [
 ];
 
 export function ExportView({ orders }: ExportViewProps) {
-  const currentDivision = useUIStore(state => state.currentDivision);
+  const activeBranchId = useUIStore(state => state.activeBranchId);
+  const branches = useUIStore(state => state.branches);
   const [logo, setLogo] = useState<string>('');
   
   const [startDate, setStartDate] = useState('');
@@ -53,13 +54,14 @@ export function ExportView({ orders }: ExportViewProps) {
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [deliveryFilter, setDeliveryFilter] = useState('all');
 
-  // Cargar el logo según la división
   useEffect(() => {
     const loadLogo = async () => {
       try {
-        const logoPath = currentDivision === 'FIESTAS' 
-          ? '/images/IconoFY.png' 
-          : '/images/IconoFT.png';
+        const branch = branches.find(b => b.id === activeBranchId);
+        const logoPath = branch?.logoUrl || '/images/default-store.png';
+        
+        // Solo para evitar fallas si no hay logo, omitimos el fetch en ese caso:
+        if (!logoPath) return;
         
         const response = await fetch(logoPath);
         const blob = await response.blob();
@@ -75,7 +77,7 @@ export function ExportView({ orders }: ExportViewProps) {
       }
     };
     loadLogo();
-  }, [currentDivision]);
+  }, [activeBranchId, branches]);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(
     COLUMNS.filter(col => col.default).map(col => col.id)
   );
@@ -146,7 +148,8 @@ export function ExportView({ orders }: ExportViewProps) {
         case 'xlsx': exportToExcel(filteredOrders, selectedColumns); break;
         case 'csv': exportToCSV(filteredOrders, selectedColumns); break;
         case 'pdf': {
-          const storeName = currentDivision === 'FIESTAS' ? 'FIESTASYA S.A.C.' : 'FESTAMÁS S.A.C.';
+          const branch = branches.find(b => b.id === activeBranchId);
+          const storeName = branch?.name || 'Tienda';
           exportToPDF(filteredOrders, selectedColumns, logo, storeName);
           break;
         }

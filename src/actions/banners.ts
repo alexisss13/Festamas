@@ -1,7 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { BannerPosition, Division } from '@prisma/client';
+import { BannerPosition } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
 // Esquema de validación para el servidor (opcional pero recomendado)
@@ -11,7 +11,7 @@ interface BannerData {
   mobileUrl?: string;
   link?: string;
   position: BannerPosition;
-  division: Division;
+  branchId?: string | null;
 }
 
 export async function createBanner(data: BannerData) {

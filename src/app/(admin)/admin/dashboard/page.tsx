@@ -6,27 +6,26 @@ import { RecentSales } from './RecentSales';
 import { CreditCard, Package, ShoppingCart, AlertTriangle, Ticket, Truck, Store, ClipboardList, Image as ImageIcon } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { cookies } from 'next/headers';
-import { Division } from '@prisma/client';
-import { cn } from '@/lib/utils';
+import { getAdminBranch } from '@/actions/admin-settings';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies();
-  const currentDivision = (cookieStore.get('admin_division')?.value as Division) || 'JUGUETERIA';
-  const isFiestas = currentDivision === 'FIESTAS';
-  const storeName = isFiestas ? 'FiestasYa' : 'Festamas';
+  const branchId = await getAdminBranch();
+  const { branches } = await getEcommerceContextFromCookie();
+  
+  const activeBranch = branches.find((b: any) => b.id === branchId) ?? branches[0];
+  const storeName = activeBranch ? activeBranch.name : 'Tienda';
 
-  // Ejecutamos TODO en paralelo (agregamos getOrderStatuses)
   const [statsRes, chartData, recentSales, topProducts, logistics, orderStatuses] = await Promise.all([
-    getDashboardStats(currentDivision),
-    getSalesChartData(currentDivision),
-    getRecentSales(currentDivision),
-    getTopProducts(currentDivision),
-    getLogisticsStats(currentDivision),
-    getOrderStatuses(currentDivision)
+    getDashboardStats(activeBranch.id),
+    getSalesChartData(activeBranch.id),
+    getRecentSales(activeBranch.id),
+    getTopProducts(activeBranch.id),
+    getLogisticsStats(activeBranch.id),
+    getOrderStatuses(activeBranch.id)
   ]);
 
-  const safeStats = statsRes.data || {
+  const safeStats = statsRes || {
     totalRevenue: 0,
     ordersCount: 0,
     productsCount: 0,
@@ -43,9 +42,8 @@ export default async function DashboardPage() {
 
   return (
     <div 
-      key={currentDivision}
+      key={activeBranch.id}
       className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-white min-h-[calc(100vh-4rem)]"
-      data-theme={isFiestas ? 'fiestasya' : ''}
     >
       <div className="pb-2 lg:pb-4">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">

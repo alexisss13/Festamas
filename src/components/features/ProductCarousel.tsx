@@ -6,7 +6,7 @@ import { useRef, useEffect, useState, memo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useUIStore } from '@/store/ui';
+
 
 interface Props {
   products: Product[];
@@ -25,12 +25,7 @@ export const ProductCarousel = memo(function ProductCarousel({ products, classNa
   const [activeIndex, setActiveIndex] = useState(0);
   const [pageCount, setPageCount] = useState(0);
 
-  // Colores dinámicos por división
-  const currentDivision = useUIStore((state) => state.currentDivision);
-  const isToys = currentDivision === 'JUGUETERIA';
-  const colorFestamas = "#fc4b65";
-  const colorFiestasYa = "#fb3099";
-  const activeColor = isToys ? colorFestamas : colorFiestasYa;
+  const activeColor = "var(--primary)";
 
   // 🛡️ LÓGICA DE VISIBILIDAD DE FLECHAS Y PUNTOS
   const checkScroll = useCallback(() => {

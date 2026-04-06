@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createOrUpdateProduct } from '@/actions/product-form';
-import { Product, Category, Division } from '@prisma/client';
+import { Product, Category } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,12 +20,12 @@ import Barcode from 'react-barcode';
 import { BarcodeControl } from '@/components/admin/BarcodeControl';
 
 interface Props {
-  product?: Product | null;
+  product?: any;
   categories: Category[];
-  defaultDivision?: Division;
+  activeBranch?: any;
 }
 
-export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA' }: Props) {
+export function ProductForm({ product, categories, activeBranch }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
@@ -121,10 +121,8 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
     };
   }, [isDirty]);
 
-  const currentDivision = product?.division || defaultDivision;
-  const isFestamas = currentDivision === 'JUGUETERIA';
-  const brandFocusClass = isFestamas ? "focus-visible:ring-festamas-primary" : "focus-visible:ring-fiestasya-accent";
-  const brandTextClass = isFestamas ? "text-festamas-primary" : "text-fiestasya-accent";
+  const brandFocusClass = "focus-visible:ring-primary";
+  const brandTextClass = "text-primary";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -135,7 +133,10 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
     // Agregamos manualmente los estados controlados
     images.forEach(img => formData.append('images', img));
     if (isAvailable) formData.set('isAvailable', 'on');
-    formData.set('division', currentDivision);
+    if (activeBranch) {
+        formData.append('businessId', activeBranch.businessId);
+        formData.append('branchOwnerId', activeBranch.id);
+    }
     formData.set('color', color);
     if (barcode) formData.set('barcode', barcode);
 
@@ -190,7 +191,7 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
             <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2">
                 {product ? 'Editar Producto' : 'Nuevo Producto'}
                 <span className={cn("text-xs px-2 py-1 rounded-md bg-slate-100 uppercase font-extrabold tracking-wide", brandTextClass)}>
-                    {isFestamas ? 'Festamas' : 'FiestasYa'}
+                    {activeBranch?.name || 'Tienda'}
                 </span>
                 {/* 🚨 AVISO VISUAL */}
                 {isDirty && (
@@ -212,7 +213,7 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
             </Button>
             <Button 
                 type="submit" 
-                className={cn("text-white flex-1 md:flex-none min-w-[140px]", isFestamas ? "bg-festamas-primary hover:bg-festamas-primary/90" : "bg-fiestasya-accent hover:bg-fiestasya-accent/90")} 
+                className={cn("text-white flex-1 md:flex-none min-w-[140px]", "bg-primary hover:bg-primary/90")} 
                 disabled={loading || !isDirty} 
             >
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -438,7 +439,7 @@ export function ProductForm({ product, categories, defaultDivision = 'JUGUETERIA
                     <Switch 
                         id="isAvailable" 
                         checked={isAvailable} onCheckedChange={setIsAvailable} 
-                        className={isFestamas ? "data-[state=checked]:bg-festamas-primary" : "data-[state=checked]:bg-fiestasya-accent"} 
+                        className={"data-[state=checked]:bg-primary"} 
                     />
                 </div>
             </div>

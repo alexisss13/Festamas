@@ -33,6 +33,8 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
     groupTag: groupTag ?? undefined,
     color: color ?? undefined,
     barcode,
+    businessId: data.businessId,
+    branchOwnerId: data.branchOwnerId
   };
 
   const parsed = productSchema.safeParse(rawData);
@@ -43,7 +45,7 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
 
   const {
     title, slug, description, price, stock, categoryId, isAvailable,
-    division, wholesalePrice, wholesaleMinCount, discountPercentage, tags
+    businessId, branchOwnerId, wholesalePrice, wholesaleMinCount, discountPercentage, tags, color: parsedColor
   } = parsed.data;
 
   const tagsArray = tags
@@ -55,27 +57,49 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
       title,
       slug,
       description,
-      price,
-      stock,
+      basePrice: price, 
       categoryId,
       images,
       isAvailable,
-      color,
       groupTag,
-      division,
+      businessId,
+      branchOwnerId,
       wholesalePrice,
       wholesaleMinCount,
       discountPercentage,
       tags: tagsArray,
-      barcode,
     };
 
     if (id) {
       await prisma.product.update({ where: { id }, data: productData });
+      // Update first variant
+      const firstVariant = await prisma.productVariant.findFirst({ where: { productId: id } });
+      if (firstVariant) {
+        await prisma.productVariant.update({
+          where: { id: firstVariant.id },
+          data: {
+             price, barcode, name: color || 'Default Variant',
+             attributes: color ? { color } : {}
+          }
+        });
+      }
     } else {
       const existing = await prisma.product.findUnique({ where: { slug } });
       if (existing) return { success: false, error: 'El slug ya existe.' };
-      await prisma.product.create({ data: productData });
+      
+      const newProduct = await prisma.product.create({ data: productData });
+      
+      // Create Default Variant
+      await prisma.productVariant.create({
+        data: {
+          productId: newProduct.id,
+          name: color || 'Default Variant',
+          barcode,
+          price,
+          attributes: color ? { color } : {}
+        }
+      });
+      // Stock will be created separately when received in inventory, or we can create 0 stock here
     }
 
     revalidatePath('/admin/products');

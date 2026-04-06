@@ -10,9 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { hexToHslString } from '@/lib/utils';
 import { logout } from '@/actions/auth-actions';
 import { AdminStoreSwitcher } from './AdminStoreSwitcher';
-import { Division } from '@prisma/client';
+
 
 const storeNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,10 +29,11 @@ const globalNavItems = [
 ];
 
 interface Props {
-  currentDivision: Division;
+  activeBranch: any;
+  branches: any[];
 }
 
-export const AdminSidebar = ({ currentDivision }: Props) => {
+export const AdminSidebar = ({ activeBranch, branches }: Props) => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -40,13 +42,13 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
   const isGlobalModule = pathname.startsWith('/admin/coupons') || 
                          pathname.startsWith('/admin/settings');
 
-  const brandName = currentDivision === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa';
+  const brandName = activeBranch ? activeBranch.name : 'Tienda';
+  const primaryColor = activeBranch?.brandColors?.primary ?? '#fc4b65';
 
+  // Inyectar el color primario de la sucursal activa como variable CSS global
   useEffect(() => {
-    const activeTheme = currentDivision === 'FIESTAS' ? 'fiestasya' : 'festamas';
-    document.documentElement.setAttribute('data-theme', activeTheme);
-    return () => document.documentElement.removeAttribute('data-theme');
-  }, [currentDivision]);
+    document.documentElement.style.setProperty('--primary', hexToHslString(primaryColor));
+  }, [primaryColor]);
 
   useEffect(() => {
     const mainContent = document.getElementById('admin-main-content');
@@ -85,7 +87,7 @@ export const AdminSidebar = ({ currentDivision }: Props) => {
               )}
             </span>
         )}
-        <AdminStoreSwitcher currentDivision={currentDivision} isCollapsed={isCollapsed} isGlobalModule={isGlobalModule} />
+        <AdminStoreSwitcher activeBranch={activeBranch} branches={branches} isCollapsed={isCollapsed} isGlobalModule={isGlobalModule} />
       </div>
       
       <nav className="flex-1 space-y-1 px-3 py-6 scrollbar-hide overflow-y-auto">

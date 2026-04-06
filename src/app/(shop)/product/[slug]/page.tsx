@@ -10,40 +10,48 @@ import { getSimilarProducts } from '@/actions/products'; // 👈 Importamos la a
 import { SITE_URL } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator'; // Importamos Separator
 import { ChevronRight, Home } from 'lucide-react';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
 async function getProductData(slug: string) {
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+
   const product = await prisma.product.findUnique({
     where: { slug },
-    include: { category: true },
+    include: { 
+      category: true,
+      variants: {
+        where: { active: true },
+        include: { stock: { where: { branchId: activeBranch.id } } },
+        orderBy: { minStock: 'asc' },
+        take: 1
+      }
+    },
   });
 
-  if (!product) return null;
+  if (!product || product.businessId !== business.id || product.branchOwnerId !== activeBranch.id) return null;
 
-  let siblings: { slug: string; color: string | null; title: string }[] = [];
-  
-  if (product.groupTag) {
-    siblings = await prisma.product.findMany({
-      where: {
-        groupTag: product.groupTag,
-        isAvailable: true,
-        NOT: { id: product.id }
-      },
-      select: { slug: true, color: true, title: true },
-      orderBy: { createdAt: 'asc' }
-    });
-    
-    siblings.push({ slug: product.slug, color: product.color, title: product.title });
-    siblings.sort((a, b) => a.slug.localeCompare(b.slug));
-  }
+  const primaryVariant = product.variants[0];
+  const stock = primaryVariant?.stock?.[0]?.quantity ?? 0;
+  const price = Number(primaryVariant?.price ?? product.basePrice ?? 0);
+  const images = primaryVariant?.images?.length ? primaryVariant.images : product.images;
 
   // Obtenemos similares en paralelo
   const similarProducts = await getSimilarProducts(product.categoryId, product.id);
 
-  return { product, siblings, similarProducts };
+  return { 
+    product: {
+      ...product,
+      images,
+      price,
+      stock
+    }, 
+    similarProducts,
+    activeBranch
+  };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -67,14 +75,13 @@ export default async function ProductPage({ params }: Props) {
   const data = await getProductData(slug);
 
   if (!data) notFound();
-  const { product, siblings, similarProducts } = data;
+  const { product, similarProducts, activeBranch } = data;
 
-  const isToys = product.division === 'JUGUETERIA';
-  const brandColorText = isToys ? 'text-[#fc4b65]' : 'text-[#ec4899]';
+  const primaryColor = (activeBranch?.brandColors as Record<string, string>)?.primary ?? '#fc4b65';
 
   const sanitizedProduct = {
     ...product,
-    price: Number(product.price),
+    price: product.price,
     wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
   };
 
@@ -125,12 +132,9 @@ export default async function ProductPage({ params }: Props) {
 
           <div className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="mb-4 md:mb-6">
-                <span className={`text-[10px] md:text-xs font-bold tracking-wider uppercase ${brandColorText}`}>
-                    {isToys ? 'Festamas' : 'FiestasYa'}
+                <span className="text-[10px] md:text-xs font-bold tracking-wider uppercase text-primary">
+                    {activeBranch.name}
                 </span>
-                <h1 className="mt-1.5 md:mt-2 text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                    {product.title}
-                </h1>
                 <div className="mt-2 flex items-center gap-2 text-xs md:text-sm text-slate-500 flex-wrap">
                     <span className="whitespace-nowrap">SKU: {product.slug.split('-').pop()?.toUpperCase()}</span>
                     <span className="hidden sm:inline">•</span>
@@ -142,33 +146,7 @@ export default async function ProductPage({ params }: Props) {
 
             <ProductActions product={sanitizedProduct} />
 
-            {siblings.length > 0 && (
-              <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-slate-100">
-                  <p className="text-sm font-bold text-slate-900 mb-3">Otras opciones disponibles:</p>
-                  <div className="flex flex-wrap gap-2 md:gap-3">
-                      {siblings.map((variant) => {
-                          const isActive = variant.slug === product.slug;
-                          return (
-                              <Link 
-                                  key={variant.slug} 
-                                  href={`/product/${variant.slug}`}
-                                  title={variant.title}
-                                  className={`
-                                      group relative w-10 h-10 md:w-12 md:h-12 rounded-lg border-2 flex items-center justify-center transition-all overflow-hidden
-                                      ${isActive ? 'border-slate-900 ring-2 ring-slate-200 ring-offset-2' : 'border-slate-200 hover:border-slate-400'}
-                                  `}
-                              >
-                                  <span 
-                                      className="w-full h-full" 
-                                      style={{ backgroundColor: variant.color || '#eee' }} 
-                                  />
-                                  {isActive && <div className="absolute inset-0 ring-1 ring-inset ring-black/10" />}
-                              </Link>
-                          );
-                      })}
-                  </div>
-              </div>
-            )}
+
 
             <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-slate-100">
                 <h3 className="text-base md:text-lg font-bold text-slate-900 mb-2 md:mb-3">Descripción</h3>

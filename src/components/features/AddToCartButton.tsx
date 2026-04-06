@@ -11,8 +11,9 @@ import { toast } from 'sonner';
 
 interface Props {
   product: Product & {
-    wholesalePrice?: any; 
-    wholesaleMinCount?: number | null;
+    stock: number;
+    price: number;
+    wholesalePrice?: number | null; 
     discountPercentage?: number;
   };
   disabled?: boolean;
@@ -26,8 +27,7 @@ export function AddToCartButton({ product, disabled, className }: Props) {
   const updateProductQuantity = useCartStore(state => state.updateProductQuantity);
   const removeProduct = useCartStore(state => state.removeProduct);
   
-  const currentDivision = useUIStore(state => state.currentDivision);
-  
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -36,12 +36,7 @@ export function AddToCartButton({ product, disabled, className }: Props) {
   const quantityInCart = productInCart?.quantity || 0;
   const isAdded = quantityInCart > 0;
 
-  const isActiveFestamas = currentDivision === 'JUGUETERIA';
-
-  // 🔥 FIX: Volvemos a 'border-2' para que los bordes sean súper nítidos y visibles
-  const outlineStyles = isActiveFestamas 
-    ? "bg-transparent border-2 border-[#fc4b65] text-[#fc4b65] hover:!bg-[#fc4b65] hover:!text-white"
-    : "bg-transparent border-2 border-[#fb3099] text-[#fb3099] hover:!bg-[#fb3099] hover:!text-white";
+  const outlineStyles = "bg-transparent border-2 border-primary text-primary hover:!bg-primary hover:!text-white";
 
   // --- ACCIONES ---
 
@@ -57,7 +52,7 @@ export function AddToCartButton({ product, disabled, className }: Props) {
       quantity: 1,
       image: product.images[0] || '/placeholder.jpg',
       stock: product.stock,
-      division: product.division,
+
       wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
       wholesaleMinCount: product.wholesaleMinCount || null,
       discountPercentage: product.discountPercentage || 0,

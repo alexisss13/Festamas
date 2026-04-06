@@ -14,20 +14,19 @@ import { Separator } from '@/components/ui/separator';
 import { FileText } from 'lucide-react';
 
 export default function OrdersPage() {
-  const { currentDivision } = useUIStore();
+  const { activeBranchId, branches } = useUIStore();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 🎨 Lógica de Tema Dinámico
-  const isToys = currentDivision === 'JUGUETERIA';
-  const themeText = isToys ? 'text-[#fc4b65]' : 'text-[#ec4899]';
-  // const themeBorder = isToys ? 'border-[#fc4b65]' : 'border-[#ec4899]'; // (Opcional si quieres bordes de color)
+  const activeBranch = branches.find(b => b.id === activeBranchId) ?? branches[0];
+  const themeText = 'text-primary';
   
   useEffect(() => {
     async function loadOrders() {
-      const { ok, orders } = await getUserOrders();
-      if (ok) {
-        setOrders(orders || []);
+      const fetchedOrders = await getUserOrders();
+      if (fetchedOrders) {
+        setOrders(fetchedOrders || []);
       }
       setLoading(false);
     }
@@ -70,7 +69,7 @@ export default function OrdersPage() {
             <p className="text-slate-500 max-w-sm mb-6">
             Parece que aún no has realizado ninguna compra. ¡Explora nuestro catálogo!
             </p>
-            <Button asChild className={cn("text-white font-bold shadow-md", isToys ? "bg-[#fc4b65] hover:bg-[#e11d48]" : "bg-[#ec4899] hover:bg-[#db2777]")}>
+            <Button asChild className={cn("text-white font-bold shadow-md bg-primary hover:bg-primary/90")}>
             <Link href="/">
                 Ir a la Tienda
             </Link>

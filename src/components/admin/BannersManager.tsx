@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import ImageUpload from '@/components/ui/image-upload';
 import { useRouter } from 'next/navigation';
-import { BannerPosition, Division } from '@prisma/client';
+import { BannerPosition } from '@prisma/client';
 import { cn } from '@/lib/utils';
 
 // DND Kit Imports
@@ -35,7 +35,7 @@ const bannerSchema = z.object({
   mobileUrl: z.string().optional(),
   link: z.string().optional(),
   position: z.nativeEnum(BannerPosition),
-  division: z.nativeEnum(Division),
+  branchId: z.string().nullable().optional(),
 });
 
 type BannerFormValues = z.infer<typeof bannerSchema>;
@@ -125,20 +125,17 @@ function SortableBannerItem({ banner, onEdit, onDelete, brandColor }: { banner: 
 
 // --- MANAGER PRINCIPAL ---
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function BannersManager({ initialBanners, currentDivision }: { initialBanners: any[], currentDivision: Division }) {
+export function BannersManager({ initialBanners, activeBranch }: { initialBanners: any[], activeBranch: any }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [banners, setBanners] = useState(initialBanners);
   
-  // 🎨 LÓGICA DE COLORES DE MARCA
-  const isFestamas = currentDivision === 'JUGUETERIA';
-  
   // Clases dinámicas basadas en tu tailwind config
-  const brandPrimaryBg = isFestamas ? "bg-festamas-primary" : "bg-fiestasya-accent"; // Usamos el accent de FiestasYa para botones por contraste
-  const brandPrimaryText = isFestamas ? "text-festamas-primary" : "text-fiestasya-accent";
-  const brandBorder = isFestamas ? "border-festamas-primary" : "border-fiestasya-accent";
-  const brandLightBg = isFestamas ? "bg-festamas-primary/10" : "bg-fiestasya-accent/10"; // Color suave para fondos
+  const brandPrimaryBg = "bg-primary";
+  const brandPrimaryText = "text-primary";
+  const brandBorder = "border-primary";
+  const brandLightBg = "bg-primary/10";
 
   useEffect(() => { setBanners(initialBanners); }, [initialBanners]);
 
@@ -148,7 +145,7 @@ export function BannersManager({ initialBanners, currentDivision }: { initialBan
     mobileUrl: '',
     link: '',
     position: 'MAIN_HERO',
-    division: currentDivision,
+    branchId: activeBranch?.id || null,
   };
 
   const form = useForm<BannerFormValues>({
@@ -161,9 +158,9 @@ export function BannersManager({ initialBanners, currentDivision }: { initialBan
   // Sincronizar formulario si cambia la tienda
   useEffect(() => {
     if (!editingId) {
-        form.reset({ ...defaultValues, division: currentDivision });
+        form.reset({ ...defaultValues, branchId: activeBranch?.id || null });
     }
-  }, [currentDivision, form, editingId]);
+  }, [activeBranch, form, editingId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -195,14 +192,14 @@ export function BannersManager({ initialBanners, currentDivision }: { initialBan
       mobileUrl: banner.mobileUrl || '',
       link: banner.link || '',
       position: banner.position,
-      division: banner.division,
+      branchId: banner.branchId,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancel = () => {
     setEditingId(null);
-    form.reset({ ...defaultValues, division: currentDivision });
+    form.reset({ ...defaultValues, branchId: activeBranch?.id || null });
   };
 
   const onSubmit = async (values: BannerFormValues) => {
@@ -229,7 +226,7 @@ export function BannersManager({ initialBanners, currentDivision }: { initialBan
     if (editingId === id) handleCancel();
   };
 
-  const currentBanners = banners.filter(b => b.division === currentDivision);
+  const currentBanners = banners.filter(b => b.branchId === activeBranch?.id || !b.branchId);
   currentBanners.sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return (
@@ -244,11 +241,11 @@ export function BannersManager({ initialBanners, currentDivision }: { initialBan
                 "px-3 py-1 rounded-full text-sm font-semibold border",
                 brandLightBg, brandPrimaryText, brandBorder
             )}>
-                {isFestamas ? 'Festamas' : 'FiestasYa'}
+                {activeBranch?.name || 'Tienda'}
             </span>
         </h2>
         <p className="text-slate-500">
-            Crea y organiza los banners visibles en la tienda {isFestamas ? 'de juguetes' : 'de fiestas'}.
+            Crea y organiza los banners visibles en la tienda {activeBranch?.name}.
         </p>
       </div>
 
@@ -361,19 +358,7 @@ export function BannersManager({ initialBanners, currentDivision }: { initialBan
                                     </FormItem>
                                 )} />
                                 
-                                <FormField control={form.control} name="division" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>División Asignada</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled>
-                                            <FormControl><SelectTrigger className="bg-slate-100/50"><SelectValue /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="JUGUETERIA">Festamas</SelectItem>
-                                                <SelectItem value="FIESTAS">FiestasYa</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
+
                             </div>
 
                             <div className="pt-6 flex justify-end">
@@ -427,7 +412,7 @@ export function BannersManager({ initialBanners, currentDivision }: { initialBan
                     </div>
                     <h4 className="text-slate-900 font-semibold text-lg">No hay banners configurados</h4>
                     <p className="text-slate-500 max-w-sm mt-1 mb-6">
-                        La tienda {isFestamas ? 'Festamas' : 'FiestasYa'} aún no tiene banners visibles. Usa el formulario de arriba para crear el primero.
+                        La tienda {activeBranch?.name} aún no tiene banners visibles. Usa el formulario de arriba para crear el primero.
                     </p>
                 </div>
           )}

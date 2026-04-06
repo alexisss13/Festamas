@@ -10,19 +10,20 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { hexToHslString } from '@/lib/utils';
 import { useCartStore } from '@/store/cart';
 import { useUIStore } from '@/store/ui';
 import { useFavoritesStore } from '@/store/favorites'; 
 import { CartSidebar } from '@/components/features/CartSidebar';
 import { setCookie } from 'cookies-next';
 import { logout } from '@/actions/auth-actions';
-import { Division } from '@prisma/client';
+import { BranchUI } from '@/store/ui';
 
 interface Category {
   id: string; 
   name: string; 
   slug: string;
-  division: Division;
+  ecommerceCode: string | null;
 }
 
 interface UserSession {
@@ -35,7 +36,8 @@ interface UserSession {
 
 interface NavbarClientProps {
   categories: Category[];
-  defaultDivision: Division;
+  branches: BranchUI[];
+  defaultBranchId: string;
   user?: UserSession | null;
 }
 
@@ -78,21 +80,25 @@ function SearchInput({ onSearch, className, searchBtnColor }: { onSearch?: () =>
   );
 }
 
-export function NavbarClient({ categories, defaultDivision, user }: NavbarClientProps) {
+export function NavbarClient({ categories, branches, defaultBranchId, user }: NavbarClientProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { getTotalItems } = useCartStore();
-  const { setDivision } = useUIStore();
+  const { getTotalItems, cart, clearCart } = useCartStore();
+  const { setBranches, activeBranchId, setActiveBranchId } = useUIStore();
   const favorites = useFavoritesStore(state => state.favorites);
   const favoritesCount = favorites.length;
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => setLoaded(true), []);
   
-  const [optimisticDivision, setOptimisticDivision] = useState<Division>(defaultDivision);
+  const [optimisticBranchId, setOptimisticBranchId] = useState<string>(defaultBranchId);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => setDivision(defaultDivision), [defaultDivision, setDivision]);
+  useEffect(() => {
+    setBranches(branches);
+    setActiveBranchId(defaultBranchId);
+    setOptimisticBranchId(defaultBranchId);
+  }, [branches, defaultBranchId, setActiveBranchId, setBranches]);
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -140,11 +146,14 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleDivisionChange = (newDivision: Division) => {
-    if (optimisticDivision === newDivision) return;
-    setOptimisticDivision(newDivision); 
-    setDivision(newDivision);
-    setCookie('festamas_division', newDivision, { maxAge: 60 * 60 * 24 * 30, path: '/' }); 
+  const handleBranchChange = (branchId: string) => {
+    if (optimisticBranchId === branchId) return;
+    setOptimisticBranchId(branchId); 
+    setActiveBranchId(branchId);
+    setCookie('festamas_branch_id', branchId, { maxAge: 60 * 60 * 24 * 30, path: '/' }); 
+    if (cart.length > 0) {
+      clearCart();
+    }
     startTransition(() => {
         if (pathname !== '/') router.push('/');
         else router.refresh(); 
@@ -156,25 +165,26 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
     window.location.href = "/";
   };
 
-  const currentDivision = optimisticDivision; 
-  const isToys = currentDivision === 'JUGUETERIA';
-  const filteredCategories = categories.filter(cat => cat.division === currentDivision);
-  const brandName = isToys ? 'Festamás' : 'FiestasYa';
+  const effectiveBranchId = activeBranchId ?? optimisticBranchId;
+  const activeBranch = branches.find((branch) => branch.id === effectiveBranchId) ?? branches[0];
+  const filteredCategories = categories.filter(cat => cat.ecommerceCode === activeBranch?.ecommerceCode);
+  const brandName = activeBranch?.name ?? 'Branch';
   
+  const primaryColor = activeBranch?.brandColors?.primary ?? '#fc4b65';
+  useEffect(() => {
+    document.documentElement.style.setProperty('--primary', hexToHslString(primaryColor));
+  }, [primaryColor]);
+
   const navbarBgClass = "bg-white shadow-sm border-b border-slate-100";
-  const brandColorText = isToys ? "text-[#fc4b65]" : "text-[#fb3099]"; 
-  const badgeClass = isToys ? "text-white bg-[#fc4b65]" : "text-[#fb3099] bg-[#fb3099] text-white"; 
-  const searchBtnBg = isToys ? '#fc4b65' : '#fb3099';
-  const mobileHeaderClass = isToys ? "bg-[#fc4b65]" : "bg-[#fb3099]";
+  const brandColorText = "text-primary"; 
+  const badgeClass = "text-white bg-primary"; 
+  const searchBtnBg = primaryColor;
+  const mobileHeaderClass = "bg-primary";
 
-  const iconFestamasSubheader = '/images/IconoFestamas.png';
-  const iconFestamasMain = '/images/IconoFestamas1.png';
-  const iconFiestasYaMain = '/images/IconoFiestasYa1.png'; 
-  const iconFestamasMobile = '/images/IconoFestamas2.png';
-  const iconFiestasYaMobile = '/images/IconoFiestasYa2.png';
-
-  const activeMainIcon = isToys ? iconFestamasMain : iconFiestasYaMain;
-  const activeMobileIcon = isToys ? iconFestamasMobile : iconFiestasYaMobile;
+  const isToysFallback = activeBranch?.ecommerceCode?.toLowerCase().includes('festa') !== false;
+  const activeMainIcon = activeBranch?.logos?.imagotipo ?? (isToysFallback ? '/images/IconoFestamas1.png' : '/images/IconoFiestasYa1.png');
+  const activeMobileIcon = activeBranch?.logos?.isotipo ?? (isToysFallback ? '/images/IconoFestamas2.png' : '/images/IconoFiestasYa2.png');
+  const activeMobileIconWhite = activeBranch?.logos?.isotipoWhite ?? activeMobileIcon;
 
   return (
     <>
@@ -185,57 +195,39 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
             
             {/* 🔥 FIX: w-full en móvil para que ocupe todo el espacio */}
             <div className="flex h-full w-full md:w-auto mr-auto pt-0.5 md:gap-1">
-                {/* TAB 1: FESTAMÁS */}
-                 <button 
-                    disabled={isPending} 
-                    onClick={() => handleDivisionChange('JUGUETERIA')} 
-                    className={cn(
-                        // 🔥 FIX: flex-1 en móvil para que tome 50%
-                        "relative h-full flex-1 md:flex-none md:px-[12px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer md:min-w-[100px]",
-                        isToys 
-                            ? "bg-[#fc4b65] border-[#fc4b65] z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
-                            : "bg-slate-200/50 border-transparent hover:bg-slate-200"
-                    )}
-                >
-                    <div className="relative h-[19.6px] w-[80px]">
-                        <Image 
-                            src={iconFestamasSubheader} 
-                            alt="Festamás" 
-                            fill 
-                            className={cn(
-                                "object-contain transition-all duration-300",
-                                !isToys && "brightness-0 opacity-30 hover:opacity-50"
-                            )}
-                        />
-                    </div>
-                </button>
-
-                {/* TAB 2: FIESTAS YA */}
-                <button 
-                    disabled={isPending} 
-                    onClick={() => handleDivisionChange('FIESTAS')} 
-                    className={cn(
-                        // 🔥 FIX: flex-1 en móvil para que tome 50%
-                        "relative h-full flex-1 md:flex-none md:px-[12px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer md:min-w-[100px]",
-                        !isToys
-                            ? "bg-[#fb3099] border-[#fb3099] z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]" 
-                            : "bg-slate-200/50 border-transparent hover:bg-slate-200"
-                    )}
-                >
-                    <div className="relative h-[19.6px] w-[80px]">
-                         <Image 
-                            src={iconFiestasYaMain} 
-                            alt="FiestasYa" 
-                            fill 
-                            className={cn(
-                                "object-contain transition-all duration-300",
-                                isToys 
-                                    ? "grayscale opacity-50 hover:opacity-80"
-                                    : "brightness-0 invert" 
-                            )}
-                        />
-                    </div>
-                </button>
+                {branches.map(branch => {
+                  const isActive = branch.id === effectiveBranchId;
+                  return (
+                    <button 
+                      key={branch.id}
+                      disabled={isPending} 
+                      onClick={() => handleBranchChange(branch.id)} 
+                      className={cn(
+                          "relative h-full flex-1 md:flex-none md:px-[12px] flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg border-t border-x cursor-pointer md:min-w-[100px]",
+                          isActive 
+                              ? "z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] text-white"
+                              : "bg-slate-200/50 border-transparent hover:bg-slate-200"
+                      )}
+                      style={{
+                        backgroundColor: isActive ? primaryColor : undefined,
+                        borderColor: isActive ? primaryColor : undefined,
+                      }}
+                    >
+                        <div className="relative h-[22px] w-[90px] md:w-[110px] flex items-center justify-center px-1">
+                           {branch.logos?.imagotipoWhite ? (
+                              <Image
+                                src={branch.logos.imagotipoWhite}
+                                alt={branch.name}
+                                fill
+                                className="object-contain object-center"
+                              />
+                           ) : (
+                              <span className={cn("text-[11px] md:text-xs font-semibold", isActive ? "text-white" : "text-slate-700")}>{branch.name}</span>
+                           )}
+                        </div>
+                    </button>
+                  );
+                })}
             </div>
         </div>
       </div>
@@ -269,7 +261,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     <SheetTitle className="sr-only">Menú de Navegación</SheetTitle> 
                     <SheetHeader className={cn("h-[52px] flex flex-row items-center px-4 py-0 space-y-0 border-b", mobileHeaderClass)}>
                         <div className="relative h-8 w-24">
-                            <Image src={activeMobileIcon} alt={brandName} fill className={cn("object-contain object-left", !isToys && "brightness-0 invert")} />
+                            <Image src={activeMobileIconWhite} alt={brandName} fill className="object-contain object-left" />
                         </div>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4 px-2">
@@ -335,7 +327,7 @@ export function NavbarClient({ categories, defaultDivision, user }: NavbarClient
                     </Button>
                     {isUserMenuOpen && (
                         <div className="absolute top-full right-0 mt-3 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 text-slate-800">
-                            {!user && <Link href="/auth/login" className={cn("block w-full text-center py-2.5 rounded-xl font-bold text-white mb-2 transition-transform active:scale-95", isToys ? "bg-[#fc4b65]" : "bg-[#fb3099]")}>Entrar Ahora</Link>}
+                            {!user && <Link href="/auth/login" className={cn("block w-full text-center py-2.5 rounded-xl font-bold text-white mb-2 transition-transform active:scale-95")} style={{ backgroundColor: primaryColor }}>Entrar Ahora</Link>}
                             <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium"><User className="h-4 w-4" /> Mi Perfil</Link>
                             {user && (
                                 <><div className="h-px bg-slate-100 my-2"></div><button onClick={handleLogout} className="flex items-center gap-2 w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-500 rounded-lg text-sm font-medium"><LogOut className="h-4 w-4" /> Cerrar Sesión</button></>

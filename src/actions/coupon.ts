@@ -3,22 +3,20 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { Division } from '@prisma/client';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
-// Schema Backend (Aquí si validamos tipos estrictos para la BD)
 const createCouponSchema = z.object({
   code: z.string().min(3, "Mínimo 3 caracteres").toUpperCase().trim(),
   discount: z.coerce.number().min(0.01, "Debe ser mayor a 0"),
   type: z.enum(["FIXED", "PERCENTAGE"]),
-  division: z.nativeEnum(Division),
+  branchId: z.string().optional().nullable(),
   expirationDate: z.coerce.date().optional().nullable(),
-  // Aquí maxUses ya llega como número o undefined desde el frontend
   maxUses: z.number().int().min(1).optional().nullable(),
 });
 
-// --- VALIDAR (Usado en Cart y POS) ---
-export async function validateCoupon(code: string, currentDivision: Division) {
+export async function validateCoupon(code: string) {
   try {
+    const { activeBranch } = await getEcommerceContextFromCookie();
     const coupon = await prisma.coupon.findUnique({
       where: { code: code.toUpperCase() }
     });
@@ -27,8 +25,8 @@ export async function validateCoupon(code: string, currentDivision: Division) {
     
     if (!coupon.isActive) return { success: false, message: 'Este cupón está desactivado' };
 
-    if (coupon.division !== currentDivision) {
-      return { success: false, message: `Este cupón no es válido para ${currentDivision === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa'}` };
+    if (coupon.branchId && coupon.branchId !== activeBranch.id) {
+      return { success: false, message: 'Este cupón no es válido para la sucursal activa' };
     }
 
     if (coupon.expirationDate) {
@@ -49,7 +47,7 @@ export async function validateCoupon(code: string, currentDivision: Division) {
         code: coupon.code,
         discount: Number(coupon.discount),
         type: coupon.type,
-        division: coupon.division
+        branchId: coupon.branchId
       } 
     };
   } catch (error) {
@@ -71,7 +69,7 @@ export async function getCoupons() {
 }
 
 // --- CREAR ---
-export async function createCoupon(data: unknown) { // Recibimos unknown para validar con Zod nosotros mismos
+export async function createCoupon(data: unknown) {
   try {
     const valid = createCouponSchema.safeParse(data);
     
@@ -80,7 +78,7 @@ export async function createCoupon(data: unknown) { // Recibimos unknown para va
       return { success: false, message: 'Datos inválidos. Revisa el formulario.' };
     }
 
-    const { code, discount, type, division, expirationDate, maxUses } = valid.data;
+    const { code, discount, type, branchId, expirationDate, maxUses } = valid.data;
 
     // Verificar duplicados
     const existing = await prisma.coupon.findUnique({ where: { code } });
@@ -98,8 +96,8 @@ export async function createCoupon(data: unknown) { // Recibimos unknown para va
         code,
         discount,
         type,
-        division,
-        maxUses: maxUses ?? null, // Convertimos undefined a null para Prisma
+        branchId: branchId ?? null,
+        maxUses: maxUses ?? null,
         expirationDate: finalExpiration ?? null,
         isActive: true
       }

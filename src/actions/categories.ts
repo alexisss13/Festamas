@@ -3,15 +3,19 @@
 import prisma from '@/lib/prisma';
 import { categorySchema } from '@/lib/zod';
 import { revalidatePath } from 'next/cache';
-import { Division } from '@prisma/client';
 
-// --- LEER ---
-export async function getCategories(division?: Division) {
+interface CategoriesFilters {
+  businessId: string;
+  ecommerceCode?: string | null;
+}
+
+export async function getCategories({ businessId, ecommerceCode }: CategoriesFilters) {
   try {
-    const whereClause = division ? { division } : {};
-
     const categories = await prisma.category.findMany({
-      where: whereClause,
+      where: {
+        businessId,
+        ecommerceCode: ecommerceCode ?? undefined,
+      },
       include: {
         _count: {
           select: { products: true }
@@ -40,7 +44,8 @@ export async function createCategory(formData: FormData) {
   const data = {
     name: formData.get('name'),
     slug: formData.get('slug'),
-    division: formData.get('division'),
+    ecommerceCode: formData.get('ecommerceCode'),
+    businessId: formData.get('businessId'),
     image: formData.get('image'),
   };
 
@@ -55,7 +60,8 @@ export async function createCategory(formData: FormData) {
       data: {
         name: parsed.data.name,
         slug: parsed.data.slug,
-        division: parsed.data.division,
+        ecommerceCode: parsed.data.ecommerceCode || null,
+        businessId: parsed.data.businessId,
         image: parsed.data.image || null,
       },
     });
@@ -74,7 +80,8 @@ export async function updateCategory(id: string, formData: FormData) {
   const data = {
     name: formData.get('name'),
     slug: formData.get('slug'),
-    division: formData.get('division'),
+    ecommerceCode: formData.get('ecommerceCode'),
+    businessId: formData.get('businessId'),
     image: formData.get('image'),
   };
 
@@ -90,7 +97,8 @@ export async function updateCategory(id: string, formData: FormData) {
       data: {
         name: parsed.data.name,
         slug: parsed.data.slug,
-        division: parsed.data.division,
+        ecommerceCode: parsed.data.ecommerceCode || null,
+        businessId: parsed.data.businessId,
         image: parsed.data.image || null,
       },
     });
