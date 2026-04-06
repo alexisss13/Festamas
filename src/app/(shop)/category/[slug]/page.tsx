@@ -7,6 +7,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { PartyPopper, SearchX, SlidersHorizontal } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -47,19 +48,18 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   
   if (!data) notFound();
 
-  // 👇 Ahora tenemos availableTags disponibles
-  const { categoryName, products, division, pagination, availableTags } = data;
+  // Destructuring
+  const { categoryName, products, pagination, availableTags } = data;
 
-  const isToys = division === 'JUGUETERIA';
-  const brandColor = isToys ? '#fc4b65' : '#ec4899';
-  const bgBrand = isToys ? 'bg-rose-50' : 'bg-pink-50';
+  const { activeBranch } = await getEcommerceContextFromCookie();
+  const brandColor = (activeBranch.brandColors as any)?.primary ?? '#fc4b65';
 
   return (
     <div className="container mx-auto px-4 py-8 lg:py-12">
       
       <div className="mb-10 flex flex-col items-center text-center space-y-4">
-        <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-white border border-slate-200 shadow-sm text-slate-500`}>
-            {isToys ? 'Festamas Juguetería' : 'FiestasYa Decoración'}
+        <span className="px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-white border border-slate-200 shadow-sm text-slate-500">
+            {activeBranch.name}
         </span>
         <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 capitalize">
           {categoryName}
@@ -121,7 +121,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
                     />
                 </>
             ) : (
-                <div className={`flex flex-col items-center justify-center py-24 text-center ${bgBrand} rounded-2xl border-2 border-dashed border-white shadow-inner`}>
+                <div className="flex flex-col items-center justify-center py-24 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-white shadow-inner">
                     <div className="bg-white p-5 rounded-full mb-4 shadow-sm">
                         {categoryName.toLowerCase().includes('globo') ? (
                             <PartyPopper className="h-12 w-12 text-slate-300" />

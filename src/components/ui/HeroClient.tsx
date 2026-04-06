@@ -2,8 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
+import { useRef } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Navigation, Pagination, EffectFade } from 'swiper/modules';
+import { Autoplay, Navigation, Pagination } from 'swiper/modules';
+import type { Swiper as SwiperType } from 'swiper';
 import { useUIStore } from '@/store/ui';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -12,7 +15,6 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import 'swiper/css/effect-fade';
 
 import { Banner, BannerPosition } from '@prisma/client';
 
@@ -20,15 +22,14 @@ interface HeroClientProps {
   banners: Banner[];
 }
 
-// Tipo extendido para manejo interno del Default
 type DisplayBanner = Banner & {
   isDefault?: boolean;
 };
 
 export function HeroClient({ banners }: HeroClientProps) {
   const { activeBranchId, branches } = useUIStore();
+  const swiperRef = useRef<SwiperType | null>(null);
   
-  // 1. Filtrar Main Hero por branchId actual o default
   const mainBanners = banners.filter(
       b => (b.branchId === activeBranchId || !b.branchId) && b.position === BannerPosition.MAIN_HERO
   );
@@ -36,7 +37,6 @@ export function HeroClient({ banners }: HeroClientProps) {
   const activeBranch = branches.find(b => b.id === activeBranchId) ?? branches[0];
   const brandName = activeBranch?.name || 'Tienda';
 
-  // 2. Banner por defecto (Fallback visual si no hay imágenes subidas)
   const defaultBanner: DisplayBanner = {
       id: 'default-hero',
       title: `¡Bienvenido a ${brandName}!`,
@@ -53,50 +53,72 @@ export function HeroClient({ banners }: HeroClientProps) {
       isDefault: true 
   };
 
-  // Usamos los banners reales o el default
   const displayBanners: DisplayBanner[] = mainBanners.length > 0 ? mainBanners : [defaultBanner];
+  const hasMultipleBanners = displayBanners.length > 1;
+
+  const handleMouseEnter = () => {
+    if (swiperRef.current?.autoplay) {
+      swiperRef.current.autoplay.stop();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (swiperRef.current?.autoplay) {
+      swiperRef.current.autoplay.start();
+    }
+  };
+
+  const getSafeSrc = (url: string | null) => {
+    if (!url) return '';
+    return url.startsWith('http') || url.startsWith('/') ? url : `/${url}`;
+  };
 
   return (
-    <div className="w-full bg-slate-50 relative group">
-      
-      {/* 📐 MEDIDAS EXACTAS CORREGIDAS:
-          - Móvil: 640x680 (Aspect Ratio 16:17 aprox). Usamos 'aspect-[640/680]' para precisión de píxel.
-          - Web: 1500x450 (Altura fija). Rompemos el ratio móvil con 'md:aspect-auto' y fijamos altura.
-      */}
+    <div 
+      className="w-full bg-slate-50 relative group"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="w-full relative aspect-[640/680] md:aspect-auto md:h-[450px]">
            <Swiper
-               modules={[Autoplay, Navigation, Pagination, EffectFade]}
+               onSwiper={(swiper) => { swiperRef.current = swiper; }}
+               modules={[Autoplay, Navigation, Pagination]}
                spaceBetween={0}
                slidesPerView={1}
-               loop={displayBanners.length > 1}
-               effect={displayBanners.some(b => b.isDefault) ? "fade" : "slide"} 
-               fadeEffect={{ crossFade: true }} 
-               navigation={displayBanners.length > 1}
-               pagination={{ clickable: true, dynamicBullets: true }}
-               autoplay={displayBanners.length > 1 ? { delay: 5000, disableOnInteraction: false } : false}
+               loop={hasMultipleBanners}
+               navigation={true}
+               pagination={{ 
+                   clickable: true, 
+                   dynamicBullets: true 
+               }}
+               autoplay={{ 
+                   delay: 5000, 
+                   disableOnInteraction: false,
+                   pauseOnMouseEnter: true
+               }}
+               speed={600}
                className="w-full h-full"
                style={{ 
                    '--swiper-pagination-color': '#fff',
                    '--swiper-navigation-color': '#fff',
-                   '--swiper-navigation-size': '25px'
+                   '--swiper-navigation-size': '32px'
                } as React.CSSProperties}
            >
                {displayBanners.map((banner) => (
                <SwiperSlide key={banner.id} className="w-full h-full bg-slate-100">
                    
-                   {/* 👉 CASO A: BANNER REAL (IMAGEN) */}
                    {!banner.isDefault && banner.imageUrl ? (
                        <Link 
                            href={banner.link || '#'} 
                            className="relative block w-full h-full overflow-hidden"
                        >
-                           {/* IMAGEN DESKTOP (1500x450) */}
                            <div className={cn(
                                "relative w-full h-full",
                                banner.mobileUrl ? "hidden md:block" : "block"
                            )}>
                                <Image 
-                                   src={banner.imageUrl} 
+                                   loader={cloudinaryLoader}
+                                   src={getSafeSrc(banner.imageUrl)} 
                                    alt={banner.title} 
                                    fill 
                                    className="object-cover"
@@ -105,11 +127,11 @@ export function HeroClient({ banners }: HeroClientProps) {
                                />
                            </div>
 
-                           {/* IMAGEN MÓVIL (640x680) */}
                            {banner.mobileUrl && (
                                <div className="relative w-full h-full md:hidden">
                                    <Image 
-                                       src={banner.mobileUrl} 
+                                       loader={cloudinaryLoader}
+                                       src={getSafeSrc(banner.mobileUrl)} 
                                        alt={banner.title} 
                                        fill 
                                        className="object-cover" 
@@ -120,8 +142,6 @@ export function HeroClient({ banners }: HeroClientProps) {
                            )}
                        </Link>
                    ) : (
-                       
-                       /* 👉 CASO B: BANNER DEFAULT */
                        <div className={cn(
                            "w-full h-full relative overflow-hidden flex items-center justify-center",
                            "bg-primary"
@@ -152,10 +172,38 @@ export function HeroClient({ banners }: HeroClientProps) {
       </div>
 
       <style jsx global>{`
-         .swiper-pagination-bullet { background: white; opacity: 0.5; width: 8px; height: 8px; transition: all 0.3s; }
-         .swiper-pagination-bullet-active { opacity: 1; width: 24px; border-radius: 4px; background: white; }
+         .swiper-button-next, 
+         .swiper-button-prev {
+            transition: all 0.3s ease;
+         }
+         .swiper-button-next:hover, 
+         .swiper-button-prev:hover {
+            transform: scale(1.1);
+         }
+         .swiper-button-next::after, 
+         .swiper-button-prev::after {
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+         }
+         .swiper-pagination-bullet { 
+            background: white; 
+            opacity: 0.5; 
+            width: 8px; 
+            height: 8px; 
+            transition: all 0.3s; 
+            cursor: pointer;
+         }
+         .swiper-pagination-bullet-active { 
+            opacity: 1; 
+            width: 24px; 
+            border-radius: 4px; 
+            background: white; 
+         }
          @media (max-width: 768px) {
-            .swiper-button-next, .swiper-button-prev { display: none !important; }
+            .swiper-button-next, .swiper-button-prev { 
+               display: none !important; 
+            }
          }
       `}</style>
     </div>

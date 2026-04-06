@@ -29,8 +29,28 @@ export function ProductForm({ product, categories, activeBranch }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
+  // Función para extraer public_id de URLs
+  const extractPublicId = (url: string): string => {
+    if (!url || url.trim() === '') return '';
+    if (!url.includes('res.cloudinary.com')) return url;
+    
+    try {
+      const parts = url.split('/upload/');
+      if (parts.length < 2) return url;
+      
+      const pathAfterUpload = parts[1];
+      const pathParts = pathAfterUpload.split('/');
+      const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
+      return withoutVersion.join('/').split('.')[0];
+    } catch {
+      return url;
+    }
+  };
+  
   // ESTADOS DEL FORMULARIO
-  const [images, setImages] = useState<string[]>(product?.images || []);
+  const [images, setImages] = useState<string[]>(
+    product?.images ? product.images.map(extractPublicId) : []
+  );
   const [isAvailable, setIsAvailable] = useState(product?.isAvailable ?? true);
   const [color, setColor] = useState(product?.color || '');
   const [barcode, setBarcode] = useState(product?.barcode || '');
@@ -48,7 +68,7 @@ export function ProductForm({ product, categories, activeBranch }: Props) {
 
   // ESTADO INICIAL (SNAPSHOT) PARA DETECTAR CAMBIOS
   const [initialData, setInitialData] = useState({
-    images: product?.images || [],
+    images: product?.images ? product.images.map(extractPublicId) : [],
     isAvailable: product?.isAvailable ?? true,
     color: product?.color || '',
     barcode: product?.barcode || '',

@@ -37,7 +37,11 @@ export default async function FavoritesPage() {
       userId: session.user.id,
     },
     include: {
-      product: true, 
+      product: {
+        include: {
+          variants: { take: 1, orderBy: { price: 'asc' } }
+        }
+      }
     },
     orderBy: {
       createdAt: 'desc', 
@@ -50,8 +54,7 @@ export default async function FavoritesPage() {
     ...fav,
     product: {
       ...fav.product,
-      price: fav.product.price.toNumber(), // Decimal -> Number
-      wholesalePrice: fav.product.wholesalePrice ? fav.product.wholesalePrice.toNumber() : 0, // Decimal -> Number
+      price: fav.product.variants[0]?.price?.toNumber() ?? 0,
     }
   }));
 

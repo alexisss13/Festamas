@@ -21,16 +21,34 @@ export function CategoryForm({ category, activeBranch }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
+  // Función para extraer public_id de URLs
+  const extractPublicId = (url: string): string => {
+    if (!url || url.trim() === '') return '';
+    if (!url.includes('res.cloudinary.com')) return url;
+    
+    try {
+      const parts = url.split('/upload/');
+      if (parts.length < 2) return url;
+      
+      const pathAfterUpload = parts[1];
+      const pathParts = pathAfterUpload.split('/');
+      const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
+      return withoutVersion.join('/').split('.')[0];
+    } catch {
+      return url;
+    }
+  };
+  
   // ESTADOS DEL FORMULARIO
   const [name, setName] = useState(category?.name || '');
   const [slug, setSlug] = useState(category?.slug || '');
-  const [image, setImage] = useState(category?.image || '');
+  const [image, setImage] = useState(extractPublicId(category?.image || ''));
 
   // ESTADO INICIAL (SNAPSHOT) PARA DETECTAR CAMBIOS
   const [initialData, setInitialData] = useState({
     name: category?.name || '',
     slug: category?.slug || '',
-    image: category?.image || ''
+    image: extractPublicId(category?.image || '')
   });
   
   // LÓGICA IS DIRTY

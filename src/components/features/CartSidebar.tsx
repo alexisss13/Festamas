@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { ShoppingBag, Trash2, Plus, Minus, Tag, Package } from 'lucide-react';
 import { 
   Sheet, 
@@ -98,10 +99,12 @@ export function CartSidebar({ children }: Props) {
                         <SheetClose asChild>
                             <Link href={`/product/${item.slug}`} className="relative h-24 w-24 min-w-[6rem] overflow-hidden rounded-xl border bg-white shadow-sm block group">
                                 <Image
-                                    src={item.image}
+                                    loader={cloudinaryLoader}
+                                    src={item.image.includes('res.cloudinary.com') ? item.image.split('/upload/')[1]?.split('/').filter((p: string) => !p.startsWith('v') || p.length < 10).join('/').split('.')[0] || item.image : item.image}
                                     alt={item.title}
                                     fill
                                     className="object-contain p-1 group-hover:scale-105 transition-transform duration-300"
+                                    sizes="96px"
                                 />
                             </Link>
                         </SheetClose>

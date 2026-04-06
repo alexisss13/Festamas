@@ -47,11 +47,8 @@ export default async function CouponsPage() {
                     {coupon.code}
                 </TableCell>
                 <TableCell>
-                    <Badge variant="outline" className={cn(
-                        "font-normal",
-                        coupon.division === 'JUGUETERIA' ? "bg-festamas-primary/10 text-festamas-primary border-festamas-primary/20" : "bg-fiestasya-accent/10 text-fiestasya-accent border-fiestasya-accent/20"
-                    )}>
-                        {coupon.division === 'JUGUETERIA' ? 'Festamas' : 'FiestasYa'}
+                    <Badge variant="outline" className="font-normal">
+                        {coupon.branchId ? coupon.branchId.substring(0, 8) + '...' : 'Global'}
                     </Badge>
                 </TableCell>
                 <TableCell>

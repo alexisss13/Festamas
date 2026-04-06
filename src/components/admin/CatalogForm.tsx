@@ -15,7 +15,7 @@ import ImageUpload from '@/components/ui/image-upload';
 import { cn } from '@/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function CatalogForm({ catalog, defaultBranchId, activeBranch }: { catalog?: any | null, defaultBranchId?: string, activeBranch: any }) {
+export function CatalogForm({ catalog, defaultBranchId, activeBranch }: { catalog?: any | null, defaultBranchId?: string, activeBranch?: any }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
@@ -25,17 +25,35 @@ export function CatalogForm({ catalog, defaultBranchId, activeBranch }: { catalo
     const brandTextClass = "text-primary";
     const brandButtonClass = "bg-primary hover:bg-primary/90";
 
+    // Función para extraer public_id de URLs
+    const extractPublicId = (url: string): string => {
+        if (!url || url.trim() === '') return '';
+        if (!url.includes('res.cloudinary.com')) return url;
+        
+        try {
+            const parts = url.split('/upload/');
+            if (parts.length < 2) return url;
+            
+            const pathAfterUpload = parts[1];
+            const pathParts = pathAfterUpload.split('/');
+            const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
+            return withoutVersion.join('/').split('.')[0];
+        } catch {
+            return url;
+        }
+    };
+
     // --- ESTADOS ---
     const [title, setTitle] = useState(catalog?.title || '');
     const [iframeUrl, setIframeUrl] = useState(catalog?.iframeUrl || '');
-    const [coverImage, setCoverImage] = useState(catalog?.coverImage || '');
+    const [coverImage, setCoverImage] = useState(extractPublicId(catalog?.coverImage || ''));
     const [isActive, setIsActive] = useState<boolean>(catalog?.isActive ?? true);
 
     // --- SNAPSHOT INICIAL ---
     const [initialData, setInitialData] = useState({
         title: catalog?.title || '',
         iframeUrl: catalog?.iframeUrl || '',
-        coverImage: catalog?.coverImage || '',
+        coverImage: extractPublicId(catalog?.coverImage || ''),
         branchId: catalog?.branchId || defaultBranchId,
         isActive: catalog?.isActive ?? true,
     });

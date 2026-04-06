@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -50,12 +51,41 @@ function SortableBannerItem({ banner, onEdit, onDelete, brandColor }: { banner: 
         transition,
     };
 
+    // Extraer public_id de URL si es necesario
+    const getPublicId = (url: string): string => {
+        if (!url || url.trim() === '') return '';
+        if (!url.includes('res.cloudinary.com')) return url;
+        
+        try {
+            const parts = url.split('/upload/');
+            if (parts.length < 2) return url;
+            
+            const pathAfterUpload = parts[1];
+            const pathParts = pathAfterUpload.split('/');
+            const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
+            return withoutVersion.join('/').split('.')[0];
+        } catch {
+            return url;
+        }
+    };
+
+    const imagePublicId = getPublicId(banner.imageUrl);
+
     return (
         <div ref={setNodeRef} style={style} className="relative group col-span-1 h-full">
             <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-all h-full flex flex-col group-hover:border-slate-300">
                 {/* ZONA DE IMAGEN Y DRAG */}
                 <div className="relative aspect-video w-full bg-slate-100 group-drag border-b border-slate-100">
-                     <Image src={banner.imageUrl} alt={banner.title} fill className="object-cover" />
+                     {imagePublicId && (
+                         <Image 
+                             loader={cloudinaryLoader}
+                             src={imagePublicId} 
+                             alt={banner.title} 
+                             fill 
+                             className="object-cover"
+                             sizes="(max-width: 768px) 100vw, 33vw"
+                         />
+                     )}
                      
                      {/* Overlay oscuro al hacer hover */}
                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />

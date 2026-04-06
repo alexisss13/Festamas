@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, ShoppingCart, Menu, Heart, User, LogOut, Package, Store, ChevronRight, ChevronDown, MapPin, BookOpen, Truck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -216,9 +217,11 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                         <div className="relative h-[22px] w-[90px] md:w-[110px] flex items-center justify-center px-1">
                            {branch.logos?.imagotipoWhite ? (
                               <Image
+                                loader={cloudinaryLoader}
                                 src={branch.logos.imagotipoWhite}
                                 alt={branch.name}
                                 fill
+                                sizes="(max-width: 768px) 90px, 110px"
                                 className="object-contain object-center"
                               />
                            ) : (
@@ -245,8 +248,8 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
             
             <Link href="/" className="shrink-0 group">
                 <div className="relative w-[40px] h-[40px] md:w-[135px] md:h-[48px] transition-all duration-300">
-                    <Image src={activeMainIcon} alt={brandName} fill className="hidden md:block object-contain object-left" priority />
-                    <Image src={activeMobileIcon} alt={brandName} fill className="block md:hidden object-contain object-center" priority />
+                    <Image loader={cloudinaryLoader} src={activeMainIcon} alt={brandName} fill sizes="135px" className="hidden md:block object-contain object-left" priority />
+                    <Image loader={cloudinaryLoader} src={activeMobileIcon} alt={brandName} fill sizes="40px" className="block md:hidden object-contain object-center" priority />
                 </div>
             </Link>
 
@@ -261,7 +264,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                     <SheetTitle className="sr-only">Menú de Navegación</SheetTitle> 
                     <SheetHeader className={cn("h-[52px] flex flex-row items-center px-4 py-0 space-y-0 border-b", mobileHeaderClass)}>
                         <div className="relative h-8 w-24">
-                            <Image src={activeMobileIconWhite} alt={brandName} fill className="object-contain object-left" />
+                            <Image loader={cloudinaryLoader} src={activeMobileIconWhite} alt={brandName} fill sizes="96px" className="object-contain object-left" />
                         </div>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4 px-2">

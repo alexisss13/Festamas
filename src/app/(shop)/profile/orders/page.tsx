@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { useUIStore } from '@/store/ui';
 import { getUserOrders } from '@/actions/order';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
@@ -149,11 +150,13 @@ export default function OrdersPage() {
                     <div key={`${order.id}-${item.productId}`} className="group flex gap-4 items-center p-2 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
                         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-white shadow-sm">
                         <Image 
+                            loader={cloudinaryLoader}
                             src={item.product.images[0] 
                                 ? (item.product.images[0].startsWith('http') ? item.product.images[0] : `/products/${item.product.images[0]}`) 
                                 : '/placeholder.jpg'} 
                             alt={item.product.title}
                             fill
+                            sizes="64px"
                             className="object-contain p-1 group-hover:scale-105 transition-transform"
                         />
                         </div>

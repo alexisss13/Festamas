@@ -8,7 +8,7 @@ export const transformOrderData = (orders: OrderForExport[], selectedColumns?: s
     const origen = order.receiptNumber ? 'POS' : 'WEB';
     
     const productsSummary = order.orderItems
-      .map(item => `${item.quantity}x ${item.product.title} (S/${(Number(item.price) || 0).toFixed(2)})`)
+      .map(item => `${item.quantity}x ${item.productName} (S/${(Number(item.price) || 0).toFixed(2)})`)
       .join(', ');
 
     const deliveryLabel = {
@@ -80,7 +80,7 @@ export const transformOrderData = (orders: OrderForExport[], selectedColumns?: s
     selectedColumns.forEach(colId => {
       const fieldName = columnMap[colId];
       if (fieldName && fieldName in allData) {
-        filteredData[fieldName] = allData[fieldName];
+        (filteredData as Record<string, string | number>)[fieldName] = allData[fieldName];
       }
     });
 

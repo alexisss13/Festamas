@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { useUIStore } from '@/store/ui';
 import { Category } from '@prisma/client';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,24 @@ interface Props {
 
 export function FeaturedCategories({ categories }: Props) {
   const { activeBranchId, branches } = useUIStore();
+  
+  // Función para extraer public_id
+  const getPublicId = (url: string): string => {
+    if (!url || url.trim() === '') return '';
+    if (!url.includes('res.cloudinary.com')) return url;
+    
+    try {
+      const parts = url.split('/upload/');
+      if (parts.length < 2) return url;
+      
+      const pathAfterUpload = parts[1];
+      const pathParts = pathAfterUpload.split('/');
+      const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
+      return withoutVersion.join('/').split('.')[0];
+    } catch {
+      return url;
+    }
+  };
   
   // 1. Filtrar por tienda activa
   const activeBranch = branches.find(b => b.id === activeBranchId) ?? branches[0];
@@ -92,10 +111,12 @@ export function FeaturedCategories({ categories }: Props) {
                         <div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100 border border-slate-100 shadow-sm transition-all duration-300 group-hover:shadow-lg group-hover:-translate-y-1">
                             {cat.image ? (
                                 <Image 
-                                    src={cat.image} 
+                                    loader={cloudinaryLoader}
+                                    src={getPublicId(cat.image)} 
                                     alt={cat.name} 
                                     fill 
                                     className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
                                 />
                             ) : (
                                 // Placeholder elegante si no hay foto

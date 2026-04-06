@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getProducts } from '@/actions/products';
 import { ProductCard } from '@/components/features/ProductCard';
 import { SearchX } from 'lucide-react';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 interface Props {
   searchParams: Promise<{
@@ -22,6 +23,9 @@ export default async function SearchPage({ searchParams }: Props) {
   if (!query) {
     redirect('/');
   }
+
+  const { activeBranch } = await getEcommerceContextFromCookie();
+  const brandColor = (activeBranch.brandColors as any)?.primary ?? '#fc4b65';
 
   const { data: products } = await getProducts({ query });
 

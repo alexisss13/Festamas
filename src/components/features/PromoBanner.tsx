@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { Banner } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 
@@ -14,10 +15,12 @@ export function PromoBanner({ banner }: Props) {
     <section className="relative w-full aspect-[21/9] md:aspect-[32/9] overflow-hidden rounded-2xl bg-slate-900 group">
       {/* Imagen Background */}
       <Image
-        src={banner.imageUrl}
+        loader={cloudinaryLoader}
+        src={banner.imageUrl.includes('res.cloudinary.com') ? banner.imageUrl.split('/upload/')[1]?.split('/').filter((p: string) => !p.startsWith('v') || p.length < 10).join('/').split('.')[0] || banner.imageUrl : banner.imageUrl}
         alt={banner.title}
         fill
         className="object-cover opacity-90 transition-transform duration-700 group-hover:scale-105"
+        sizes="100vw"
       />
       
       {/* Contenido (Centrado) */}

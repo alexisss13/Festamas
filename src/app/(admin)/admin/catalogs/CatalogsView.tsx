@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { useRouter } from 'next/navigation';
 import { deleteCatalog, toggleCatalogStatus } from '@/actions/catalogs';
 import { Button } from '@/components/ui/button';
@@ -95,10 +96,12 @@ export function CatalogsView({ initialCatalogs, activeBranch }: { initialCatalog
                                         <div className="relative w-16 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-100 flex-shrink-0">
                                             {catalog.coverImage ? (
                                                 <Image 
-                                                    src={catalog.coverImage} 
+                                                    loader={cloudinaryLoader}
+                                                    src={catalog.coverImage.includes('res.cloudinary.com') ? catalog.coverImage.split('/upload/')[1]?.split('/').filter((p: string) => !p.startsWith('v') || p.length < 10).join('/').split('.')[0] || catalog.coverImage : catalog.coverImage} 
                                                     alt={catalog.title}
                                                     fill
                                                     className="object-cover"
+                                                    sizes="64px"
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-slate-300">
