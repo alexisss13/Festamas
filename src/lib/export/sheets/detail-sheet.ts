@@ -36,7 +36,7 @@ export const createDetailSheet = (orders: OrderForExport[], totals: Totals, sele
   
   const dataToExport = orders.map(order => {
     const products = order.orderItems
-      .map(item => `${item.quantity}x ${item.product.title} (S/${Number(item.price).toFixed(2)})`)
+      .map(item => `${item.quantity}x ${item.productName} (S/${Number(item.price).toFixed(2)})`)
       .join(', ');
     
     const dniMatch = order.notes?.match(/DNI:\s*(\d+)/);

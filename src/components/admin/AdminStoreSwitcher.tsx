@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu, 
@@ -116,6 +117,7 @@ export const AdminStoreSwitcher = ({ activeBranch, branches, isCollapsed, isGlob
                   ) : (
                     <div className="relative w-full h-full">
                       <Image 
+                          loader={cloudinaryLoader}
                           src={logoFestamas}
                           alt="Logo" 
                           fill 
@@ -166,7 +168,7 @@ export const AdminStoreSwitcher = ({ activeBranch, branches, isCollapsed, isGlob
               >
                 <div className="flex items-center justify-center w-8 h-8 shrink-0">
                     <div className="relative w-full h-full">
-                        <Image src={b.logoUrl || '/images/default-store.png'} alt={b.name} fill sizes="32px" className="object-contain" />
+                        <Image loader={cloudinaryLoader} src={b.logoUrl || '/images/default-store.png'} alt={b.name} fill sizes="32px" className="object-contain" />
                     </div>
                 </div>
                 <div className="flex flex-col flex-1">

@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz'; 
@@ -35,9 +36,7 @@ export default async function InvoicePage({ params }: Props) {
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      orderItems: {
-        include: { product: true }
-      }
+      orderItems: true
     }
   });
 
@@ -98,9 +97,11 @@ export default async function InvoicePage({ params }: Props) {
                {/* LOGO DINÁMICO */}
                <div className="relative w-40 h-16 mb-2">
                   <Image 
+                    loader={cloudinaryLoader}
                     src={brandConfig.logo} 
                     alt={brandConfig.name} 
                     fill 
+                    sizes="160px"
                     className="object-contain object-left" 
                     priority
                   />
@@ -178,7 +179,7 @@ export default async function InvoicePage({ params }: Props) {
                       <tr key={item.id} className="border-b border-slate-100">
                           <td className="py-3 font-mono pl-2">{item.quantity}</td>
                           <td className="py-3">
-                              <span className="font-semibold block">{item.product.title}</span>
+                              <span className="font-semibold block">{item.productName}</span>
                           </td>
                           <td className="py-3 text-right font-mono">{formatCurrency(Number(item.price))}</td>
                           <td className="py-3 text-right font-bold font-mono">{formatCurrency(Number(item.price) * item.quantity)}</td>

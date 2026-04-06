@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { AddToCartButton } from './AddToCartButton';
 import { FavoriteButton } from './FavoriteButton';
@@ -35,6 +36,24 @@ export function ProductCard({ product }: ProductCardProps) {
         brandText: 'text-primary',
         discountBadge: 'bg-primary text-white',
       };
+
+  // Función para extraer public_id
+  const getPublicId = (url: string): string => {
+    if (!url || url.trim() === '') return '';
+    if (!url.includes('res.cloudinary.com')) return url;
+    
+    try {
+      const parts = url.split('/upload/');
+      if (parts.length < 2) return url;
+      
+      const pathAfterUpload = parts[1];
+      const pathParts = pathAfterUpload.split('/');
+      const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
+      return withoutVersion.join('/').split('.')[0];
+    } catch {
+      return url;
+    }
+  };
 
   // --- Lógica de Precios ---
   const price = Number(product.price) || 0;
@@ -72,7 +91,8 @@ export function ProductCard({ product }: ProductCardProps) {
           <Link href={`/product/${product.slug}`} className="block w-full h-full">
             {product.images[0] ? (
                 <Image
-                    src={product.images[0]}
+                    loader={cloudinaryLoader}
+                    src={getPublicId(product.images[0])}
                     alt={product.title}
                     fill
                     className={cn(

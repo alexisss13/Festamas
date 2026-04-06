@@ -6,7 +6,7 @@ export const createProductsSheet = (orders: OrderForExport[]) => {
   const productSales: { [key: string]: { quantity: number; total: number } } = {};
   orders.forEach(order => {
     order.orderItems.forEach(item => {
-      const productName = item.product.title;
+      const productName = item.productName;
       if (!productSales[productName]) {
         productSales[productName] = { quantity: 0, total: 0 };
       }

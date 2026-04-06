@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz'; 
@@ -18,15 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   const order = await prisma.order.findUnique({ 
     where: { id },
-    include: { orderItems: { include: { product: true } } } // Incluimos productos para detectar tienda
   });
 
   if (!order) return { title: 'Boleta no encontrada' };
 
-  // 🏪 LÓGICA DE MARCA (Basada en el primer producto)
-  // Si el primer producto es de JUGUETERIA, es Festamas. Si no, FiestasYa.
-  const firstProduct = order.orderItems[0]?.product;
-  const isFestamas = firstProduct?.division === 'JUGUETERIA';
+  const isFestamas = order.notes?.includes('JUGUETERIA') ?? false;
   const brandName = isFestamas ? 'Festamas' : 'FiestasYa';
   
   // Si no hay numero de recibo, usamos el ID corto
@@ -49,9 +46,7 @@ export default async function InvoicePage({ params }: Props) {
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      orderItems: {
-        include: { product: true }
-      }
+      orderItems: true
     }
   });
 
@@ -62,11 +57,7 @@ export default async function InvoicePage({ params }: Props) {
       redirect('/');
   }
 
-  // 🏪 LÓGICA DE MARCA ROBUSTA
-  // Miramos la división del primer producto de la orden
-  const firstProduct = order.orderItems[0]?.product;
-  // Si no hay productos (raro), asumimos Juguetería por defecto o leemos cookie si pudiéramos
-  const isFestamas = firstProduct ? firstProduct.division === 'JUGUETERIA' : true;
+  const isFestamas = order.notes?.includes('JUGUETERIA') ?? true;
   
   const brandConfig = isFestamas 
     ? {
@@ -148,9 +139,11 @@ export default async function InvoicePage({ params }: Props) {
             <div className="flex flex-col gap-1 max-w-[50%]">
                <div className="relative w-48 h-20 mb-3">
                   <Image 
+                    loader={cloudinaryLoader}
                     src={brandConfig.logo} 
                     alt={brandConfig.name} 
                     fill 
+                    sizes="192px"
                     className="object-contain object-left" 
                     priority
                   />
@@ -241,7 +234,7 @@ export default async function InvoicePage({ params }: Props) {
                       <tr key={item.id} className="border-b border-slate-50 last:border-0">
                           <td className="py-3 font-mono font-medium pl-2">{item.quantity}</td>
                           <td className="py-3">
-                              <span className="font-bold block text-slate-800">{item.product.title}</span>
+                              <span className="font-bold block text-slate-800">{item.productName}</span>
                               {/* Podríamos poner SKU o Variante aquí si tuviéramos */}
                           </td>
                           <td className="py-3 text-right font-mono text-slate-500">{formatCurrency(Number(item.price))}</td>

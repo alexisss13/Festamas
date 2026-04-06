@@ -114,8 +114,8 @@ export const createDetailPage = (
     const orderDate = new Date(order.createdAt);
     
     const productsText = order.orderItems.length > 3
-      ? `${order.orderItems.slice(0, 3).map(item => `${item.quantity}x ${item.product.title}`).join(', ')}... (+${order.orderItems.length - 3})`
-      : order.orderItems.map(item => `${item.quantity}x ${item.product.title}`).join(', ');
+      ? `${order.orderItems.slice(0, 3).map(item => `${item.quantity}x ${item.productName}`).join(', ')}... (+${order.orderItems.length - 3})`
+      : order.orderItems.map(item => `${item.quantity}x ${item.productName}`).join(', ');
     
     const allData: Record<string, string> = {
       'receiptNumber': order.receiptNumber || `#${order.id.substring(0, 8)}`,

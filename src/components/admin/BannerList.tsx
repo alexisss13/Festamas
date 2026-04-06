@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { useRouter } from 'next/navigation';
 import { 
   DndContext, 
@@ -46,8 +47,26 @@ function SortableBannerItem({ banner, onDelete }: { banner: any, onDelete: (id: 
         zIndex: isDragging ? 50 : 'auto',
     };
 
+    // Función para extraer public_id
+    const getPublicId = (url: string): string => {
+        if (!url || url.trim() === '') return '';
+        if (!url.includes('res.cloudinary.com')) return url;
+        
+        try {
+            const parts = url.split('/upload/');
+            if (parts.length < 2) return url;
+            
+            const pathAfterUpload = parts[1];
+            const pathParts = pathAfterUpload.split('/');
+            const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
+            return withoutVersion.join('/').split('.')[0];
+        } catch {
+            return url;
+        }
+    };
+
     // Determinar qué imagen mostrar
-    const currentImage = (showMobile && hasMobileVersion) ? banner.mobileUrl : banner.imageUrl;
+    const currentImage = (showMobile && hasMobileVersion) ? getPublicId(banner.mobileUrl) : getPublicId(banner.imageUrl);
     const isShowingMobile = showMobile && hasMobileVersion;
 
     return (
@@ -58,15 +77,19 @@ function SortableBannerItem({ banner, onDelete }: { banner: any, onDelete: (id: 
             )}>
                 {/* ZONA DE IMAGEN Y DRAG */}
                 <div className="relative aspect-[3/1] w-full bg-slate-100 border-b border-slate-100 group-drag">
-                     <Image 
-                        src={currentImage} 
-                        alt={banner.title} 
-                        fill 
-                        className={cn(
-                            "object-cover transition-opacity duration-300",
-                            isShowingMobile ? "object-contain bg-slate-900" : "object-cover" // Mobile fit
-                        )} 
-                     />
+                     {currentImage && (
+                         <Image 
+                            loader={cloudinaryLoader}
+                            src={currentImage} 
+                            alt={banner.title} 
+                            fill 
+                            className={cn(
+                                "object-cover transition-opacity duration-300",
+                                isShowingMobile ? "object-contain bg-slate-900" : "object-cover"
+                            )}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                         />
+                     )}
                      
                      {/* Overlay para Drag (Solo en Desktop mode para no tapar móvil) */}
                      {!isShowingMobile && (

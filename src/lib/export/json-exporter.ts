@@ -39,7 +39,7 @@ export const exportToJSON = (orders: OrderForExport[], selectedColumns?: string[
       metodoEntrega: order.deliveryMethod,
       direccion: order.shippingAddress,
       productos: order.orderItems.map(item => ({
-        titulo: item.product.title,
+        titulo: item.productName,
         cantidad: item.quantity,
         precioUnitario: item.price,
         subtotal: item.quantity * item.price

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import Link from 'next/link';
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Loader2, Tag, MapPin, Truck, Store, MessageSquarePlus, Package, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -231,7 +232,7 @@ export default function CartPage() {
                 <CardContent className="flex gap-4 p-4 sm:p-6">
                   
                   <Link href={`/product/${item.slug}`} className="relative h-28 w-28 shrink-0 overflow-hidden rounded-lg border bg-white p-1 hover:opacity-90 transition-opacity">
-                    <Image src={item.image} alt={item.title} fill className="object-contain" />
+                    <Image loader={cloudinaryLoader} src={item.image.includes('res.cloudinary.com') ? item.image.split('/upload/')[1]?.split('/').filter((p: string) => !p.startsWith('v') || p.length < 10).join('/').split('.')[0] || item.image : item.image} alt={item.title} fill className="object-contain" sizes="112px" />
                   </Link>
 
                   <div className="flex flex-1 flex-col justify-between">

@@ -58,7 +58,7 @@ export function ExportView({ orders }: ExportViewProps) {
     const loadLogo = async () => {
       try {
         const branch = branches.find(b => b.id === activeBranchId);
-        const logoPath = branch?.logoUrl || '/images/default-store.png';
+        const logoPath = (branch as any)?.logos?.isotipo ?? (branch as any)?.logos?.imagotipo ?? '/images/default-store.png';
         
         // Solo para evitar fallas si no hay logo, omitimos el fetch en ese caso:
         if (!logoPath) return;

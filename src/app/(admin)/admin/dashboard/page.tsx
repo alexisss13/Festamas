@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { getDashboardStats, getSalesChartData, getRecentSales, getTopProducts, getLogisticsStats, getOrderStatuses } from '@/actions/dashboard';
 import { DashboardCard } from './DashboardCard';
 import { SalesOverview } from './SalesOverview';
@@ -107,7 +108,7 @@ export default async function DashboardPage() {
                         {index + 1}
                       </div>
                       {product.images && product.images.length > 0 ? (
-                        <Image src={product.images[0]} alt={product.title} fill className="object-cover transition-transform group-hover:scale-105" sizes="48px" />
+                        <Image loader={cloudinaryLoader} src={product.images[0].includes('res.cloudinary.com') ? product.images[0].split('/upload/')[1]?.split('/').filter((p: string) => !p.startsWith('v') || p.length < 10).join('/').split('.')[0] || product.images[0] : product.images[0]} alt={product.title} fill className="object-cover transition-transform group-hover:scale-105" sizes="48px" />
                       ) : (
                         <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
                       )}

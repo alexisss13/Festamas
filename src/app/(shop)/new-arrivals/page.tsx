@@ -6,7 +6,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { SlidersHorizontal, SearchX } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Division } from '@prisma/client';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 interface Props {
   searchParams: Promise<{ 
@@ -31,21 +31,10 @@ export default async function NewArrivalsPage({ searchParams }: Props) {
   const minPrice = min ? Number(min) : undefined;
   const maxPrice = max ? Number(max) : undefined;
   
-  // Detección de tienda segura
-  let activeDivision: Division = 'JUGUETERIA';
-  if (division === 'FIESTAS' || division === 'DECORACION') {
-     activeDivision = 'FIESTAS' as Division; 
-  }
-
-  const isToys = activeDivision === 'JUGUETERIA';
-
-  // Colores
-  const brandColor = isToys ? '#fc4b65' : '#ec4899';
-  const bgBrand = isToys ? 'bg-rose-50' : 'bg-pink-50';
-  const title = isToys ? 'Nuevos Juguetes' : 'Nueva Decoración';
+  const { activeBranch } = await getEcommerceContextFromCookie();
+  const brandColor = (activeBranch.brandColors as any)?.primary ?? '#fc4b65';
 
   const data = await getNewArrivalsProducts({
-    division: activeDivision,
     page: currentPage,
     take: 12,
     sort: sort || 'newest',
@@ -65,13 +54,13 @@ export default async function NewArrivalsPage({ searchParams }: Props) {
       <div className="mb-12 flex flex-col items-center text-center space-y-4">
         {/* Badge sutil de la tienda */}
         <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase bg-white border border-slate-200 text-slate-400">
-            {isToys ? 'Festamas' : 'FiestasYa'}
+            {activeBranch.name}
         </span>
         
         {/* Título Principal - Limpio y Elegante */}
         <div className="relative">
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
-              {title}
+              Recién Llegados — {activeBranch.name}
             </h1>
             {/* Pequeño acento de color debajo */}
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 h-1 w-12 rounded-full" style={{ backgroundColor: brandColor }}></div>
@@ -133,7 +122,7 @@ export default async function NewArrivalsPage({ searchParams }: Props) {
                     />
                 </>
             ) : (
-                <div className={`flex flex-col items-center justify-center py-24 text-center ${bgBrand} rounded-2xl border-2 border-dashed border-white shadow-sm`}>
+                <div className="flex flex-col items-center justify-center py-24 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-white shadow-sm">
                     <div className="bg-white p-5 rounded-full mb-4 shadow-sm">
                         <SearchX className="h-10 w-10 text-slate-300" />
                     </div>
@@ -141,13 +130,9 @@ export default async function NewArrivalsPage({ searchParams }: Props) {
                     <p className="text-slate-500 max-w-sm px-6 text-sm">
                         No encontramos productos nuevos con estos filtros. Intenta limpiar la búsqueda.
                     </p>
-                    <Button 
-                        onClick={() => window.location.href = `/new-arrivals?division=${activeDivision}`} 
-                        variant="link" 
-                        className="mt-2 text-slate-900 font-bold"
-                    >
+                    <a href="/new-arrivals" className="mt-2 text-slate-900 font-bold underline text-sm">
                         Ver todo
-                    </Button>
+                    </a>
                 </div>
             )}
         </div>

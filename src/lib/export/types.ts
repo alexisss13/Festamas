@@ -17,9 +17,7 @@ export interface OrderForExport {
   orderItems: {
     quantity: number;
     price: number;
-    product: {
-      title: string;
-    };
+    productName: string;
   }[];
 }
 

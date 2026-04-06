@@ -42,8 +42,27 @@ export function BannerForm({ banner, activeBranch }: Props) {
     const [title, setTitle] = useState(banner?.title || '');
     const [subtitle, setSubtitle] = useState(banner?.subtitle || ''); // 👈 Estado Subtítulo
     const [link, setLink] = useState(banner?.link || '');
-    const [imageUrl, setImageUrl] = useState(banner?.imageUrl || '');
-    const [mobileUrl, setMobileUrl] = useState(banner?.mobileUrl || '');
+    
+    // Convertir URLs a public_ids si es necesario
+    const extractPublicId = (url: string): string => {
+        if (!url || url.trim() === '') return '';
+        if (!url.includes('res.cloudinary.com')) return url; // Ya es un public_id
+        
+        try {
+            const parts = url.split('/upload/');
+            if (parts.length < 2) return url;
+            
+            const pathAfterUpload = parts[1];
+            const pathParts = pathAfterUpload.split('/');
+            const withoutVersion = pathParts.filter(part => !part.startsWith('v') || part.length < 10);
+            return withoutVersion.join('/').split('.')[0];
+        } catch {
+            return url;
+        }
+    };
+    
+    const [imageUrl, setImageUrl] = useState(extractPublicId(banner?.imageUrl || ''));
+    const [mobileUrl, setMobileUrl] = useState(extractPublicId(banner?.mobileUrl || ''));
     const [position, setPosition] = useState<BannerPosition>(banner?.position || 'MAIN_HERO');
 
     // --- SNAPSHOT INICIAL ---
@@ -51,8 +70,8 @@ export function BannerForm({ banner, activeBranch }: Props) {
         title: banner?.title || '',
         subtitle: banner?.subtitle || '', // 👈 Snapshot Subtítulo
         link: banner?.link || '',
-        imageUrl: banner?.imageUrl || '',
-        mobileUrl: banner?.mobileUrl || '',
+        imageUrl: extractPublicId(banner?.imageUrl || ''),
+        mobileUrl: extractPublicId(banner?.mobileUrl || ''),
         position: banner?.position || 'MAIN_HERO',
     });
     

@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ==========================================
@@ -183,11 +183,12 @@ model User {
   payrolls    Payroll[]
 
   // Transaccional
-  cashSessions   CashSession[]
-  sales          Sale[]
-  auditLogs      AuditLog[]
-  stockTransfers StockTransfer[]
-  stockMovements StockMovement[]
+  cashSessions    CashSession[]
+  sales           Sale[]
+  auditLogs       AuditLog[]
+  stockTransfers  StockTransfer[]
+  stockMovements  StockMovement[]
+  purchaseOrders  PurchaseOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -407,18 +408,23 @@ model StockMovement {
 }
 
 model PurchaseOrder {
-  id          String              @id @default(uuid())
-  businessId  String
-  supplierId  String?
-  orderDate   DateTime            @default(now())
-  status      PurchaseOrderStatus @default(PENDING)
-  totalAmount Decimal             @db.Decimal(12, 2)
+  id           String              @id @default(uuid())
+  businessId   String
+  supplierId   String?
+  createdById  String?             // Usuario que creó la orden
+  orderDate    DateTime            @default(now())
+  receivedDate DateTime?           // Fecha de recepción
+  status       PurchaseOrderStatus @default(PENDING)
+  totalAmount  Decimal             @db.Decimal(12, 2)
+  notes        String?             // Notas adicionales
 
-  business Business            @relation(fields: [businessId], references: [id])
-  supplier Supplier?           @relation(fields: [supplierId], references: [id])
-  items    PurchaseOrderItem[]
+  business  Business            @relation(fields: [businessId], references: [id])
+  supplier  Supplier?           @relation(fields: [supplierId], references: [id])
+  createdBy User?               @relation(fields: [createdById], references: [id])
+  items     PurchaseOrderItem[]
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PurchaseOrderItem {
