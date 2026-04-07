@@ -9,7 +9,7 @@ export default async function NewBannerPage() {
   const activeBranch = branches.find((b: any) => b.id === branchId) ?? branches[0];
 
   return (
-    <div className="p-4 md:p-8 flex justify-center">
+    <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-[calc(100vh-4rem)] flex justify-center">
       <BannerForm activeBranch={activeBranch} />
     </div>
   );

@@ -98,7 +98,7 @@ function SortableBannerItem({ banner, onEdit, onDelete, brandColor }: { banner: 
                      {/* Badge de Posición */}
                      <div className="absolute bottom-2 right-2 flex flex-col gap-1 items-end">
                         <Badge className={cn("text-[10px] backdrop-blur-sm border-none font-medium shadow-sm", brandColor)}>
-                           {banner.position === 'MAIN_HERO' ? 'Hero Principal' : banner.position === 'TOP_STRIP' ? 'Cintillo' : 'Sección Media'}
+                           {banner.position === 'MAIN_HERO' ? 'Hero Principal' : banner.position === 'TOP_BAR' ? 'Cintillo' : 'Otro'}
                         </Badge>
                      </div>
                 </div>
@@ -379,9 +379,8 @@ export function BannersManager({ initialBanners, activeBranch }: { initialBanner
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                <SelectItem value="MAIN_HERO">Hero Principal (Slider)</SelectItem>
-                                                <SelectItem value="TOP_STRIP">Cintillo Superior</SelectItem>
-                                                <SelectItem value="MIDDLE_SECTION">Sección Media</SelectItem>
+                                                <SelectItem value="TOP_BAR">Cintillo Superior (Barra)</SelectItem>
+                                                <SelectItem value="MAIN_HERO">Hero Principal (Carrusel)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
