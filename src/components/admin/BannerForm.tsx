@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea'; // 👈 Usaremos Textarea para el subtítulo
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, Monitor, Smartphone, Link as LinkIcon, LayoutTemplate, Type } from 'lucide-react';
+import { Loader2, Save, Monitor, Smartphone, Link as LinkIcon, LayoutTemplate } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ui/image-upload'; 
 import { cn } from '@/lib/utils';
@@ -63,7 +64,7 @@ export function BannerForm({ banner, activeBranch }: Props) {
     
     const [imageUrl, setImageUrl] = useState(extractPublicId(banner?.imageUrl || ''));
     const [mobileUrl, setMobileUrl] = useState(extractPublicId(banner?.mobileUrl || ''));
-    const [position, setPosition] = useState<BannerPosition>(banner?.position || 'MAIN_HERO');
+    const [position, setPosition] = useState<BannerPosition>(banner?.position || 'TOP_BAR');
 
     // --- SNAPSHOT INICIAL ---
     const [initialData, setInitialData] = useState({
@@ -72,7 +73,7 @@ export function BannerForm({ banner, activeBranch }: Props) {
         link: banner?.link || '',
         imageUrl: extractPublicId(banner?.imageUrl || ''),
         mobileUrl: extractPublicId(banner?.mobileUrl || ''),
-        position: banner?.position || 'MAIN_HERO',
+        position: banner?.position || 'TOP_BAR',
     });
     
     const isDirty = 
@@ -163,41 +164,45 @@ export function BannerForm({ banner, activeBranch }: Props) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="w-full max-w-[1200px] space-y-8 pb-20 animate-in fade-in duration-500">
+        <form onSubmit={handleSubmit} className="w-full max-w-[1200px] space-y-6 lg:space-y-8 pb-20 animate-in fade-in duration-500">
             
             {/* HEADER */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 pb-4 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 gap-4">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2">
-                        {banner ? 'Editar Banner' : 'Nuevo Banner'}
-                        <span className={cn("text-xs px-2 py-1 rounded-md bg-slate-100 uppercase font-extrabold tracking-wide", brandTextClass)}>
+                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                        {banner ? 'Editar' : 'Crear'} <span className="text-primary">Banner</span>
+                    </h2>
+                    <div className="flex items-center gap-2 mt-1 sm:mt-2">
+                        <p className="text-sm sm:text-base text-slate-500">
                             {activeBranch?.name || 'Tienda'}
-                        </span>
+                        </p>
                         {isDirty && (
-                            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-200 font-medium flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"/> Sin guardar
+                            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-medium flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"/> Sin guardar
                             </span>
                         )}
-                    </h2>
+                    </div>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
-                    <Button type="button" variant="outline" onClick={handleCancel} disabled={loading} className="flex-1 md:flex-none">
+                    <Button type="button" variant="outline" onClick={handleCancel} disabled={loading} className="flex-1 md:flex-none h-10 sm:h-11">
                         Cancelar
                     </Button>
-                    <Button type="submit" className={cn("text-white flex-1 md:flex-none min-w-[140px]", brandButtonClass)} disabled={loading}>
+                    <Button type="submit" className={cn("text-white flex-1 md:flex-none min-w-[120px] sm:min-w-[140px] h-10 sm:h-11", brandButtonClass)} disabled={loading}>
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Guardar
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <Separator />
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
                 
-                {/* CONFIGURACIÓN (IZQUIERDA) - Cambié el orden para priorizar contenido */}
+                {/* CONFIGURACIÓN (IZQUIERDA) */}
                 <div className="lg:col-span-5 space-y-6">
-                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <LayoutTemplate className="w-4 h-4 text-slate-500" /> Contenido
+                     <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 className="font-semibold text-base sm:text-lg text-slate-800 mb-4 flex items-center gap-2">
+                            <LayoutTemplate className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" /> Contenido
                         </h3>
                         
                         <div className="space-y-5">
@@ -253,11 +258,15 @@ export function BannerForm({ banner, activeBranch }: Props) {
                                 <Select value={position} onValueChange={(val) => setPosition(val as BannerPosition)}>
                                     <SelectTrigger className={brandFocusClass}><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="MAIN_HERO">Hero Principal (Grande)</SelectItem>
-                                        {/* TOP_STRIP ELIMINADO */}
-                                        <SelectItem value="MIDDLE_SECTION">Sección Media (Bloque)</SelectItem>
+                                        <SelectItem value="TOP_BAR">Cintillo Superior (Barra)</SelectItem>
+                                        <SelectItem value="MAIN_HERO">Hero Principal (Carrusel)</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                <p className="text-xs text-slate-500">
+                                    {position === 'TOP_BAR' 
+                                        ? 'Barra superior de 30-60px de altura. Máximo 2-3 slides.'
+                                        : 'Banner principal tipo carrusel en la parte superior del sitio.'}
+                                </p>
                             </div>
 
                             <div className="p-3 bg-slate-50 border rounded-md text-sm text-slate-500 flex justify-between items-center">
@@ -270,15 +279,17 @@ export function BannerForm({ banner, activeBranch }: Props) {
 
                 {/* IMÁGENES (DERECHA) */}
                 <div className="lg:col-span-7 space-y-6">
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                                <Monitor className="w-4 h-4 text-slate-500" /> Imagen Principal (PNG Transparente)
+                            <h3 className="font-semibold text-base sm:text-lg text-slate-800 flex items-center gap-2">
+                                <Monitor className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" /> Imagen Desktop
                             </h3>
-                            <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">Recomendado</span>
+                            <span className="text-[10px] sm:text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 font-medium">Requerido</span>
                         </div>
-                        <p className="text-sm text-slate-500 mb-4">
-                            Para el diseño "Smart Hero", sube una imagen <strong>PNG sin fondo</strong> (ej: un juguete flotando). Si no subes nada, se generará una ilustración automática.
+                        <p className="text-xs sm:text-sm text-slate-500 mb-4">
+                            {position === 'TOP_BAR' 
+                                ? 'Imagen optimizada para barra superior (30-60px de altura). Formato horizontal alargado.'
+                                : 'Para el diseño "Smart Hero", sube una imagen PNG sin fondo (ej: un juguete flotando). Si no subes nada, se generará una ilustración automática.'}
                         </p>
                         <ImageUpload 
                             value={imageUrl ? [imageUrl] : []}
@@ -289,10 +300,11 @@ export function BannerForm({ banner, activeBranch }: Props) {
                         />
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm opacity-60 hover:opacity-100 transition-opacity">
-                        <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <Smartphone className="w-4 h-4 text-slate-500" /> Imagen Móvil (Opcional)
+                    <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm opacity-60 hover:opacity-100 transition-opacity">
+                        <h3 className="font-semibold text-base sm:text-lg text-slate-800 mb-4 flex items-center gap-2">
+                            <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" /> Imagen Móvil
                         </h3>
+                        <p className="text-xs sm:text-sm text-slate-500 mb-4">Versión optimizada para dispositivos móviles (opcional).</p>
                         <ImageUpload 
                             value={mobileUrl ? [mobileUrl] : []}
                             disabled={loading}

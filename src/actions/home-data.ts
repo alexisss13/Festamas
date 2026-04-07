@@ -77,21 +77,11 @@ export const getHomeData = async (businessId: string, branchId: string, ecommerc
       }
     });
 
-    const middleBanner = await prisma.banner.findFirst({
-      where: { 
-        OR: [{ branchId }, { branchId: null }],
-        position: 'MIDDLE_SECTION',
-        active: true,
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
     const { sections } = await getHomeSections(branchId, true);
 
     return {
       newArrivals: newArrivals.map((product) => mapProductForBranch(product, branchId, ecommerceCode)),
       categories,
-      middleBanner,
       sections: sections.map((section: any) => ({
         ...section,
         division: inferLegacyDivision(ecommerceCode),
@@ -102,7 +92,6 @@ export const getHomeData = async (businessId: string, branchId: string, ecommerc
     return {
       newArrivals: [],
       categories: [],
-      middleBanner: null,
       sections: []
     };
   }
