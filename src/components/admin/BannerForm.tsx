@@ -4,21 +4,21 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBanner, updateBanner } from '@/actions/banners';
 import { BannerPosition } from '@prisma/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea'; // 👈 Usaremos Textarea para el subtítulo
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, Monitor, Smartphone, Link as LinkIcon, LayoutTemplate } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import ImageUpload from '@/components/ui/image-upload'; 
+import { Type, Link as LinkIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { BannerFormHeader } from './banner-form/BannerFormHeader';
+import { BannerImagesSection } from './banner-form/BannerImagesSection';
+import { Button } from '@/components/ui/button';
+import { Loader2, Save, LayoutGrid, Rows3, Image as ImageIcon } from 'lucide-react';
 
 interface BannerData {
     id?: string;
     title: string;
-    subtitle?: string | null; // 👈 Agregado
+    subtitle?: string | null;
     imageUrl: string;
     mobileUrl?: string | null;
     link?: string | null;
@@ -36,18 +36,12 @@ export function BannerForm({ banner, activeBranch }: Props) {
     const [loading, setLoading] = useState(false);
 
     const brandFocusClass = "focus-visible:ring-primary";
-    const brandTextClass = "text-primary";
     const brandButtonClass = "bg-primary hover:bg-primary/90";
 
-    // --- ESTADOS ---
-    const [title, setTitle] = useState(banner?.title || '');
-    const [subtitle, setSubtitle] = useState(banner?.subtitle || ''); // 👈 Estado Subtítulo
-    const [link, setLink] = useState(banner?.link || '');
-    
     // Convertir URLs a public_ids si es necesario
     const extractPublicId = (url: string): string => {
         if (!url || url.trim() === '') return '';
-        if (!url.includes('res.cloudinary.com')) return url; // Ya es un public_id
+        if (!url.includes('res.cloudinary.com')) return url;
         
         try {
             const parts = url.split('/upload/');
@@ -62,6 +56,10 @@ export function BannerForm({ banner, activeBranch }: Props) {
         }
     };
     
+    // --- ESTADOS ---
+    const [title, setTitle] = useState(banner?.title || '');
+    const [subtitle, setSubtitle] = useState(banner?.subtitle || '');
+    const [link, setLink] = useState(banner?.link || '');
     const [imageUrl, setImageUrl] = useState(extractPublicId(banner?.imageUrl || ''));
     const [mobileUrl, setMobileUrl] = useState(extractPublicId(banner?.mobileUrl || ''));
     const [position, setPosition] = useState<BannerPosition>(banner?.position || 'TOP_BAR');
@@ -69,7 +67,7 @@ export function BannerForm({ banner, activeBranch }: Props) {
     // --- SNAPSHOT INICIAL ---
     const [initialData, setInitialData] = useState({
         title: banner?.title || '',
-        subtitle: banner?.subtitle || '', // 👈 Snapshot Subtítulo
+        subtitle: banner?.subtitle || '',
         link: banner?.link || '',
         imageUrl: extractPublicId(banner?.imageUrl || ''),
         mobileUrl: extractPublicId(banner?.mobileUrl || ''),
@@ -78,7 +76,7 @@ export function BannerForm({ banner, activeBranch }: Props) {
     
     const isDirty = 
         title !== initialData.title || 
-        subtitle !== initialData.subtitle || // 👈 Check Subtítulo
+        subtitle !== initialData.subtitle ||
         link !== initialData.link || 
         imageUrl !== initialData.imageUrl ||
         mobileUrl !== initialData.mobileUrl ||
@@ -111,26 +109,22 @@ export function BannerForm({ banner, activeBranch }: Props) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Validación básica (El resto es opcional para el diseño generativo)
         if (!title) {
-             toast.error("El título es obligatorio para el SEO y diseño.");
+             toast.error("El título es obligatorio");
              return;
         }
 
-        // NOTA: Ya no obligamos imageUrl porque el diseño generativo lo permite vacío.
-        // Pero si quieres obligarlo para Main Hero, descomenta esto:
-        /* if (position === 'MAIN_HERO' && !imageUrl) {
-             toast.error("La imagen es obligatoria para el Hero Principal");
-             return;
-        } 
-        */
+        if (!imageUrl) {
+            toast.error("La imagen desktop es obligatoria");
+            return;
+        }
 
         setLoading(true);
 
         const dataToSend = {
             title,
-            subtitle: subtitle || undefined, // 👈 Enviar subtítulo
-            imageUrl: imageUrl || '',        // Permitimos string vacío
+            subtitle: subtitle || undefined,
+            imageUrl,
             mobileUrl: mobileUrl || undefined,
             link: link || undefined,
             position,
@@ -157,165 +151,204 @@ export function BannerForm({ banner, activeBranch }: Props) {
 
     const handleCancel = () => {
         if (isDirty) {
-            if (window.confirm('¿Descartar cambios y salir?')) router.back();
+            if (window.confirm('¿Descartar cambios y salir?')) router.push('/admin/banners');
         } else {
-            router.back();
+            router.push('/admin/banners');
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="w-full max-w-[1200px] space-y-6 lg:space-y-8 pb-20 animate-in fade-in duration-500">
-            
-            {/* HEADER */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 gap-4">
-                <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-                        {banner ? 'Editar' : 'Crear'} <span className="text-primary">Banner</span>
-                    </h2>
-                    <div className="flex items-center gap-2 mt-1 sm:mt-2">
-                        <p className="text-sm sm:text-base text-slate-500">
-                            {activeBranch?.name || 'Tienda'}
-                        </p>
-                        {isDirty && (
-                            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-medium flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"/> Sin guardar
-                            </span>
-                        )}
-                    </div>
-                </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                    <Button type="button" variant="outline" onClick={handleCancel} disabled={loading} className="flex-1 md:flex-none h-10 sm:h-11">
-                        Cancelar
-                    </Button>
-                    <Button type="submit" className={cn("text-white flex-1 md:flex-none min-w-[120px] sm:min-w-[140px] h-10 sm:h-11", brandButtonClass)} disabled={loading}>
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Guardar
-                    </Button>
-                </div>
-            </div>
+        <div className="min-h-screen bg-white">
+            {/* Header */}
+            <BannerFormHeader isEditing={!!banner} isDirty={isDirty} />
 
-            <Separator />
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-                
-                {/* CONFIGURACIÓN (IZQUIERDA) */}
-                <div className="lg:col-span-5 space-y-6">
-                     <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 className="font-semibold text-base sm:text-lg text-slate-800 mb-4 flex items-center gap-2">
-                            <LayoutTemplate className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" /> Contenido
-                        </h3>
+            {/* Contenido Principal */}
+            <form onSubmit={handleSubmit} className="max-w-7xl mx-auto px-6 py-8">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                    
+                    {/* PANEL IZQUIERDO: Configuración (8 columnas) */}
+                    <div className="xl:col-span-8 space-y-6">
                         
-                        <div className="space-y-5">
-                            {/* TÍTULO */}
-                            <div className="space-y-2">
-                                <Label htmlFor="title" className="flex items-center justify-between">
-                                    Título Principal <span className="text-xs text-slate-400 font-normal">Requerido</span>
-                                </Label>
-                                <Input 
-                                    id="title" 
-                                    placeholder="Ej: ¡Verano de Locura!"
-                                    value={title} 
-                                    onChange={(e) => setTitle(e.target.value)} 
-                                    className={brandFocusClass} 
-                                />
+                        {/* Sección Unificada: Configuración del Banner */}
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4 flex items-center gap-2">
+                                <Type className="h-4 w-4 text-primary" />
+                                <h2 className="font-semibold text-slate-800 text-sm">Configuración del Banner</h2>
                             </div>
+                            <div className="p-5">
+                                
+                                {/* Grid 2 columnas para campos de texto */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                                    
+                                    {/* TÍTULO */}
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="title" className="text-[13px] font-medium text-slate-500">
+                                            Título Principal
+                                        </Label>
+                                        <Input 
+                                            id="title" 
+                                            placeholder="Ej: ¡Verano de Locura!"
+                                            value={title} 
+                                            onChange={(e) => setTitle(e.target.value)} 
+                                            className={cn(
+                                                "h-10 !bg-white transition-all",
+                                                "focus:ring-2 focus:ring-slate-200 focus:ring-offset-0 focus:border-slate-300",
+                                                "focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-0 focus-visible:border-slate-300",
+                                                title ? "border-slate-300 shadow-sm" : "border-slate-200"
+                                            )}
+                                        />
+                                    </div>
 
-                            {/* SUBTÍTULO (NUEVO) */}
-                            <div className="space-y-2">
-                                <Label htmlFor="subtitle" className="flex items-center gap-2">
-                                    Subtítulo <span className="text-xs text-slate-400 font-normal">(Opcional)</span>
-                                </Label>
-                                <Textarea 
-                                    id="subtitle" 
-                                    placeholder="Ej: Descuentos de hasta el 50% en toda la tienda..."
-                                    value={subtitle} 
-                                    onChange={(e) => setSubtitle(e.target.value)} 
-                                    className={cn("min-h-[80px] resize-none", brandFocusClass)} 
-                                />
-                                <p className="text-xs text-slate-500">
-                                    Este texto aparecerá debajo del título en el banner.
-                                </p>
+                                    {/* ENLACE */}
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="link" className="text-[13px] font-medium text-slate-500">
+                                            Enlace del Botón
+                                        </Label>
+                                        <div className="relative">
+                                            <LinkIcon className={cn(
+                                                "absolute left-3 top-2.5 h-4 w-4 transition-colors",
+                                                link ? "text-slate-600" : "text-slate-400"
+                                            )} />
+                                            <Input 
+                                                id="link" 
+                                                value={link} 
+                                                onChange={(e) => setLink(e.target.value)} 
+                                                className={cn(
+                                                    "h-10 pl-9 !bg-white transition-all",
+                                                    "focus:ring-2 focus:ring-slate-200 focus:ring-offset-0 focus:border-slate-300",
+                                                    "focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-0 focus-visible:border-slate-300",
+                                                    link ? "border-slate-300 shadow-sm" : "border-slate-200"
+                                                )}
+                                                placeholder="/category/juguetes" 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* SUBTÍTULO - Ocupa 2 columnas */}
+                                    <div className="flex flex-col gap-2 md:col-span-2">
+                                        <Label htmlFor="subtitle" className="text-[13px] font-medium text-slate-500">
+                                            Subtítulo <span className="text-xs text-slate-400 font-normal">(Opcional)</span>
+                                        </Label>
+                                        <Textarea 
+                                            id="subtitle" 
+                                            placeholder="Ej: Descuentos de hasta el 50% en toda la tienda..."
+                                            value={subtitle} 
+                                            onChange={(e) => setSubtitle(e.target.value)} 
+                                            className={cn(
+                                                "min-h-[80px] resize-none !bg-white transition-all",
+                                                "focus:ring-2 focus:ring-slate-200 focus:ring-offset-0 focus:border-slate-300",
+                                                "focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-0 focus-visible:border-slate-300",
+                                                subtitle ? "border-slate-300 shadow-sm" : "border-slate-200"
+                                            )}
+                                        />
+                                    </div>
+                                    
+                                </div>
+                                
                             </div>
+                        </div>
 
-                            {/* ENLACE */}
-                            <div className="space-y-2">
-                                <Label htmlFor="link">Enlace del Botón</Label>
-                                <div className="relative">
-                                    <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                                    <Input 
-                                        id="link" 
-                                        value={link} 
-                                        onChange={(e) => setLink(e.target.value)} 
-                                        className={`pl-9 ${brandFocusClass}`} 
-                                        placeholder="/category/juguetes" 
-                                    />
+                        {/* Sección: Recursos Visuales */}
+                        <BannerImagesSection
+                            imageUrl={imageUrl}
+                            mobileUrl={mobileUrl}
+                            position={position}
+                            loading={loading}
+                            onImageUrlChange={setImageUrl}
+                            onMobileUrlChange={setMobileUrl}
+                        />
+
+                    </div>
+
+                    {/* PANEL DERECHO: Ubicación (4 columnas, Sticky) */}
+                    <div className="xl:col-span-4 relative">
+                        <div className="sticky top-6">
+                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4 flex items-center gap-2">
+                                    <LayoutGrid className="h-4 w-4 text-primary" />
+                                    <h2 className="font-semibold text-slate-800 text-sm">Ubicación</h2>
+                                </div>
+                                <div className="p-5 space-y-4">
+                                    
+                                    <div className="text-xs text-slate-500 mb-3">
+                                        Selecciona dónde se mostrará este banner
+                                    </div>
+                                    
+                                    {/* Opciones */}
+                                    <div className="space-y-3">
+                                        {[
+                                            { 
+                                                value: 'TOP_BAR' as BannerPosition, 
+                                                label: 'Cintillo Superior',
+                                                desc: 'Barra fija en la parte superior',
+                                                Icon: Rows3
+                                            },
+                                            { 
+                                                value: 'MAIN_HERO' as BannerPosition, 
+                                                label: 'Hero Principal',
+                                                desc: 'Banner destacado tipo carrusel',
+                                                Icon: ImageIcon
+                                            }
+                                        ].map((option) => {
+                                            const Icon = option.Icon;
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    type="button"
+                                                    onClick={() => setPosition(option.value)}
+                                                    className={cn(
+                                                        "w-full p-4 rounded-lg border transition-all text-left bg-white",
+                                                        position === option.value
+                                                            ? "border-primary/30" 
+                                                            : "border-slate-200 hover:border-slate-300"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <Icon className={cn(
+                                                            "w-5 h-5 shrink-0",
+                                                            position === option.value ? "text-primary" : "text-slate-400"
+                                                        )} />
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-sm font-medium text-slate-900 truncate">
+                                                                {option.label}
+                                                            </div>
+                                                            <div className="text-xs text-slate-500 truncate">
+                                                                {option.desc}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    
+                                    {/* Botones */}
+                                    <div className="pt-4 flex gap-2">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            onClick={handleCancel} 
+                                            disabled={loading}
+                                            className="flex-1 h-11"
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button 
+                                            type="submit" 
+                                            className={cn("flex-1 text-white h-11", brandButtonClass)} 
+                                            disabled={loading}
+                                        >
+                                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                            Guardar
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
-
-                            {/* POSICIÓN */}
-                            <div className="space-y-2">
-                                <Label htmlFor="position">Ubicación</Label>
-                                <Select value={position} onValueChange={(val) => setPosition(val as BannerPosition)}>
-                                    <SelectTrigger className={brandFocusClass}><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="TOP_BAR">Cintillo Superior (Barra)</SelectItem>
-                                        <SelectItem value="MAIN_HERO">Hero Principal (Carrusel)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-xs text-slate-500">
-                                    {position === 'TOP_BAR' 
-                                        ? 'Barra superior de 30-60px de altura. Máximo 2-3 slides.'
-                                        : 'Banner principal tipo carrusel en la parte superior del sitio.'}
-                                </p>
-                            </div>
-
-                            <div className="p-3 bg-slate-50 border rounded-md text-sm text-slate-500 flex justify-between items-center">
-                                <span>Tienda: <strong>{activeBranch?.name || 'Tienda'}</strong></span>
-                                <div className={cn("w-2 h-2 rounded-full bg-primary")} />
-                            </div>
                         </div>
                     </div>
+
                 </div>
-
-                {/* IMÁGENES (DERECHA) */}
-                <div className="lg:col-span-7 space-y-6">
-                    <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-base sm:text-lg text-slate-800 flex items-center gap-2">
-                                <Monitor className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" /> Imagen Desktop
-                            </h3>
-                            <span className="text-[10px] sm:text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 font-medium">Requerido</span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-slate-500 mb-4">
-                            {position === 'TOP_BAR' 
-                                ? 'Imagen optimizada para barra superior (30-60px de altura). Formato horizontal alargado.'
-                                : 'Para el diseño "Smart Hero", sube una imagen PNG sin fondo (ej: un juguete flotando). Si no subes nada, se generará una ilustración automática.'}
-                        </p>
-                        <ImageUpload 
-                            value={imageUrl ? [imageUrl] : []}
-                            onChange={(urls) => setImageUrl(urls[0] || '')}
-                            disabled={loading}
-                            maxFiles={1} 
-                            sizing="banner" 
-                        />
-                    </div>
-
-                    <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm opacity-60 hover:opacity-100 transition-opacity">
-                        <h3 className="font-semibold text-base sm:text-lg text-slate-800 mb-4 flex items-center gap-2">
-                            <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" /> Imagen Móvil
-                        </h3>
-                        <p className="text-xs sm:text-sm text-slate-500 mb-4">Versión optimizada para dispositivos móviles (opcional).</p>
-                        <ImageUpload 
-                            value={mobileUrl ? [mobileUrl] : []}
-                            disabled={loading}
-                            onChange={(url) => setMobileUrl(url[0] || '')}
-                            maxFiles={1}
-                            sizing="mobile"
-                        />
-                    </div>
-                </div>
-
-            </div>
-        </form>
+            </form>
+        </div>
     );
 }

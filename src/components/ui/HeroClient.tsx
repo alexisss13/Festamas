@@ -117,6 +117,7 @@ export function HeroClient({ banners }: HeroClientProps) {
                                    fill 
                                    className="object-cover"
                                    priority={idx === 0}
+                                   quality={100}
                                    loading={idx === 0 ? "eager" : "lazy"}
                                    sizes="100vw"
                                />
@@ -131,6 +132,7 @@ export function HeroClient({ banners }: HeroClientProps) {
                                        fill 
                                        className="object-cover" 
                                        priority={idx === 0}
+                                       quality={100}
                                        loading={idx === 0 ? "eager" : "lazy"}
                                        sizes="100vw"
                                    />

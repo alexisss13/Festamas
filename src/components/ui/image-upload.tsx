@@ -12,7 +12,7 @@ interface ImageUploadProps {
   onChange: (value: string[]) => void;
   disabled?: boolean;
   maxFiles?: number;
-  sizing?: 'cover' | 'contain' | 'banner' | 'mobile';
+  sizing?: 'cover' | 'contain' | 'banner' | 'mobile' | 'topbar-mobile' | 'topbar-desktop';
 }
 
 /**
@@ -124,13 +124,14 @@ export default function ImageUpload({
   };
 
   const aspectRatioClass =
-    sizing === 'banner' ? 'aspect-[2.5/1]' :
-    sizing === 'mobile' ? 'aspect-[9/16]' :
+    sizing === 'banner' ? 'aspect-[4/1]' :
+    sizing === 'topbar-mobile' || sizing === 'topbar-desktop' ? 'h-[110px] sm:h-[135px]' : 
+    sizing === 'mobile' ? 'aspect-[21/9]' :
     'aspect-square';
 
   const gridClasses = cn(
     'gap-4',
-    (maxFiles === 1 || sizing === 'banner')
+    (maxFiles === 1 || sizing === 'banner' || sizing === 'topbar-desktop' || sizing === 'topbar-mobile')
       ? 'flex flex-col w-full'
       : 'grid grid-cols-2 sm:grid-cols-3'
   );
@@ -145,39 +146,44 @@ export default function ImageUpload({
 
             const publicId = getPublicId(item);
             
-            // No renderizar si el publicId está vacío
             if (!publicId || publicId.trim() === '') return null;
 
             return (
               <div
                 key={item}
                 className={cn(
-                  'relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50 w-full group',
-                  aspectRatioClass
+                  'relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50 w-full group flex items-center justify-center',
+                  aspectRatioClass,
+                  sizing === 'mobile' && 'px-8',
+                  sizing === 'topbar-mobile' && 'bg-slate-100'
                 )}
               >
                 <div className="absolute top-2 right-2 z-20">
-                  <Button
+                  <button
                     type="button"
                     onClick={() => onRemove(item)}
-                    variant="destructive"
-                    size="icon"
-                    className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100 transition-opacity"
+                    className="h-7 w-7 rounded-md bg-white/90 backdrop-blur-sm border border-slate-200 flex items-center justify-center text-slate-600 hover:text-red-600 hover:border-red-200 transition-colors shadow-sm"
                   >
                     <X className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </div>
-                <Image
-                  loader={cloudinaryLoader}
-                  src={publicId}
-                  fill
-                  className={cn(
-                    'object-cover transition-transform duration-500 group-hover:scale-105',
-                    sizing === 'contain' && 'object-contain'
-                  )}
-                  alt="Imagen subida"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
+                <div className={cn(
+                  "relative h-full",
+                  sizing === 'mobile' ? 'w-full max-w-[200px] mx-auto' :
+                  sizing === 'topbar-mobile' ? 'w-[80vw] max-w-[320px] mx-auto' : 'w-full'
+                )}>
+                  <Image
+                    loader={cloudinaryLoader}
+                    src={publicId}
+                    fill
+                    className={cn(
+                      'transition-all duration-200',
+                      sizing === 'banner' || sizing === 'contain' || sizing === 'mobile' || sizing === 'topbar-mobile' || sizing === 'topbar-desktop' ? 'object-contain p-2 bg-slate-100/50' : 'object-cover'
+                    )}
+                    alt="Imagen subida"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
               </div>
             );
           })}
@@ -196,28 +202,32 @@ export default function ImageUpload({
             disabled={disabled || isUploading}
             className="hidden"
           />
-          <label htmlFor="image-upload-input">
-            <Button
-              type="button"
-              disabled={disabled || isUploading}
-              variant="secondary"
-              className="w-full h-14 border-dashed border-2 border-slate-300 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 hover:border-slate-400 transition-all cursor-pointer"
-              asChild
+          <label htmlFor="image-upload-input" className="block cursor-pointer">
+            <div
+              className={cn(
+                "w-full rounded-lg border border-slate-200 bg-white transition-colors",
+                "hover:border-slate-300",
+                aspectRatioClass,
+                "flex flex-col items-center justify-center gap-3 p-6"
+              )}
             >
-              <div>
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Subiendo... {Math.round(uploadProgress)}%
-                  </>
-                ) : (
-                  <>
-                    <ImagePlus className="h-5 w-5 mr-2" />
-                    {maxFiles === 1 ? 'Subir Imagen' : 'Agregar Imágenes'}
-                  </>
-                )}
-              </div>
-            </Button>
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
+                  <span className="text-sm font-medium text-slate-600">Subiendo {Math.round(uploadProgress)}%</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center">
+                    <ImagePlus className="h-6 w-6 text-slate-500" />
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-slate-700">Subir imagen</div>
+                    <div className="text-xs text-slate-400 mt-1">Arrastra o haz click</div>
+                  </div>
+                </>
+              )}
+            </div>
           </label>
         </div>
       )}

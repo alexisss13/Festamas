@@ -64,10 +64,10 @@ export default function cloudinaryLoader({
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dwunkgitl';
   
-  // Construir URL con transformaciones
+  // Construir URL con transformaciones (Priorizamos calidad visual premium usando q_auto:best)
   const params = [
     'f_auto',
-    quality ? `q_${quality}` : 'q_auto',
+    quality ? `q_${quality}` : 'q_auto:best',
     `w_${width}`,
     'c_limit' // No hacer upscale de imágenes pequeñas
   ];
