@@ -7,6 +7,13 @@ export async function Footer() {
   const categories = await prisma.category.findMany({
     where: {
       businessId: business.id,
+      products: {
+        some: {
+          businessId: business.id,
+          isAvailable: true,
+          active: true,
+        },
+      },
     },
     orderBy: { name: 'asc' },
     select: {

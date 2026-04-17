@@ -6,6 +6,7 @@ import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { AddToCartButton } from './AddToCartButton';
 import { FavoriteButton } from './FavoriteButton';
+import { ProductRating } from './ProductRating';
 import { cn } from '@/lib/utils';
 import { Package, AlertCircle } from 'lucide-react';
 import { useUIStore } from '@/store/ui';
@@ -27,6 +28,8 @@ interface ProductCardProps {
     tags: string[];
     createdAt: Date;
     division?: string;
+    averageRating?: number;
+    reviewCount?: number;
   };
 }
 
@@ -112,6 +115,22 @@ export function ProductCard({ product }: ProductCardProps) {
                 {product.title}
             </h3>
         </Link>
+
+        {/* Rating */}
+        <div className="mb-1">
+          {product.averageRating && product.reviewCount && product.reviewCount > 0 ? (
+            <ProductRating 
+              rating={product.averageRating} 
+              reviewCount={product.reviewCount}
+              size="sm"
+              showCount={false}
+            />
+          ) : (
+            <div className="flex items-center gap-1 text-slate-400">
+              <span className="text-xs"></span>
+            </div>
+          )}
+        </div>
 
         {/* Espaciador flexible para asegurar que los precios se alineen abajo */}
         <div className="flex-1" />

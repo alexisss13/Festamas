@@ -5,21 +5,15 @@ import { useState, useEffect } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge'; // 👈 Usamos Badges
-import { X } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { X, Star, Tag, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Props {
   className?: string;
   brandColor: string;
-  availableTags: string[]; // 👈 Recibimos la lista de tags reales
+  availableTags: string[];
 }
 
 export function CategoryFilters({ className, brandColor, availableTags }: Props) {
@@ -31,7 +25,9 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
   const [minPrice, setMinPrice] = useState(searchParams.get('min') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max') || '');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
-  const [activeTag, setActiveTag] = useState(searchParams.get('tag') || ''); // Tag seleccionado
+  const [activeTag, setActiveTag] = useState(searchParams.get('tag') || '');
+  const [onlyDiscount, setOnlyDiscount] = useState(searchParams.get('discount') === 'true');
+  const [onlyStock, setOnlyStock] = useState(searchParams.get('stock') === 'true');
   
   const [sliderValue, setSliderValue] = useState([0, MAX_PRICE_LIMIT]);
 
@@ -47,29 +43,28 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
     setSliderValue([min, max]);
   }, [minPrice, maxPrice]);
 
-  // 🛡️ Lógica Central de Filtros
   const applyFilters = ({ newTag, newSort }: { newTag?: string | null, newSort?: string } = {}) => {
     const params = new URLSearchParams(searchParams.toString());
     
-    // 1. Tag (Si viene null explícito es para borrarlo)
     const tagToApply = newTag !== undefined ? newTag : activeTag;
     if (tagToApply) params.set('tag', tagToApply);
     else params.delete('tag');
 
-    // 2. Sort
     const sortToApply = newSort || sort;
     if (sortToApply) params.set('sort', sortToApply);
 
-    // 3. Precios
     if (minPrice) params.set('min', minPrice); else params.delete('min');
     if (maxPrice) params.set('max', maxPrice); else params.delete('max');
+    
+    if (onlyDiscount) params.set('discount', 'true'); else params.delete('discount');
+    if (onlyStock) params.set('stock', 'true'); else params.delete('stock');
     
     params.set('page', '1'); 
     router.push(`?${params.toString()}`);
   };
 
   const toggleTag = (tag: string) => {
-    const newTag = activeTag === tag ? null : tag; // Si ya está activo, lo quitamos (null)
+    const newTag = activeTag === tag ? null : tag;
     setActiveTag(newTag || '');
     applyFilters({ newTag });
   };
@@ -79,134 +74,162 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
     setMaxPrice('');
     setActiveTag('');
     setSort('newest');
+    setOnlyDiscount(false);
+    setOnlyStock(false);
     setSliderValue([0, MAX_PRICE_LIMIT]);
     router.push('?');
   };
 
-  // Sincronizar URL -> Estado
   useEffect(() => {
     setMinPrice(searchParams.get('min') || '');
     setMaxPrice(searchParams.get('max') || '');
     setSort(searchParams.get('sort') || 'newest');
     setActiveTag(searchParams.get('tag') || '');
+    setOnlyDiscount(searchParams.get('discount') === 'true');
+    setOnlyStock(searchParams.get('stock') === 'true');
   }, [searchParams]);
 
   return (
-    <div className={cn("space-y-8", className)}>
+    <div className={cn("space-y-6", className)}>
       
-      {/* 1. Ordenar */}
-      <div className="space-y-3">
-        <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Ordenar</h3>
-        <Select 
-            value={sort} 
-            onValueChange={(val) => { 
-                setSort(val); 
-                applyFilters({ newSort: val }); 
-            }}
-        >
-          <SelectTrigger className="w-full bg-white border-slate-200 text-slate-700">
-            <SelectValue placeholder="Seleccionar" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Lo más nuevo</SelectItem>
-            <SelectItem value="price_asc">Precio: Bajo a Alto</SelectItem>
-            <SelectItem value="price_desc">Precio: Alto a Bajo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* 2. Filtros por Características (Tags) */}
-      {availableTags.length > 0 && (
-        <div className="space-y-3">
-            <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Características</h3>
-            <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => {
-                    const isActive = activeTag === tag;
-                    return (
-                        <Badge
-                            key={tag}
-                            variant={isActive ? "default" : "outline"}
-                            className={cn(
-                                "cursor-pointer px-3 py-1.5 text-xs capitalize transition-all",
-                                isActive 
-                                    ? "text-white border-transparent hover:opacity-90" 
-                                    : "text-slate-600 border-slate-200 bg-white hover:border-slate-400 hover:text-slate-900"
-                            )}
-                            style={isActive ? { backgroundColor: brandColor } : {}}
-                            onClick={() => toggleTag(tag)}
-                        >
-                            {tag}
-                            {isActive && <X className="ml-1 h-3 w-3" />}
-                        </Badge>
-                    )
-                })}
-            </div>
-        </div>
-      )}
-
-      {/* 3. Precio */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Precio</h3>
-            <span className="text-xs text-slate-400 font-medium">Max: S/ {MAX_PRICE_LIMIT}</span>
+      {/* Rango de Precio */}
+      <div className="space-y-4 pb-6 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <Tag className="h-4 w-4 text-slate-600" />
+          <h3 className="font-semibold text-slate-900 text-sm">Precio</h3>
         </div>
         
         <Slider
-            defaultValue={[0, MAX_PRICE_LIMIT]}
-            value={sliderValue}
-            max={MAX_PRICE_LIMIT}
-            step={1}
-            minStepsBetweenThumbs={1}
-            onValueChange={handleSliderChange}
-            className="py-2"
+          defaultValue={[0, MAX_PRICE_LIMIT]}
+          value={sliderValue}
+          max={MAX_PRICE_LIMIT}
+          step={5}
+          minStepsBetweenThumbs={5}
+          onValueChange={handleSliderChange}
+          className="py-2"
         />
 
-        <div className="flex items-center gap-3">
-            <div className="relative w-full">
-                <span className="absolute left-3 top-2.5 text-slate-400 text-xs">S/</span>
-                <Input 
-                    type="number" 
-                    className="pl-7 h-9 text-sm bg-white text-slate-700 border-slate-200" 
-                    value={minPrice} 
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        if (Number(val) <= (Number(maxPrice) || MAX_PRICE_LIMIT)) setMinPrice(val);
-                    }}
-                    placeholder="0"
-                />
-            </div>
-            <span className="text-slate-300">-</span>
-            <div className="relative w-full">
-                <span className="absolute left-3 top-2.5 text-slate-400 text-xs">S/</span>
-                <Input 
-                    type="number" 
-                    className="pl-7 h-9 text-sm bg-white text-slate-700 border-slate-200" 
-                    value={maxPrice} 
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    placeholder={MAX_PRICE_LIMIT.toString()}
-                />
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-medium">S/</span>
+            <Input 
+              type="number" 
+              className="pl-8 h-10 text-sm bg-white text-slate-700 border-slate-200 hover:border-slate-300 transition-colors" 
+              value={minPrice} 
+              onChange={(e) => {
+                const val = e.target.value;
+                if (Number(val) <= (Number(maxPrice) || MAX_PRICE_LIMIT)) setMinPrice(val);
+              }}
+              placeholder="0"
+            />
+          </div>
+          <span className="text-slate-400 font-medium">—</span>
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-medium">S/</span>
+            <Input 
+              type="number" 
+              className="pl-8 h-10 text-sm bg-white text-slate-700 border-slate-200 hover:border-slate-300 transition-colors" 
+              value={maxPrice} 
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder={MAX_PRICE_LIMIT.toString()}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Botones */}
-      <div className="space-y-3 pt-4 border-t border-slate-100">
+      {/* Ofertas y Disponibilidad */}
+      <div className="space-y-3 pb-6 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <Star className="h-4 w-4 text-slate-600" />
+          <h3 className="font-semibold text-slate-900 text-sm">Ofertas</h3>
+        </div>
+        
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <Checkbox 
+              checked={onlyDiscount}
+              onCheckedChange={(checked) => {
+                setOnlyDiscount(checked as boolean);
+              }}
+              className="border-slate-300"
+            />
+            <span className="text-sm text-slate-700 group-hover:text-slate-900">
+              Solo con descuento
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {/* Disponibilidad */}
+      <div className="space-y-3 pb-6 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <Package className="h-4 w-4 text-slate-600" />
+          <h3 className="font-semibold text-slate-900 text-sm">Disponibilidad</h3>
+        </div>
+        
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <Checkbox 
+              checked={onlyStock}
+              onCheckedChange={(checked) => {
+                setOnlyStock(checked as boolean);
+              }}
+              className="border-slate-300"
+            />
+            <span className="text-sm text-slate-700 group-hover:text-slate-900">
+              Solo con stock
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {/* Características (Tags) */}
+      {availableTags.length > 0 && (
+        <div className="space-y-3 pb-6 border-b border-slate-200">
+          <h3 className="font-semibold text-slate-900 text-sm">Características</h3>
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map((tag) => {
+              const isActive = activeTag === tag;
+              return (
+                <Badge
+                  key={tag}
+                  variant={isActive ? "default" : "outline"}
+                  className={cn(
+                    "cursor-pointer px-3 py-1.5 text-xs font-medium capitalize transition-all",
+                    isActive 
+                      ? "text-white border-transparent shadow-sm hover:opacity-90" 
+                      : "text-slate-700 border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                  )}
+                  style={isActive ? { backgroundColor: brandColor } : {}}
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                  {isActive && <X className="ml-1.5 h-3 w-3" />}
+                </Badge>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Botones de Acción */}
+      <div className="space-y-2 pt-2">
         <Button 
-            className="w-full text-white font-bold transition-all hover:brightness-110 shadow-md"
-            style={{ backgroundColor: brandColor }}
-            onClick={() => applyFilters()}
+          className="w-full text-white font-semibold transition-all hover:brightness-110 shadow-sm h-10"
+          style={{ backgroundColor: brandColor }}
+          onClick={() => applyFilters()}
         >
-            Aplicar Filtros
+          Aplicar filtros
         </Button>
         
-        {(minPrice || maxPrice || activeTag || sort !== 'newest') && (
-            <Button 
-                variant="ghost" 
-                className="w-full text-slate-500 hover:text-slate-900 hover:bg-slate-50 h-8 text-xs uppercase tracking-wider"
-                onClick={handleReset}
-            >
-                Limpiar todo
-            </Button>
+        {(minPrice || maxPrice || activeTag || sort !== 'newest' || onlyDiscount || onlyStock) && (
+          <Button 
+            variant="ghost" 
+            className="w-full text-slate-600 hover:text-slate-900 hover:bg-slate-50 h-9 text-sm"
+            onClick={handleReset}
+          >
+            Limpiar filtros
+          </Button>
         )}
       </div>
     </div>

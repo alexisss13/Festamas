@@ -43,10 +43,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           const allowedRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
           if (!allowedRoles.includes(user.role)) return null;
 
-          // Si es OWNER, verificar que pertenezca al negocio configurado
-          if (user.role === 'OWNER') {
-            const businessId = process.env.NEXT_PUBLIC_BUSINESS_ID;
-            if (!businessId || user.businessId !== businessId) return null;
+          // Si es OWNER, verificar que tenga un businessId asignado
+          if (user.role === 'OWNER' && !user.businessId) {
+            return null; // Los OWNER deben tener un businessId asignado
           }
 
           // eslint-disable-next-line @typescript-eslint/no-unused-vars

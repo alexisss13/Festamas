@@ -3,6 +3,9 @@ import { Metadata } from 'next';
 import { getProductsByCategory } from '@/actions/products';
 import { ProductCard } from '@/components/features/ProductCard';
 import { CategoryFilters } from '@/components/features/CategoryFilters';
+import { CategoryHeader } from '@/components/features/CategoryHeader';
+import { CategorySort } from '@/components/features/CategorySort';
+import { ClearFiltersButton } from '@/components/features/ClearFiltersButton';
 import { Pagination } from '@/components/ui/pagination';
 import { PartyPopper, SearchX, SlidersHorizontal } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -17,6 +20,8 @@ interface Props {
     max?: string;
     page?: string;
     tag?: string;
+    discount?: string;
+    stock?: string;
   }>;
 }
 
@@ -32,6 +37,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CategoryPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { sort, min, max, page, tag } = await searchParams;
+  const discount = (await searchParams).discount === 'true';
+  const stock = (await searchParams).stock === 'true';
 
   const currentPage = Number(page) || 1;
   const minPrice = min ? Number(min) : undefined;
@@ -43,7 +50,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     sort: sort || 'newest',
     minPrice,
     maxPrice,
-    tag
+    tag,
+    discount,
+    stock
   });
   
   if (!data) notFound();
@@ -53,95 +62,128 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
   const { activeBranch } = await getEcommerceContextFromCookie();
   const brandColor = (activeBranch.brandColors as any)?.primary ?? '#fc4b65';
+  
+  const hasFilters = !!(minPrice || maxPrice || tag || sort !== 'newest' || discount || stock);
 
   return (
-    <div className="container mx-auto px-4 py-8 lg:py-12">
+    <div className="min-h-screen bg-white">
       
-      <div className="mb-10 flex flex-col items-center text-center space-y-4">
-        <span className="px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-white border border-slate-200 shadow-sm text-slate-500">
-            {activeBranch.name}
-        </span>
-        <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 capitalize">
-          {categoryName}
-        </h1>
-        <div className="h-1.5 w-20 rounded-full" style={{ backgroundColor: brandColor }}></div>
-        <p className="text-slate-500 max-w-xl">
-            Explora nuestra colección y encuentra todo lo que necesitas al mejor precio.
-        </p>
+      {/* BREADCRUMB Y TÍTULO */}
+      <div className="border-b border-slate-200 bg-slate-50/50">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6">
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+            <span>Inicio</span>
+            <span>/</span>
+            <span className="capitalize text-slate-900 font-medium">{categoryName}</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 capitalize">
+            {categoryName}
+          </h1>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-        
-        {/* SIDEBAR DESKTOP */}
-        <div className="hidden lg:block space-y-8">
-            <div className="sticky top-24 p-6 bg-white rounded-xl border border-slate-100 shadow-sm">
+      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          
+          {/* SIDEBAR IZQUIERDO - FILTROS */}
+          <aside className="hidden lg:block w-64 flex-shrink-0">
+            <div className="sticky top-24">
+              {/* Título de Filtros */}
+              <CategoryHeader 
+                categoryName={categoryName}
+                hasFilters={hasFilters}
+                currentPath={`/category/${slug}`}
+              />
+
+              {/* Componente de Filtros */}
+              <div className="space-y-6 pb-6">
                 <CategoryFilters 
-                    brandColor={brandColor} 
-                    availableTags={availableTags} // 👈 Pasamos los tags
+                  brandColor={brandColor} 
+                  availableTags={availableTags}
                 />
+              </div>
             </div>
-        </div>
+          </aside>
 
-        {/* CONTENIDO PRINCIPAL */}
-        <div className="lg:col-span-3">
+          {/* CONTENIDO PRINCIPAL DERECHO */}
+          <main className="flex-1 min-w-0">
             
-            {/* FILTROS MÓVIL */}
-            <div className="lg:hidden mb-6 flex justify-end">
+            {/* BARRA SUPERIOR - Ordenar y Resultados */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
+              
+              {/* Contador de resultados */}
+              <div className="flex items-center gap-4">
+                {products.length > 0 && (
+                  <p className="text-sm text-slate-600">
+                    <span className="font-semibold text-slate-900">{pagination.totalItems}</span> {pagination.totalItems === 1 ? 'producto' : 'productos'}
+                  </p>
+                )}
+                
+                {/* Botón de filtros móvil */}
                 <Sheet>
-                    <SheetTrigger asChild>
-                        <Button variant="outline" className="gap-2 border-slate-300">
-                            <SlidersHorizontal className="h-4 w-4" /> Filtros
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                        <div className="py-6">
-                            <h2 className="text-xl font-bold mb-6">Filtros</h2>
-                            <CategoryFilters 
-                                brandColor={brandColor} 
-                                availableTags={availableTags} // 👈 Pasamos los tags
-                            />
-                        </div>
-                    </SheetContent>
+                  <SheetTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="lg:hidden gap-2 border-slate-300 bg-white hover:bg-slate-50"
+                    >
+                      <SlidersHorizontal className="h-4 w-4" /> 
+                      Filtros
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] sm:w-[350px] overflow-y-auto">
+                    <div className="py-6">
+                      <h2 className="text-xl font-bold mb-6 text-slate-900">Filtros</h2>
+                      <CategoryFilters 
+                        brandColor={brandColor} 
+                        availableTags={availableTags}
+                      />
+                    </div>
+                  </SheetContent>
                 </Sheet>
+              </div>
+
+              {/* Selector de ordenamiento */}
+              <CategorySort brandColor={brandColor} />
             </div>
 
-            {/* GRID */}
+            {/* GRID DE PRODUCTOS */}
             {products.length > 0 ? (
-                <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8 animate-in fade-in duration-500">
-                    {products.map((product) => (
-                        <ProductCard key={product.id} product={product as any} />
-                    ))}
-                    </div>
-
-                    <Pagination 
-                        totalPages={pagination.totalPages} 
-                        currentPage={pagination.currentPage} 
-                        brandColor={brandColor}
-                    />
-                </>
-            ) : (
-                <div className="flex flex-col items-center justify-center py-24 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-white shadow-inner">
-                    <div className="bg-white p-5 rounded-full mb-4 shadow-sm">
-                        {categoryName.toLowerCase().includes('globo') ? (
-                            <PartyPopper className="h-12 w-12 text-slate-300" />
-                        ) : (
-                            <SearchX className="h-12 w-12 text-slate-300" />
-                        )}
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">No encontramos resultados</h3>
-                    <p className="text-slate-500 max-w-md px-6">
-                        Intenta ajustar los filtros o revisa más tarde.
-                    </p>
-                    <Button 
-                        onClick={() => window.location.href = window.location.pathname} 
-                        variant="link" 
-                        className="mt-4 text-slate-900 font-bold"
-                    >
-                        Ver todos los productos
-                    </Button>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 lg:gap-5 mb-8">
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product as any} />
+                  ))}
                 </div>
+
+                {/* PAGINACIÓN */}
+                <div className="mt-8 pt-6 border-t border-slate-200">
+                  <Pagination 
+                    totalPages={pagination.totalPages} 
+                    currentPage={pagination.currentPage} 
+                    brandColor={brandColor}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 md:py-32 text-center bg-slate-50 rounded-2xl border border-slate-200">
+                <div className="bg-white p-6 rounded-full mb-6 shadow-sm">
+                  {categoryName.toLowerCase().includes('globo') ? (
+                    <PartyPopper className="h-14 w-14 text-slate-400" />
+                  ) : (
+                    <SearchX className="h-14 w-14 text-slate-400" />
+                  )}
+                </div>
+                <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">
+                  No encontramos productos
+                </h3>
+                <p className="text-slate-600 max-w-md px-6 mb-6">
+                  Intenta ajustar los filtros o explora otras categorías.
+                </p>
+                <ClearFiltersButton currentPath={`/category/${slug}`} />
+              </div>
             )}
+          </main>
         </div>
       </div>
     </div>

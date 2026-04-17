@@ -23,6 +23,8 @@ const mapProductForBranch = (product: any, branchId: string, ecommerceCode?: str
     discountPercentage: product.discountPercentage,
     tags: product.tags,
     groupTag: product.groupTag,
+    averageRating: product.averageRating ? Number(product.averageRating) : 0,
+    reviewCount: product.reviewCount || 0,
     division: inferLegacyDivision(ecommerceCode),
     categoryId: product.categoryId,
     createdAt: product.createdAt,

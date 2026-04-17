@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, ShoppingCart, Settings, LogOut, 
-  Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, BookOpen
+  Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, BookOpen, Star, Package
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -18,6 +18,8 @@ import { AdminStoreSwitcher } from './AdminStoreSwitcher';
 const storeNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
+  { href: '/admin/products', label: 'Productos', icon: Package },
+  { href: '/admin/reviews', label: 'Reseñas', icon: Star },
   { href: '/admin/catalogs', label: 'Catálogos', icon: BookOpen },
   { href: '/admin/banners', label: 'Banners', icon: Images },
   { href: '/admin/sections', label: 'Secciones Home', icon: Store },

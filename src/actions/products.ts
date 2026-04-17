@@ -44,7 +44,8 @@ const mapProduct = (product: any, branchId: string, ecommerceCode?: string | nul
     wholesaleMinCount: product.wholesaleMinCount,
     discountPercentage: product.discountPercentage,
     tags: product.tags,
-
+    averageRating: product.averageRating ? Number(product.averageRating) : 0,
+    reviewCount: product.reviewCount || 0,
     createdAt: product.createdAt,
     barcode: firstVariant?.barcode ?? null,
     category: {
@@ -57,6 +58,9 @@ const mapProduct = (product: any, branchId: string, ecommerceCode?: string | nul
 const getOrderBy = (sort: string): Prisma.ProductOrderByWithRelationInput[] => {
   if (sort === 'oldest') return [{ createdAt: 'asc' }];
   if (sort === 'newest') return [{ createdAt: 'desc' }];
+  if (sort === 'price_asc') return [{ basePrice: 'asc' }];
+  if (sort === 'price_desc') return [{ basePrice: 'desc' }];
+  if (sort === 'popular') return [{ salesCount: 'desc' }, { viewCount: 'desc' }];
   return [{ createdAt: 'desc' }];
 };
 
@@ -68,6 +72,11 @@ interface GetProductsOptions {
   categoryId?: string;
   page?: number;
   take?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  tag?: string;
+  discount?: boolean;
+  stock?: boolean;
 }
 
 export async function getProducts({
@@ -76,7 +85,12 @@ export async function getProducts({
   sort = 'newest',
   categoryId,
   page = 1,
-  take = 12
+  take = 12,
+  minPrice,
+  maxPrice,
+  tag,
+  discount,
+  stock
 }: GetProductsOptions = {}) {
   try {
     const { business, activeBranch } = await getEcommerceContextFromCookie();
@@ -88,6 +102,12 @@ export async function getProducts({
       active: includeInactive ? undefined : true,
       isAvailable: includeInactive ? undefined : true,
       categoryId: categoryId && categoryId !== 'all' ? categoryId : undefined,
+      tags: tag ? { has: tag } : undefined,
+      discountPercentage: discount ? { gt: 0 } : undefined,
+      basePrice: minPrice || maxPrice ? {
+        gte: minPrice ? minPrice : undefined,
+        lte: maxPrice ? maxPrice : undefined,
+      } : undefined,
       OR: query
         ? [
             { title: { contains: query, mode: 'insensitive' } },
@@ -97,9 +117,26 @@ export async function getProducts({
         : undefined,
     };
 
+    // Filtro de stock
+    const stockFilter = stock ? {
+      variants: {
+        some: {
+          active: true,
+          stock: {
+            some: {
+              branchId: activeBranch.id,
+              quantity: { gt: 0 }
+            }
+          }
+        }
+      }
+    } : {};
+
+    const finalWhere = { ...where, ...stockFilter };
+
     const [products, totalCount] = await prisma.$transaction([
       prisma.product.findMany({
-        where,
+        where: finalWhere,
         take,
         skip,
         orderBy: getOrderBy(sort),
@@ -113,15 +150,47 @@ export async function getProducts({
           },
         },
       }),
-      prisma.product.count({ where }),
+      prisma.product.count({ where: finalWhere }),
     ]);
 
     const data = products.map((product) => mapProduct(product, activeBranch.id, activeBranch.ecommerceCode));
+    
+    // Obtener tags disponibles de los productos encontrados
+    const availableTags = Array.from(new Set(products.flatMap((product) => product.tags))).sort();
+    
     const totalPages = Math.max(1, Math.ceil(totalCount / take));
-    return { success: true, data, meta: { page, totalPages, totalCount, hasNextPage: page < totalPages, hasPrevPage: page > 1 } };
+    
+    return { 
+      success: true, 
+      data, 
+      availableTags,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        totalItems: totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      },
+      meta: { page, totalPages, totalCount, hasNextPage: page < totalPages, hasPrevPage: page > 1 } 
+    };
   } catch (error) {
     console.error('Error obteniendo productos:', error);
-    return { success: false, message: 'No se pudieron cargar los productos.', data: [], meta: { page: 1, totalPages: 1, totalCount: 0, hasNextPage: false, hasPrevPage: false } };
+    return { 
+      success: false, 
+      message: 'No se pudieron cargar los productos.', 
+      data: [], 
+      availableTags: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalCount: 0,
+        totalItems: 0,
+        hasNextPage: false,
+        hasPrevPage: false
+      },
+      meta: { page: 1, totalPages: 1, totalCount: 0, hasNextPage: false, hasPrevPage: false } 
+    };
   }
 }
 
@@ -145,11 +214,13 @@ interface CategoryOptions {
   maxPrice?: number;
   sort?: string;
   tag?: string;
+  discount?: boolean;
+  stock?: boolean;
 }
 
 export const getProductsByCategory = async (
   categorySlug: string,
-  { page = 1, take = 12, sort = 'newest', tag }: CategoryOptions = {}
+  { page = 1, take = 12, sort = 'newest', tag, minPrice, maxPrice, discount, stock }: CategoryOptions = {}
 ) => {
   try {
     const { business, activeBranch } = await getEcommerceContextFromCookie();
@@ -163,11 +234,35 @@ export const getProductsByCategory = async (
       active: true,
       isAvailable: true,
       tags: tag ? { has: tag } : undefined,
+      // Filtro de descuento
+      discountPercentage: discount ? { gt: 0 } : undefined,
+      // Filtro de precio
+      basePrice: minPrice || maxPrice ? {
+        gte: minPrice ? minPrice : undefined,
+        lte: maxPrice ? maxPrice : undefined,
+      } : undefined,
     };
+
+    // Si se filtra por stock, necesitamos hacer una consulta más compleja
+    const stockFilter = stock ? {
+      variants: {
+        some: {
+          active: true,
+          stock: {
+            some: {
+              branchId: activeBranch.id,
+              quantity: { gt: 0 }
+            }
+          }
+        }
+      }
+    } : {};
+
+    const finalWhereClause = { ...whereClause, ...stockFilter };
 
     const [products, totalCount] = await prisma.$transaction([
       prisma.product.findMany({
-        where: whereClause,
+        where: finalWhereClause,
         include: {
           category: true,
           variants: { where: { active: true }, include: { stock: { where: { branchId: activeBranch.id } } }, take: 1 },
@@ -176,7 +271,7 @@ export const getProductsByCategory = async (
         take,
         skip: (page - 1) * take,
       }),
-      prisma.product.count({ where: whereClause }),
+      prisma.product.count({ where: finalWhereClause }),
     ]);
 
     const availableTags = Array.from(new Set(products.flatMap((product) => product.tags))).sort();
@@ -187,7 +282,12 @@ export const getProductsByCategory = async (
       division: inferLegacyDivision(activeBranch.ecommerceCode),
       products: mappedProducts,
       availableTags,
-      pagination: { currentPage: page, totalPages: Math.max(1, Math.ceil(totalCount / take)), totalCount },
+      pagination: { 
+        currentPage: page, 
+        totalPages: Math.max(1, Math.ceil(totalCount / take)), 
+        totalCount,
+        totalItems: totalCount 
+      },
     };
   } catch (error) {
     console.log(error);

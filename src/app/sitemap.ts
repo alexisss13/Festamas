@@ -4,8 +4,17 @@ import { SITE_URL } from '@/lib/utils'; // O pon tu URL directa aquí
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 1. Obtener datos dinámicos
-  const products = await prisma.product.findMany({ where: { isAvailable: true } });
-  const categories = await prisma.category.findMany();
+  const products = await prisma.product.findMany({ where: { isAvailable: true, active: true } });
+  const categories = await prisma.category.findMany({
+    where: {
+      products: {
+        some: {
+          isAvailable: true,
+          active: true,
+        },
+      },
+    },
+  });
 
   // 2. Mapear productos
   const productsUrls = products.map((product) => ({

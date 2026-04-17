@@ -15,6 +15,13 @@ export async function getCategories({ businessId, ecommerceCode }: CategoriesFil
       where: {
         businessId,
         ecommerceCode: ecommerceCode ?? undefined,
+        products: {
+          some: {
+            businessId,
+            isAvailable: true,
+            active: true,
+          },
+        },
       },
       include: {
         _count: {

@@ -5,10 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import prisma from '@/lib/prisma';
 import { ProductImageGallery } from '@/components/features/ProductImageGallery';
 import { ProductActions } from '@/components/features/ProductActions';
-import { ProductCarousel } from '@/components/features/ProductCarousel'; // 👈 Importamos el carrusel
-import { getSimilarProducts } from '@/actions/products'; // 👈 Importamos la acción nueva
+import { ProductCarousel } from '@/components/features/ProductCarousel';
+import { ProductReviews } from '@/components/features/ProductReviews';
+import { getSimilarProducts } from '@/actions/products';
+import { getProductReviews, getUserReviewForProduct, getProductReviewStats } from '@/actions/reviews';
+import { auth } from '@/auth';
 import { SITE_URL } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator'; // Importamos Separator
+import { Separator } from '@/components/ui/separator';
 import { ChevronRight, Home } from 'lucide-react';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
@@ -79,11 +82,51 @@ export default async function ProductPage({ params }: Props) {
 
   const primaryColor = (activeBranch?.brandColors as Record<string, string>)?.primary ?? '#fc4b65';
 
-  const sanitizedProduct = {
-    ...product,
-    price: product.price,
-    wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : 0,
+  // Obtener sesión y reseñas
+  const session = await auth();
+  const isAuthenticated = !!session?.user;
+
+  const [reviewsResult, userReviewResult, statsResult] = await Promise.all([
+    getProductReviews(product.id),
+    isAuthenticated ? getUserReviewForProduct(product.id) : Promise.resolve({ success: false, review: null }),
+    getProductReviewStats(product.id),
+  ]);
+
+  const reviews = reviewsResult.success ? reviewsResult.reviews : [];
+  const userReview = userReviewResult.success ? userReviewResult.review : null;
+  const reviewStats = statsResult.success ? statsResult.stats : {
+    averageRating: 0,
+    totalReviews: 0,
+    distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
   };
+
+  const sanitizedProduct = {
+    id: product.id,
+    title: product.title,
+    slug: product.slug,
+    description: product.description,
+    images: product.images,
+    isAvailable: product.isAvailable,
+    type: product.type,
+    tags: product.tags,
+    groupTag: product.groupTag,
+    categoryId: product.categoryId,
+    supplierId: product.supplierId,
+    averageRating: product.averageRating ? Number(product.averageRating) : 0,
+    reviewCount: product.reviewCount,
+    viewCount: product.viewCount,
+    salesCount: product.salesCount,
+    businessId: product.businessId,
+    branchOwnerId: product.branchOwnerId,
+    active: product.active,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+    price: Number(product.price),
+    stock: product.stock,
+    wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
+    wholesaleMinCount: product.wholesaleMinCount,
+    discountPercentage: product.discountPercentage,
+  } as any;
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -168,6 +211,19 @@ export default async function ProductPage({ params }: Props) {
                 <ProductCarousel products={similarProducts as any} autoPlay={true} />
             </div>
         )}
+
+        {/* SECCIÓN DE RESEÑAS */}
+        <div className="mt-12 md:mt-16 lg:mt-24">
+          <Separator className="mb-6 md:mb-10" />
+          <ProductReviews
+            productId={product.id}
+            productSlug={product.slug}
+            reviews={reviews as any}
+            stats={reviewStats}
+            userReview={userReview as any}
+            isAuthenticated={isAuthenticated}
+          />
+        </div>
 
       </div>
     </div>

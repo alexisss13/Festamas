@@ -30,8 +30,16 @@ export const authConfig: NextAuthConfig = {
       const isAdminRoute = nextUrl.pathname.startsWith('/admin');
       if (isAdminRoute) {
         const adminRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
-        if (isLoggedIn && adminRoles.includes(auth.user.role as string)) return true;
-        return false;
+        if (!isLoggedIn || !adminRoles.includes(auth.user.role as string)) {
+          return false;
+        }
+        
+        // Si es OWNER, verificar que tenga businessId asignado
+        if (auth.user.role === 'OWNER' && !auth.user.businessId) {
+          return false;
+        }
+        
+        return true;
       }
 
       return true;

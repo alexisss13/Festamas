@@ -9,6 +9,8 @@ declare module 'next-auth' {
       emailVerified?: boolean;
       role: string;
       image?: string;
+      businessId?: string;
+      branchId?: string;
     } & DefaultSession['user'];
   }
 
@@ -19,6 +21,8 @@ declare module 'next-auth' {
     emailVerified?: boolean;
     role: string;
     image?: string;
+    businessId?: string;
+    branchId?: string;
   }
 }
 
@@ -26,5 +30,7 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     role: string;
+    businessId?: string;
+    branchId?: string;
   }
 }

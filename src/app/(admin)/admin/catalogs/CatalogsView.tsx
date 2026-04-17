@@ -46,7 +46,7 @@ export function CatalogsView({ initialCatalogs, activeBranch }: { initialCatalog
 
     return (
         <div className="space-y-4 [&_::selection]:bg-slate-200 [&_::selection]:text-slate-900 animate-in fade-in duration-500">
-            {/* Buscador y Botón Nuevo */}
+            {/* Buscador */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="relative max-w-full sm:max-w-sm flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -57,22 +57,8 @@ export function CatalogsView({ initialCatalogs, activeBranch }: { initialCatalog
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="text-sm border py-2 px-3 rounded-md bg-white text-slate-500 text-center sm:text-left font-medium">
-                        {filteredCatalogs.length} {filteredCatalogs.length === 1 ? 'catálogo' : 'catálogos'}
-                    </div>
-                    <Button 
-                        asChild 
-                        className={cn(
-                            "h-10 px-4 shadow-sm transition-all active:scale-[0.98] text-white font-medium",
-                            brandButtonClass
-                        )}
-                    >
-                        <Link href="/admin/catalogs/new">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Nuevo Catálogo
-                        </Link>
-                    </Button>
+                <div className="text-sm border py-2 px-3 rounded-md bg-white text-slate-500 text-center sm:text-left font-medium">
+                    {filteredCatalogs.length} {filteredCatalogs.length === 1 ? 'catálogo' : 'catálogos'}
                 </div>
             </div>
 
