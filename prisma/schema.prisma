@@ -283,7 +283,7 @@ model Category {
 model UnitOfMeasure {
   id           String @id @default(uuid())
   name         String // Ej: "Unidad", "Caja x 12"
-  abbreviation String // Ej: "UND", "CJ12"
+  abbreviation String @unique // Ej: "UND", "CJ12"
 
   variants   ProductVariant[]
   orderItems PurchaseOrderItem[]
@@ -596,9 +596,23 @@ model CashSession {
   incidents   String?
   status      String    @default("OPEN")
 
-  branch Branch @relation(fields: [branchId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
-  sales  Sale[]
+  branch       Branch            @relation(fields: [branchId], references: [id])
+  user         User              @relation(fields: [userId], references: [id])
+  sales        Sale[]
+  transactions CashTransaction[]
+}
+
+model CashTransaction {
+  id            String   @id @default(uuid())
+  cashSessionId String
+  type          String // 'INCOME' o 'EXPENSE'
+  amount        Decimal  @db.Decimal(12, 2)
+  description   String
+  createdAt     DateTime @default(now())
+
+  cashSession CashSession @relation(fields: [cashSessionId], references: [id])
+
+  @@index([cashSessionId])
 }
 
 model Customer {
