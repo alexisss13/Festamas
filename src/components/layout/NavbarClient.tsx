@@ -16,6 +16,7 @@ import { useCartStore } from '@/store/cart';
 import { useUIStore } from '@/store/ui';
 import { useFavoritesStore } from '@/store/favorites'; 
 import { CartSidebar } from '@/components/features/CartSidebar';
+import { SmartSearch } from '@/components/features/SmartSearch';
 import { setCookie } from 'cookies-next';
 import { logout } from '@/actions/auth-actions';
 import { BranchUI } from '@/store/ui';
@@ -40,45 +41,6 @@ interface NavbarClientProps {
   branches: BranchUI[];
   defaultBranchId: string;
   user?: UserSession | null;
-}
-
-function SearchInput({ onSearch, className, searchBtnColor }: { onSearch?: () => void, className?: string, searchBtnColor?: string }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    const value = searchParams.get('q') || '';
-    if (value !== query) setQuery(value);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]); 
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-    }
-    if (onSearch) onSearch();
-  };
-
-  return (
-    <form onSubmit={handleSearch} className={cn("relative w-full group bg-slate-100 rounded-full shadow-sm hover:bg-slate-200/70 transition-colors", className)}>
-      <Input
-        type="text"
-        placeholder="Buscar"
-        className="h-10 w-full pl-5 pr-12 border-0 rounded-full text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <button 
-        type="submit" 
-        className="absolute right-1 top-1 h-8 w-8 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
-        style={{ backgroundColor: searchBtnColor || '#fc4b65' }} 
-      >
-        <Search className="h-4 w-4" />
-      </button>
-    </form>
-  );
 }
 
 export function NavbarClient({ categories, branches, defaultBranchId, user }: NavbarClientProps) {
@@ -309,7 +271,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
             </div>
 
             <div className="flex-1 min-w-0">
-                <Suspense><SearchInput searchBtnColor={searchBtnBg} /></Suspense>
+                <Suspense><SmartSearch searchBtnColor={searchBtnBg} /></Suspense>
             </div>
 
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
