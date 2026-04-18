@@ -8,38 +8,61 @@ export const authConfig: NextAuthConfig = {
   
   callbacks: {
     // 1. El JWT se genera primero
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
-        token.data = user; // Guardamos todo el objeto usuario
+        token.data = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          emailVerified: user.emailVerified,
+          role: user.role,
+          image: user.image,
+          businessId: user.businessId,
+          branchId: user.branchId,
+        };
       }
+      
+      // Si se actualiza la sesión, refrescar datos del usuario
+      if (trigger === 'update') {
+        // Aquí podrías refrescar los datos del usuario si es necesario
+      }
+      
       return token;
     },
 
     // 2. La Sesión lee del JWT
     async session({ session, token }) {
-      // @ts-ignore
-      session.user = token.data as any;
+      if (token.data) {
+        session.user = token.data as any;
+      }
       return session;
     },
 
-    // 3. Middleware de protección (Básico por ahora)
+    // 3. Middleware de protección
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
+      const userRole = auth?.user?.role;
       
       // Proteger rutas de admin
       const isAdminRoute = nextUrl.pathname.startsWith('/admin');
       if (isAdminRoute) {
-        const adminRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
-        if (!isLoggedIn || !adminRoles.includes(auth.user.role as string)) {
-          return false;
-        }
+        if (!isLoggedIn) return false;
         
-        // Si es OWNER, verificar que tenga businessId asignado
-        if (auth.user.role === 'OWNER' && !auth.user.businessId) {
+        const adminRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
+        if (!adminRoles.includes(userRole as string)) {
           return false;
         }
         
         return true;
+      }
+
+      // Proteger rutas de perfil y pedidos
+      const isProtectedRoute = nextUrl.pathname.startsWith('/profile') || 
+                               nextUrl.pathname.startsWith('/orders') ||
+                               nextUrl.pathname.startsWith('/favorites');
+      
+      if (isProtectedRoute && !isLoggedIn) {
+        return false;
       }
 
       return true;

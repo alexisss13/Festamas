@@ -8,19 +8,23 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  
   const [errorMessage, formAction, isPending] = useActionState(authenticate, undefined);
   const [isVisible, setIsVisible] = useState(false);
 
-  // 🧠 Lógica de Redirección Inteligente
+  // Redirección inteligente
   useEffect(() => {
     if (errorMessage === 'Redirect:Home') {
-      window.location.replace('/'); // Clientes al Home
+      window.location.replace(callbackUrl === '/auth/login' ? '/' : callbackUrl);
     } else if (errorMessage === 'Redirect:Admin') {
-      window.location.replace('/admin/dashboard'); // Admins a su cueva
+      window.location.replace('/admin/dashboard');
     }
-  }, [errorMessage]);
+  }, [errorMessage, callbackUrl]);
 
   return (
     <>
@@ -42,6 +46,7 @@ export default function LoginPage() {
             type="email" 
             placeholder="tu@correo.com" 
             required 
+            autoComplete="email"
             className="h-11 bg-white border-slate-200 focus:border-[#fc4b65] focus:ring-[#fc4b65]/20 transition-all"
           />
         </div>
@@ -61,6 +66,7 @@ export default function LoginPage() {
               type={isVisible ? "text" : "password"} 
               placeholder="••••••••" 
               required 
+              autoComplete="current-password"
               className="h-11 bg-white border-slate-200 focus:border-[#fc4b65] focus:ring-[#fc4b65]/20 transition-all pr-10"
             />
             <button
@@ -73,7 +79,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* 🔴 FIX: Solo mostramos la alerta si NO es una redirección */}
         {errorMessage && !errorMessage.startsWith('Redirect:') && (
           <div className="p-3 rounded-md bg-red-50 text-sm text-red-600 border border-red-100 font-medium text-center animate-in fade-in slide-in-from-top-1">
             {errorMessage}
@@ -89,13 +94,11 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      {/* SEPARADOR */}
       <div className="relative">
           <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
           <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400">O continúa con</span></div>
       </div>
 
-      {/* GOOGLE (Abajo) */}
       <Button 
           variant="outline" 
           type="button"

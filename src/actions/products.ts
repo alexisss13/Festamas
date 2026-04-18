@@ -44,8 +44,6 @@ const mapProduct = (product: any, branchId: string, ecommerceCode?: string | nul
     wholesaleMinCount: product.wholesaleMinCount,
     discountPercentage: product.discountPercentage,
     tags: product.tags,
-    averageRating: product.averageRating ? Number(product.averageRating) : 0,
-    reviewCount: product.reviewCount || 0,
     createdAt: product.createdAt,
     barcode: firstVariant?.barcode ?? null,
     category: {
@@ -386,9 +384,18 @@ export const getNewArrivalsProducts = async ({
   ]);
 
   const availableTags = Array.from(new Set(products.flatMap((product) => product.tags))).sort();
+  const totalPages = Math.max(1, Math.ceil(totalCount / take));
+  
   return {
     products: products.map((product) => mapProduct(product, activeBranch.id, activeBranch.ecommerceCode)),
     availableTags,
-    pagination: { currentPage: page, totalPages: Math.max(1, Math.ceil(totalCount / take)), totalCount }
+    pagination: { 
+      currentPage: page, 
+      totalPages, 
+      totalCount,
+      totalItems: totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
   };
 };

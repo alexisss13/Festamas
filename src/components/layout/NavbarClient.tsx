@@ -124,8 +124,13 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
   };
 
   const handleLogout = async () => {
-    await logout();
-    window.location.href = "/";
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      // Forzar redirección manual si falla
+      window.location.href = "/";
+    }
   };
 
   const effectiveBranchId = activeBranchId ?? optimisticBranchId;

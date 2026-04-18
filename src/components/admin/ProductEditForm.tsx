@@ -304,7 +304,10 @@ export function ProductEditForm({ product }: Props) {
           </Card>
 
           {/* Gestión de Variantes Web */}
-          <VariantManager productId={product.id} variants={product.variants} />
+          <VariantManager 
+            productId={product.id} 
+            variants={product.variants as any} 
+          />
         </div>
 
         {/* Columna derecha: Campos editables */}

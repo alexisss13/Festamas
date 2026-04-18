@@ -113,7 +113,16 @@ export async function getProductForEdit(id: string) {
           where: {
             active: true,
           },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            barcode: true,
+            price: true,
+            cost: true,
+            minStock: true,
+            attributes: true,
+            images: true,
             stock: {
               include: {
                 branch: {
@@ -139,9 +148,16 @@ export async function getProductForEdit(id: string) {
       wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
       averageRating: Number(product.averageRating),
       variants: product.variants.map(variant => ({
-        ...variant,
+        id: variant.id,
+        name: variant.name,
+        sku: variant.sku,
+        barcode: variant.barcode,
         price: variant.price ? Number(variant.price) : null,
         cost: Number(variant.cost),
+        minStock: variant.minStock,
+        attributes: variant.attributes,
+        images: variant.images,
+        stock: variant.stock,
       })),
     };
 
