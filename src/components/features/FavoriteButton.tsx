@@ -1,33 +1,38 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useTransition, useEffect, useState } from 'react';
 import { Heart, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { toggleFavorite } from '@/actions/favorites';
 import { toast } from 'sonner';
-import { useFavoritesStore } from '@/store/favorites'; // 👈 IMPORTAR STORE
+import { useFavoritesStore } from '@/store/favorites';
 
 interface Props {
   productId: string;
   className?: string;
-  // Ya no necesitamos isFavoriteInitial porque leemos el store
 }
 
 export const FavoriteButton = ({ productId, className }: Props) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
   
-  // 🧠 LEEMOS EL ESTADO GLOBAL
+  // Estado global de favoritos
   const isFavorite = useFavoritesStore(state => state.isFavorite(productId));
   const addFavorite = useFavoritesStore(state => state.addFavorite);
   const removeFavorite = useFavoritesStore(state => state.removeFavorite);
+
+  // Evitar hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Optimistic Update (Actualizamos el store INMEDIATAMENTE)
+    // Optimistic Update
     if (isFavorite) {
         removeFavorite(productId);
     } else {
@@ -38,7 +43,7 @@ export const FavoriteButton = ({ productId, className }: Props) => {
       const { ok, message, isFavorite: newState } = await toggleFavorite(productId);
       
       if (!ok) {
-        // Si falló, revertimos el cambio en el store
+        // Revertir cambio si falló
         if (isFavorite) addFavorite(productId); 
         else removeFavorite(productId);
 
@@ -51,12 +56,26 @@ export const FavoriteButton = ({ productId, className }: Props) => {
         return;
       }
       
-      // Mensaje de éxito
       if (newState) {
         toast.success(message);
       }
     });
   };
+
+  // Renderizar estado neutral hasta que se monte en el cliente
+  if (!mounted) {
+    return (
+      <button
+        disabled
+        className={cn(
+          "group/heart relative p-2 rounded-full bg-white/90 shadow-sm",
+          className
+        )}
+      >
+        <Heart className="w-4 h-4 text-slate-400" />
+      </button>
+    );
+  }
 
   return (
     <button
@@ -74,8 +93,8 @@ export const FavoriteButton = ({ productId, className }: Props) => {
           className={cn(
             "w-4 h-4 transition-colors duration-300",
             isFavorite 
-              ? "fill-rose-500 text-rose-500" // ❤️ Activo (Rojo)
-              : "text-slate-400 group-hover/heart:text-rose-500" // 🤍 Inactivo (Gris)
+              ? "fill-rose-500 text-rose-500"
+              : "text-slate-400 group-hover/heart:text-rose-500"
           )}
         />
       )}

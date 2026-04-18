@@ -165,7 +165,7 @@ export function SmartSearch({ onSearch, className, searchBtnColor }: Props) {
         <form onSubmit={handleSearch} className="relative w-full group bg-slate-100 rounded-full shadow-sm hover:bg-slate-200/70 transition-colors">
           <Input
             type="text"
-            placeholder="Buscar productos..."
+            placeholder="Buscar..."
             className="h-10 w-full pl-5 pr-12 border-0 rounded-full text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -212,7 +212,7 @@ export function SmartSearch({ onSearch, className, searchBtnColor }: Props) {
               <form onSubmit={handleSearch} className="flex-1 relative">
                 <Input
                   type="text"
-                  placeholder="Buscar productos..."
+                  placeholder="Buscar..."
                   className="h-11 w-full pl-4 pr-10 border border-slate-200 rounded-full text-sm font-medium bg-slate-50 text-slate-800 placeholder:text-slate-400"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}

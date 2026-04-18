@@ -17,6 +17,8 @@ import { useUIStore } from '@/store/ui';
 import { useFavoritesStore } from '@/store/favorites'; 
 import { CartSidebar } from '@/components/features/CartSidebar';
 import { SmartSearch } from '@/components/features/SmartSearch';
+import { LoginModal } from '@/components/auth/LoginModal';
+import { RegisterModal } from '@/components/auth/RegisterModal';
 import { setCookie } from 'cookies-next';
 import { logout } from '@/actions/auth-actions';
 import { BranchUI } from '@/store/ui';
@@ -46,13 +48,34 @@ interface NavbarClientProps {
 export function NavbarClient({ categories, branches, defaultBranchId, user }: NavbarClientProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { getTotalItems, cart, clearCart } = useCartStore();
   const { setBranches, activeBranchId, setActiveBranchId } = useUIStore();
   const favorites = useFavoritesStore(state => state.favorites);
   const favoritesCount = favorites.length;
   const [loaded, setLoaded] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   useEffect(() => setLoaded(true), []);
+  
+  // Detectar parámetros de URL para abrir modales
+  useEffect(() => {
+    if (searchParams.get('openLogin') === 'true') {
+      setIsLoginModalOpen(true);
+      // Limpiar el parámetro de la URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('openLogin');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+    if (searchParams.get('openRegister') === 'true') {
+      setIsRegisterModalOpen(true);
+      // Limpiar el parámetro de la URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('openRegister');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [searchParams]);
   
   const [optimisticBranchId, setOptimisticBranchId] = useState<string>(defaultBranchId);
   const [isPending, startTransition] = useTransition();
@@ -73,11 +96,17 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    if (!isUserMenuOpen) setIsVisible(true);
-  }, [isUserMenuOpen]);
+    if (!isUserMenuOpen && !isMenuOpen) setIsVisible(true);
+  }, [isUserMenuOpen, isMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
+      // No ocultar el navbar si algún menú está abierto
+      if (isMenuOpen || isUserMenuOpen) {
+        setIsVisible(true);
+        return;
+      }
+      
       const currentScrollY = window.scrollY;
       setIsAtTop(currentScrollY < 20);
       if (currentScrollY < 120) {
@@ -93,7 +122,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [isMenuOpen, isUserMenuOpen]);
 
   useEffect(() => {
     setIsMenuOpen(false);
@@ -303,7 +332,18 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                     </Button>
                     {isUserMenuOpen && (
                         <div className="absolute top-full right-0 mt-3 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 text-slate-800">
-                            {!user && <Link href="/auth/login" className={cn("block w-full text-center py-2.5 rounded-xl font-bold text-white mb-2 transition-transform active:scale-95")} style={{ backgroundColor: primaryColor }}>Entrar Ahora</Link>}
+                            {!user && (
+                                <button 
+                                    onClick={() => {
+                                        setIsUserMenuOpen(false);
+                                        setIsLoginModalOpen(true);
+                                    }}
+                                    className={cn("block w-full text-center py-2.5 rounded-xl font-bold text-white mb-2 transition-transform active:scale-95")} 
+                                    style={{ backgroundColor: primaryColor }}
+                                >
+                                    Entrar Ahora
+                                </button>
+                            )}
                             <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium"><User className="h-4 w-4" /> Mi Perfil</Link>
                             {user && (
                                 <><div className="h-px bg-slate-100 my-2"></div><button onClick={handleLogout} className="flex items-center gap-2 w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-500 rounded-lg text-sm font-medium"><LogOut className="h-4 w-4" /> Cerrar Sesión</button></>
@@ -345,7 +385,13 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                             </SheetContent>
                         </Sheet>
                     ) : (
-                        <Link href="/auth/login"><Button variant="ghost" className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100 shrink-0"><User className="h-6 w-6" /></Button></Link>
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setIsLoginModalOpen(true)}
+                            className="h-10 w-10 rounded-full p-0 text-slate-700 hover:bg-slate-100 shrink-0"
+                        >
+                            <User className="h-6 w-6" />
+                        </Button>
                     )}
                 </div>
 
@@ -381,7 +427,27 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
             </div>
       </div>
       
-      {isUserMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 animate-in fade-in" onClick={() => setIsUserMenuOpen(false)}/>}
+      {/* Overlay para menú de categorías */}
+      {isMenuOpen && <div className="fixed top-[36px] left-0 right-0 bottom-0 bg-black/40 z-40 transition-opacity duration-300 animate-in fade-in" onClick={() => setIsMenuOpen(false)}/>}
+      
+      {/* Overlay para menú de usuario */}
+      {isUserMenuOpen && <div className="fixed top-[36px] left-0 right-0 bottom-0 bg-black/40 z-40 transition-opacity duration-300 animate-in fade-in" onClick={() => setIsUserMenuOpen(false)}/>}
+      
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)}
+        onSwitchToRegister={() => setIsRegisterModalOpen(true)}
+        branches={branches}
+      />
+      
+      {/* Register Modal */}
+      <RegisterModal 
+        isOpen={isRegisterModalOpen} 
+        onClose={() => setIsRegisterModalOpen(false)}
+        onSwitchToLogin={() => setIsLoginModalOpen(true)}
+        branches={branches}
+      />
     </>
   );
 }
