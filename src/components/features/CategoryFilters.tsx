@@ -93,10 +93,10 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
     <div className={cn("space-y-6", className)}>
       
       {/* Rango de Precio */}
-      <div className="space-y-4 pb-6 border-b border-slate-200">
+      <div className="space-y-3 pb-6 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <Tag className="h-4 w-4 text-slate-600" />
-          <h3 className="font-semibold text-slate-900 text-sm">Precio</h3>
+          <Tag className="h-4 w-4 text-slate-500" />
+          <h3 className="font-medium text-[14px] text-slate-900">Precio</h3>
         </div>
         
         <Slider
@@ -111,10 +111,10 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-medium">S/</span>
+            <span className="absolute left-2.5 top-2.5 text-slate-500 text-[11px] font-medium">S/</span>
             <Input 
               type="number" 
-              className="pl-8 h-10 text-sm bg-white text-slate-700 border-slate-200 hover:border-slate-300 transition-colors" 
+              className="pl-7 h-9 text-[13px] bg-white text-slate-700 border-slate-200 hover:border-slate-300 transition-colors rounded-lg" 
               value={minPrice} 
               onChange={(e) => {
                 const val = e.target.value;
@@ -123,12 +123,12 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
               placeholder="0"
             />
           </div>
-          <span className="text-slate-400 font-medium">—</span>
+          <span className="text-slate-400 text-sm">—</span>
           <div className="relative flex-1">
-            <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-medium">S/</span>
+            <span className="absolute left-2.5 top-2.5 text-slate-500 text-[11px] font-medium">S/</span>
             <Input 
               type="number" 
-              className="pl-8 h-10 text-sm bg-white text-slate-700 border-slate-200 hover:border-slate-300 transition-colors" 
+              className="pl-7 h-9 text-[13px] bg-white text-slate-700 border-slate-200 hover:border-slate-300 transition-colors rounded-lg" 
               value={maxPrice} 
               onChange={(e) => setMaxPrice(e.target.value)}
               placeholder={MAX_PRICE_LIMIT.toString()}
@@ -140,12 +140,12 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
       {/* Ofertas y Disponibilidad */}
       <div className="space-y-3 pb-6 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <Star className="h-4 w-4 text-slate-600" />
-          <h3 className="font-semibold text-slate-900 text-sm">Ofertas</h3>
+          <Star className="h-4 w-4 text-slate-500" />
+          <h3 className="font-medium text-[14px] text-slate-900">Ofertas</h3>
         </div>
         
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer group">
+        <div className="space-y-2.5">
+          <label className="flex items-center gap-2.5 cursor-pointer group">
             <Checkbox 
               checked={onlyDiscount}
               onCheckedChange={(checked) => {
@@ -153,7 +153,7 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
               }}
               className="border-slate-300"
             />
-            <span className="text-sm text-slate-700 group-hover:text-slate-900">
+            <span className="text-[13px] text-slate-600 group-hover:text-slate-900 transition-colors">
               Solo con descuento
             </span>
           </label>
@@ -163,12 +163,12 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
       {/* Disponibilidad */}
       <div className="space-y-3 pb-6 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-slate-600" />
-          <h3 className="font-semibold text-slate-900 text-sm">Disponibilidad</h3>
+          <Package className="h-4 w-4 text-slate-500" />
+          <h3 className="font-medium text-[14px] text-slate-900">Disponibilidad</h3>
         </div>
         
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer group">
+        <div className="space-y-2.5">
+          <label className="flex items-center gap-2.5 cursor-pointer group">
             <Checkbox 
               checked={onlyStock}
               onCheckedChange={(checked) => {
@@ -176,7 +176,7 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
               }}
               className="border-slate-300"
             />
-            <span className="text-sm text-slate-700 group-hover:text-slate-900">
+            <span className="text-[13px] text-slate-600 group-hover:text-slate-900 transition-colors">
               Solo con stock
             </span>
           </label>
@@ -186,7 +186,7 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
       {/* Características (Tags) */}
       {availableTags.length > 0 && (
         <div className="space-y-3 pb-6 border-b border-slate-200">
-          <h3 className="font-semibold text-slate-900 text-sm">Características</h3>
+          <h3 className="font-medium text-[14px] text-slate-900">Características</h3>
           <div className="flex flex-wrap gap-2">
             {availableTags.map((tag) => {
               const isActive = activeTag === tag;
@@ -195,16 +195,16 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
                   key={tag}
                   variant={isActive ? "default" : "outline"}
                   className={cn(
-                    "cursor-pointer px-3 py-1.5 text-xs font-medium capitalize transition-all",
+                    "cursor-pointer px-2.5 py-1 text-[11px] font-medium capitalize transition-all rounded-lg",
                     isActive 
                       ? "text-white border-transparent shadow-sm hover:opacity-90" 
-                      : "text-slate-700 border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                      : "text-slate-600 border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                   )}
                   style={isActive ? { backgroundColor: brandColor } : {}}
                   onClick={() => toggleTag(tag)}
                 >
                   {tag}
-                  {isActive && <X className="ml-1.5 h-3 w-3" />}
+                  {isActive && <X className="ml-1 h-3 w-3" />}
                 </Badge>
               )
             })}
@@ -215,7 +215,7 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
       {/* Botones de Acción */}
       <div className="space-y-2 pt-2">
         <Button 
-          className="w-full text-white font-semibold transition-all hover:brightness-110 shadow-sm h-10"
+          className="w-full text-white font-medium transition-all hover:opacity-90 shadow-sm h-10 rounded-xl text-[13px]"
           style={{ backgroundColor: brandColor }}
           onClick={() => applyFilters()}
         >
@@ -225,7 +225,7 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
         {(minPrice || maxPrice || activeTag || sort !== 'newest' || onlyDiscount || onlyStock) && (
           <Button 
             variant="ghost" 
-            className="w-full text-slate-600 hover:text-slate-900 hover:bg-slate-50 h-9 text-sm"
+            className="w-full text-slate-600 hover:text-slate-900 hover:bg-slate-50 h-9 text-[12px] rounded-xl"
             onClick={handleReset}
           >
             Limpiar filtros

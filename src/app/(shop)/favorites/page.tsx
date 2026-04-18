@@ -2,7 +2,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import { ProductCard } from '@/components/features/ProductCard';
-import { Heart, ArrowRight, Home, ChevronRight } from 'lucide-react';
+import { Heart, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
@@ -84,64 +84,54 @@ export default async function FavoritesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pb-10">
       
       {/* Breadcrumb */}
       <div className="border-b border-slate-200 bg-slate-50/50">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8 py-4">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6">
           <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
             <Link href="/" className="hover:text-slate-900 transition-colors">
-              <Home className="h-4 w-4" />
+              Inicio
             </Link>
-            <ChevronRight className="h-3 w-3" />
+            <span>/</span>
             <span className="text-slate-900 font-medium">Mis Favoritos</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: `${primaryColor}15` }}
-            >
-              <Heart 
-                className="w-6 h-6 fill-current" 
-                style={{ color: primaryColor }}
-              />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-                Mis Favoritos
-              </h1>
-              <p className="text-sm text-slate-600">
-                {favorites.length} {favorites.length === 1 ? 'producto guardado' : 'productos guardados'}
-              </p>
-            </div>
-          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+            Mis Favoritos
+          </h1>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-10 xl:px-12 py-6 md:py-8">
+        
+        {/* Subtítulo con contador */}
+        <p className="text-[12px] md:text-[14px] text-slate-500 mb-6 px-2">
+          {favorites.length} {favorites.length === 1 ? 'producto guardado' : 'productos guardados'}
+        </p>
+
         {favorites.length === 0 ? (
           
           // Estado vacío
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex flex-col items-center justify-center py-20 md:py-32 text-center bg-slate-50 rounded-2xl border border-slate-200 mx-2">
             <div 
-              className="w-24 h-24 rounded-full flex items-center justify-center mb-6"
-              style={{ backgroundColor: `${primaryColor}10` }}
+              className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
+              style={{ backgroundColor: `${primaryColor}15` }}
             >
               <Heart 
-                className="w-12 h-12 opacity-50" 
+                className="w-10 h-10" 
                 style={{ color: primaryColor }}
               />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">
               Aún no tienes favoritos
             </h2>
-            <p className="text-slate-500 max-w-md mb-8">
+            <p className="text-sm text-slate-600 max-w-md px-6 mb-6">
               Explora nuestra tienda y guarda los productos que más te gusten haciendo clic en el corazón.
             </p>
             <Link href="/">
               <Button 
                 size="lg" 
-                className="text-white font-bold px-8 rounded-full shadow-lg hover:shadow-xl transition-all"
+                className="text-white font-medium px-8 h-12 rounded-xl shadow-sm hover:opacity-90 transition-all"
                 style={{ backgroundColor: primaryColor }}
               >
                 Explorar Productos 
@@ -153,7 +143,7 @@ export default async function FavoritesPage() {
         ) : (
 
           // Grid de productos (mismo estilo que categorías)
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5 px-2">
             {favorites.map((fav, index) => (
               <div 
                 key={fav.id} 

@@ -7,7 +7,7 @@ import { CategorySort } from '@/components/features/CategorySort';
 import { ClearFiltersButton } from '@/components/features/ClearFiltersButton';
 import { Pagination } from '@/components/ui/pagination';
 import { SlidersHorizontal, SearchX } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
@@ -101,9 +101,9 @@ export default async function NewArrivalsPage({ searchParams }: Props) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
               
               {/* Contador de resultados */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 md:gap-4">
                 {products.length > 0 && (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-[13px] md:text-[14px] text-slate-600">
                     <span className="font-semibold text-slate-900">{pagination.totalItems}</span> {pagination.totalItems === 1 ? 'producto' : 'productos'}
                   </p>
                 )}
@@ -114,15 +114,17 @@ export default async function NewArrivalsPage({ searchParams }: Props) {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="lg:hidden gap-2 border-slate-300 bg-white hover:bg-slate-50"
+                      className="lg:hidden gap-2 border-slate-200 bg-white hover:bg-slate-50 text-[13px] h-9 rounded-lg"
                     >
                       <SlidersHorizontal className="h-4 w-4" /> 
                       Filtros
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="left" className="w-[300px] sm:w-[350px] overflow-y-auto">
-                    <div className="py-6">
-                      <h2 className="text-xl font-bold mb-6 text-slate-900">Filtros</h2>
+                  <SheetContent side="left" className="w-[300px] sm:w-[350px] overflow-y-auto p-0">
+                    <div className="px-6 py-6">
+                      <SheetTitle className="text-[18px] font-medium mb-6 text-slate-900">
+                        Filtros
+                      </SheetTitle>
                       <CategoryFilters 
                         brandColor={brandColor} 
                         availableTags={availableTags}

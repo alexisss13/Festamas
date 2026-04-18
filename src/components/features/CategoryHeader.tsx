@@ -11,11 +11,11 @@ interface Props {
 export function CategoryHeader({ categoryName, hasFilters, currentPath }: Props) {
   return (
     <div className="mb-6">
-      <h2 className="text-lg font-bold text-slate-900">Filtros</h2>
+      <h2 className="text-[16px] font-medium text-slate-900">Filtros</h2>
       {hasFilters && (
         <Link
           href={currentPath}
-          className="text-sm text-slate-600 hover:text-slate-900 mt-1 underline inline-block"
+          className="text-[12px] text-slate-500 hover:text-slate-900 mt-1 underline inline-block transition-colors"
         >
           Limpiar todos
         </Link>

@@ -4,7 +4,7 @@ import { ProductCard } from '@/components/features/ProductCard';
 import { CategoryFilters } from '@/components/features/CategoryFilters';
 import { Pagination } from '@/components/ui/pagination';
 import { SlidersHorizontal, SearchX, Layers } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { inferLegacyDivision } from '@/lib/ecommerce-helpers';
@@ -103,13 +103,18 @@ export default async function CollectionsPage({ searchParams }: Props) {
             <div className="lg:hidden mb-6 flex justify-end">
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="outline" className="gap-2 border-slate-300 text-slate-700">
+                        <Button 
+                          variant="outline" 
+                          className="gap-2 border-slate-200 text-slate-700 text-[13px] h-9 rounded-lg hover:bg-slate-50"
+                        >
                             <SlidersHorizontal className="h-4 w-4" /> Filtros
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                        <div className="py-6">
-                            <h2 className="text-xl font-bold mb-6 text-slate-900">Filtros</h2>
+                    <SheetContent side="left" className="w-[300px] sm:w-[350px] overflow-y-auto p-0">
+                        <div className="px-6 py-6">
+                            <SheetTitle className="text-[18px] font-medium mb-6 text-slate-900">
+                              Filtros
+                            </SheetTitle>
                             <CategoryFilters 
                                 brandColor={brandColor} 
                                 availableTags={availableTags} 
