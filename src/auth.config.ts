@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from 'next-auth';
+import prisma from '@/lib/prisma';
 
 export const authConfig: NextAuthConfig = {
   pages: {
@@ -7,6 +8,61 @@ export const authConfig: NextAuthConfig = {
   },
   
   callbacks: {
+    // 0. SignIn callback - Se ejecuta cuando un usuario inicia sesión
+    async signIn({ user, account }) {
+      // Solo procesar para OAuth (Google, etc.)
+      if (account?.provider === 'google' && user.email) {
+        try {
+          // Buscar el usuario en la base de datos
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email.toLowerCase() },
+            select: { id: true, customerId: true }
+          });
+
+          // Si el usuario existe pero no tiene Customer vinculado
+          if (dbUser && !dbUser.customerId) {
+            // Buscar si existe un Customer con este email (creado desde el POS)
+            let customer = await prisma.customer.findFirst({
+              where: { email: user.email.toLowerCase() },
+            });
+
+            // Si no existe Customer, crear uno nuevo
+            if (!customer) {
+              const business = await prisma.business.findFirst({
+                select: { id: true }
+              });
+
+              if (business) {
+                customer = await prisma.customer.create({
+                  data: {
+                    businessId: business.id,
+                    name: user.name || 'Usuario',
+                    email: user.email.toLowerCase(),
+                    pointsBalance: 0,
+                    totalSpent: 0,
+                    visits: 0,
+                  },
+                });
+              }
+            }
+
+            // Vincular el Customer al User
+            if (customer) {
+              await prisma.user.update({
+                where: { id: dbUser.id },
+                data: { customerId: customer.id }
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error vinculando Customer en signIn:', error);
+          // No bloqueamos el login si falla la vinculación
+        }
+      }
+      
+      return true;
+    },
+
     // 1. El JWT se genera primero
     async jwt({ token, user, trigger }) {
       if (user) {

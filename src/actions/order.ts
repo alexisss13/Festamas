@@ -40,8 +40,13 @@ export async function createOrder(data: CreateOrderInput) {
     return { success: false, message: 'Datos inválidos', errors: validation.error.flatten().fieldErrors };
   }
 
+  // Obtener el usuario actual si está logueado
+  const session = await auth();
+  const userId = session?.user?.id;
+
   const order = await prisma.order.create({
     data: {
+      userId: userId || null, // Vincular al usuario si está logueado
       clientName: data.name,
       clientPhone: data.phone,
       totalAmount: data.total,
@@ -102,12 +107,72 @@ export async function getOrderById(id: string) {
 }
 
 export async function updateOrderStatus(id: string, newStatus: OrderStatus, isPaid: boolean) {
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: { 
+      user: { 
+        select: { 
+          id: true, 
+          customerId: true,
+          email: true,
+          businessId: true
+        } 
+      } 
+    }
+  });
+
+  if (!order) {
+    return { success: false, message: 'Pedido no encontrado' };
+  }
+
+  // Actualizar el pedido
   await prisma.order.update({
     where: { id },
     data: { status: newStatus, isPaid },
   });
+
+  // Si el pedido se marca como pagado y tiene usuario con Customer vinculado
+  if (isPaid && !order.isPaid && order.user?.customerId) {
+    const totalAmount = Number(order.totalAmount);
+    
+    // Calcular puntos ganados (ejemplo: 1 punto por cada 10 soles)
+    const pointsEarned = Math.floor(totalAmount / 10);
+
+    // Actualizar el Customer
+    await prisma.customer.update({
+      where: { id: order.user.customerId },
+      data: {
+        pointsBalance: { increment: pointsEarned },
+        totalSpent: { increment: totalAmount },
+        visits: { increment: 1 },
+        lastPurchase: new Date(),
+      }
+    });
+
+    // Registrar la transacción de puntos
+    if (pointsEarned > 0 && order.user.businessId) {
+      await prisma.pointTransaction.create({
+        data: {
+          businessId: order.user.businessId,
+          customerId: order.user.customerId,
+          orderId: order.id,
+          points: pointsEarned,
+          type: 'EARN',
+          description: `Puntos ganados por compra #${order.id.split('-')[0].toUpperCase()}`
+        }
+      });
+    }
+
+    // Actualizar el pedido con los puntos ganados
+    await prisma.order.update({
+      where: { id },
+      data: { pointsEarned }
+    });
+  }
+
   revalidatePath('/admin/orders');
   revalidatePath('/profile/orders');
+  revalidatePath('/profile');
   return { success: true };
 }
 

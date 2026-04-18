@@ -97,7 +97,37 @@ export async function registerUser(name: string, email: string, password: string
     // Hash de la contraseña
     const hashedPassword = bcryptjs.hashSync(password, 10);
 
-    // Crear usuario
+    // Buscar si ya existe un Customer con este email (creado desde el POS)
+    let customer = await prisma.customer.findFirst({
+      where: { 
+        email: email.toLowerCase().trim(),
+      },
+    });
+
+    // Si no existe Customer, crear uno nuevo
+    if (!customer) {
+      // Obtener el businessId del primer negocio (o puedes hacerlo dinámico)
+      const business = await prisma.business.findFirst({
+        select: { id: true }
+      });
+
+      if (!business) {
+        return { ok: false, message: 'Error de configuración del sistema' };
+      }
+
+      customer = await prisma.customer.create({
+        data: {
+          businessId: business.id,
+          name: name.trim(),
+          email: email.toLowerCase().trim(),
+          pointsBalance: 0,
+          totalSpent: 0,
+          visits: 0,
+        },
+      });
+    }
+
+    // Crear usuario vinculado al Customer
     await prisma.user.create({
       data: {
         name: name.trim(),
@@ -105,6 +135,7 @@ export async function registerUser(name: string, email: string, password: string
         password: hashedPassword,
         role: 'USER',
         isActive: true,
+        customerId: customer.id, // Vincular al Customer
       },
     });
 

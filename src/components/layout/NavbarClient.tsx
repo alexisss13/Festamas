@@ -257,7 +257,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                     </Button>
                 </SheetTrigger>
                 
-                <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-white">
+                <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-white select-none">
                     <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
                     
                     {/* Franja de color superior */}
