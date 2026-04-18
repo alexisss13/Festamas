@@ -5,9 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, ShoppingCart, Menu, Heart, User, LogOut, Package, Store, ChevronRight, ChevronDown, MapPin, BookOpen, Truck, X } from 'lucide-react';
+import { ShoppingCart, Menu, Heart, User, LogOut, Package, Store, ChevronRight, ChevronDown, MapPin, BookOpen, Truck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -258,32 +257,113 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                     </Button>
                 </SheetTrigger>
                 
-                <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-slate-50">
-                    <SheetTitle className="sr-only">Menú de Navegación</SheetTitle> 
-                    <SheetHeader className={cn("h-[52px] flex flex-row items-center px-4 py-0 space-y-0 border-b", mobileHeaderClass)}>
-                        <div className="relative h-8 w-24">
-                            {activeMobileIconWhite ? (
-                              <Image loader={cloudinaryLoader} src={activeMobileIconWhite} alt={brandName} fill sizes="96px" className="object-contain object-left" />
-                            ) : (
-                              <span className="flex h-full items-center font-black text-xl text-white">{brandName}</span>
-                            )}
+                <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 border-r-0 z-[100] flex flex-col h-full bg-white">
+                    <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+                    
+                    {/* Franja de color superior */}
+                    <div className="h-[3px] w-full" style={{ backgroundColor: primaryColor }}></div>
+                    
+                    {/* Header con saludo de usuario */}
+                    {user && (
+                        <div className="px-6 py-5 border-b border-slate-100">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <p className="text-lg font-semibold text-slate-900">¡Hola, {user.name?.split(' ')[0]}!</p>
+                                    <p className="text-sm text-slate-500 mt-0.5">{user.email}</p>
+                                </div>
+                                {activeMobileIcon && (
+                                    <div className="relative h-10 w-10 shrink-0 ml-3">
+                                        <Image 
+                                            loader={cloudinaryLoader} 
+                                            src={activeMobileIcon} 
+                                            alt={brandName} 
+                                            fill 
+                                            sizes="40px" 
+                                            className="object-contain" 
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </SheetHeader>
+                    )}
+                    
                     <div className="flex-1 overflow-y-auto py-4 px-2">
+                        {/* Opciones de Usuario */}
+                        {user && (
+                            <>
+                                <div className="flex flex-col mb-2">
+                                    <SheetClose asChild><Link href="/profile" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-sm font-normal transition-all"><User className="h-4 w-4 text-slate-400"/>Mi Perfil</Link></SheetClose>
+                                    <SheetClose asChild><Link href="/profile/orders" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-sm font-normal transition-all"><Package className="h-4 w-4 text-slate-400"/>Mis Pedidos</Link></SheetClose>
+                                    <SheetClose asChild><Link href="/profile/addresses" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-sm font-normal transition-all"><MapPin className="h-4 w-4 text-slate-400"/>Direcciones de entrega</Link></SheetClose>
+                                    <SheetClose asChild><Link href="/favorites" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-sm font-normal transition-all"><Heart className="h-4 w-4 text-slate-400"/>Favoritos</Link></SheetClose>
+                                </div>
+                                <div className="border-t border-slate-200/60 mx-4 my-2"></div>
+                            </>
+                        )}
+                        
+                        {/* Navegación General */}
                         <div className="flex flex-col mb-4">
-                            <SheetClose asChild><Link href="/" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all"><Store className="h-4 w-4 text-slate-400"/>Inicio</Link></SheetClose>
-                            <SheetClose asChild><Link href="/catalogos" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all"><BookOpen className="h-4 w-4 text-slate-400"/>Catálogos</Link></SheetClose>
-                            <SheetClose asChild><Link href="/tiendas" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all"><MapPin className="h-4 w-4 text-slate-400"/>Tiendas</Link></SheetClose>
+                            <SheetClose asChild><Link href="/" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-sm font-normal transition-all"><Store className="h-4 w-4 text-slate-400"/>Inicio</Link></SheetClose>
+                            <SheetClose asChild><Link href="/catalogos" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-sm font-normal transition-all"><BookOpen className="h-4 w-4 text-slate-400"/>Catálogos</Link></SheetClose>
+                            <SheetClose asChild><Link href="/tiendas" className="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-sm font-normal transition-all"><MapPin className="h-4 w-4 text-slate-400"/>Tiendas</Link></SheetClose>
                         </div>
+                        
                         <div className="border-t border-slate-200/60 mx-4 mt-2 mb-4"></div>
                         <div className="mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Categorías</div>
                         <div className="space-y-1">
                             {filteredCategories.map((cat) => (
                                 <SheetClose asChild key={cat.id}>
-                                    <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg text-sm font-normal transition-all">{cat.name}<ChevronRight className="h-4 w-4 text-slate-300" /></Link>
+                                    <Link href={`/category/${cat.slug}`} className="flex items-center justify-between px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-sm font-normal transition-all">{cat.name}<ChevronRight className="h-4 w-4 text-slate-300" /></Link>
                                 </SheetClose>
                             ))}
                         </div>
+                        
+                        {/* Nuestras Tiendas */}
+                        <div className="border-t border-slate-200/60 mx-4 mt-4 mb-4"></div>
+                        <div className="mb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Nuestras Tiendas</div>
+                        <div className="space-y-1">
+                            {branches.map((branch) => {
+                                const isActive = branch.id === effectiveBranchId;
+                                return (
+                                    <button
+                                        key={branch.id}
+                                        disabled={isPending}
+                                        onClick={() => handleBranchChange(branch.id)}
+                                        className={cn(
+                                            "flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-normal transition-all",
+                                            isActive 
+                                                ? "bg-slate-100 text-slate-900" 
+                                                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        {branch.logos?.isotipo && (
+                                            <div className="relative h-6 w-6 shrink-0">
+                                                <Image
+                                                    loader={cloudinaryLoader}
+                                                    src={branch.logos.isotipo}
+                                                    alt={branch.name}
+                                                    fill
+                                                    sizes="24px"
+                                                    className="object-contain"
+                                                />
+                                            </div>
+                                        )}
+                                        <span className="flex-1 text-left">{branch.name}</span>
+                                        {isActive && (
+                                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }}></div>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        
+                        {/* Botón de Cerrar Sesión */}
+                        {user && (
+                            <>
+                                <div className="border-t border-slate-200/60 mx-4 mt-4 mb-2"></div>
+                                <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-2.5 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg text-sm font-normal transition-all mx-2"><LogOut className="h-4 w-4" /> Cerrar Sesión</button>
+                            </>
+                        )}
                     </div>
                 </SheetContent>
             </Sheet>
@@ -354,36 +434,14 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
 
                 <div className="lg:hidden">
                     {user ? (
-                        <Sheet>
-                            <SheetTrigger asChild>
-                                <Button variant="ghost" className="h-10 w-10 rounded-full p-0 shrink-0">
-                                    <Avatar className="h-8 w-8 border border-slate-200">
-                                        <AvatarImage src={user.image || ''} />
-                                        <AvatarFallback className="bg-slate-100 text-slate-900 font-bold text-xs">{user.name?.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent side="right" className="w-[65vw] max-w-[280px] z-[100] p-0 flex flex-col h-full bg-white [&>button]:hidden"> 
-                                <SheetTitle className="sr-only">Mi cuenta de usuario</SheetTitle>
-                                <div className="flex items-center justify-between p-4 bg-slate-100 border-b border-slate-200">
-                                    <div className="flex items-center gap-2"><User className="h-5 w-5 text-slate-700" /><span className="font-bold text-slate-800">Mi cuenta</span></div>
-                                    <SheetClose asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:bg-slate-200 rounded-full"><X className="h-5 w-5" /></Button></SheetClose>
-                                </div>
-                                <div className="flex-1 overflow-y-auto px-0 py-4">
-                                    <div className="px-5 pb-4 border-b border-slate-100">
-                                        <p className="text-sm text-slate-800 uppercase tracking-wide">BIENVENIDO, {user.name?.split(' ')[0]}</p>
-                                        <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
-                                    </div>
-                                    <div className="flex flex-col mt-2">
-                                        <SheetClose asChild><Link href="/profile" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300"><User className="h-4 w-4 text-slate-400" /> Mi Perfil</Link></SheetClose>
-                                        <SheetClose asChild><Link href="/profile/orders" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300"><Package className="h-4 w-4 text-slate-400" /> Mis Pedidos</Link></SheetClose>
-                                        <SheetClose asChild><Link href="/profile/addresses" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300"><MapPin className="h-4 w-4 text-slate-400" /> Direcciones de entrega</Link></SheetClose>
-                                        <SheetClose asChild><Link href="/favorites" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-normal text-sm transition-colors border-l-4 border-transparent hover:border-l-slate-300"><Heart className="h-4 w-4 text-slate-400" /> Favoritos</Link></SheetClose>
-                                        <div className="mt-2 border-t border-slate-100 pt-2"><button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 font-normal text-sm transition-colors text-left border-l-4 border-transparent"><LogOut className="h-4 w-4" /> Cerrar Sesión</button></div>
-                                    </div>
-                                </div>
-                            </SheetContent>
-                        </Sheet>
+                        <Link href="/profile">
+                            <Button variant="ghost" className="h-10 w-10 rounded-full p-0 shrink-0">
+                                <Avatar className="h-8 w-8 border border-slate-200">
+                                    <AvatarImage src={user.image || ''} />
+                                    <AvatarFallback className="bg-slate-100 text-slate-900 font-bold text-xs">{user.name?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </Link>
                     ) : (
                         <Button 
                             variant="ghost" 
