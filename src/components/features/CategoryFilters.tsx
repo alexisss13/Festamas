@@ -33,8 +33,21 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
 
   const handleSliderChange = (value: number[]) => {
     setSliderValue(value);
-    setMinPrice(value[0].toString());
-    setMaxPrice(value[1].toString());
+    const newMin = value[0].toString();
+    const newMax = value[1].toString();
+    setMinPrice(newMin);
+    setMaxPrice(newMax);
+    
+    // Aplicar filtros automáticamente
+    const params = new URLSearchParams(searchParams.toString());
+    if (newMin && newMin !== '0') params.set('min', newMin); else params.delete('min');
+    if (newMax && newMax !== MAX_PRICE_LIMIT.toString()) params.set('max', newMax); else params.delete('max');
+    if (activeTag) params.set('tag', activeTag); else params.delete('tag');
+    if (sort) params.set('sort', sort);
+    if (onlyDiscount) params.set('discount', 'true'); else params.delete('discount');
+    if (onlyStock) params.set('stock', 'true'); else params.delete('stock');
+    params.set('page', '1');
+    router.push(`?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -120,6 +133,18 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
                 const val = e.target.value;
                 if (Number(val) <= (Number(maxPrice) || MAX_PRICE_LIMIT)) setMinPrice(val);
               }}
+              onBlur={() => {
+                // Aplicar filtros automáticamente al perder el foco
+                const params = new URLSearchParams(searchParams.toString());
+                if (minPrice) params.set('min', minPrice); else params.delete('min');
+                if (maxPrice) params.set('max', maxPrice); else params.delete('max');
+                if (activeTag) params.set('tag', activeTag); else params.delete('tag');
+                if (sort) params.set('sort', sort);
+                if (onlyDiscount) params.set('discount', 'true'); else params.delete('discount');
+                if (onlyStock) params.set('stock', 'true'); else params.delete('stock');
+                params.set('page', '1');
+                router.push(`?${params.toString()}`);
+              }}
               placeholder="0"
             />
           </div>
@@ -131,6 +156,18 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
               className="pl-7 h-9 text-[13px] bg-white text-slate-700 border-slate-200 hover:border-slate-300 transition-colors rounded-lg" 
               value={maxPrice} 
               onChange={(e) => setMaxPrice(e.target.value)}
+              onBlur={() => {
+                // Aplicar filtros automáticamente al perder el foco
+                const params = new URLSearchParams(searchParams.toString());
+                if (minPrice) params.set('min', minPrice); else params.delete('min');
+                if (maxPrice) params.set('max', maxPrice); else params.delete('max');
+                if (activeTag) params.set('tag', activeTag); else params.delete('tag');
+                if (sort) params.set('sort', sort);
+                if (onlyDiscount) params.set('discount', 'true'); else params.delete('discount');
+                if (onlyStock) params.set('stock', 'true'); else params.delete('stock');
+                params.set('page', '1');
+                router.push(`?${params.toString()}`);
+              }}
               placeholder={MAX_PRICE_LIMIT.toString()}
             />
           </div>
@@ -149,7 +186,19 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
             <Checkbox 
               checked={onlyDiscount}
               onCheckedChange={(checked) => {
-                setOnlyDiscount(checked as boolean);
+                const newValue = checked as boolean;
+                setOnlyDiscount(newValue);
+                
+                // Aplicar filtros automáticamente
+                const params = new URLSearchParams(searchParams.toString());
+                if (minPrice) params.set('min', minPrice); else params.delete('min');
+                if (maxPrice) params.set('max', maxPrice); else params.delete('max');
+                if (activeTag) params.set('tag', activeTag); else params.delete('tag');
+                if (sort) params.set('sort', sort);
+                if (newValue) params.set('discount', 'true'); else params.delete('discount');
+                if (onlyStock) params.set('stock', 'true'); else params.delete('stock');
+                params.set('page', '1');
+                router.push(`?${params.toString()}`);
               }}
               className="border-slate-300"
             />
@@ -172,7 +221,19 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
             <Checkbox 
               checked={onlyStock}
               onCheckedChange={(checked) => {
-                setOnlyStock(checked as boolean);
+                const newValue = checked as boolean;
+                setOnlyStock(newValue);
+                
+                // Aplicar filtros automáticamente
+                const params = new URLSearchParams(searchParams.toString());
+                if (minPrice) params.set('min', minPrice); else params.delete('min');
+                if (maxPrice) params.set('max', maxPrice); else params.delete('max');
+                if (activeTag) params.set('tag', activeTag); else params.delete('tag');
+                if (sort) params.set('sort', sort);
+                if (onlyDiscount) params.set('discount', 'true'); else params.delete('discount');
+                if (newValue) params.set('stock', 'true'); else params.delete('stock');
+                params.set('page', '1');
+                router.push(`?${params.toString()}`);
               }}
               className="border-slate-300"
             />
@@ -212,26 +273,18 @@ export function CategoryFilters({ className, brandColor, availableTags }: Props)
         </div>
       )}
 
-      {/* Botones de Acción */}
-      <div className="space-y-2 pt-2">
-        <Button 
-          className="w-full text-white font-medium transition-all hover:opacity-90 shadow-sm h-10 rounded-xl text-[13px]"
-          style={{ backgroundColor: brandColor }}
-          onClick={() => applyFilters()}
-        >
-          Aplicar filtros
-        </Button>
-        
-        {(minPrice || maxPrice || activeTag || sort !== 'newest' || onlyDiscount || onlyStock) && (
+      {/* Botón de Limpiar Filtros */}
+      {(minPrice || maxPrice || activeTag || sort !== 'newest' || onlyDiscount || onlyStock) && (
+        <div className="pt-2">
           <Button 
-            variant="ghost" 
-            className="w-full text-slate-600 hover:text-slate-900 hover:bg-slate-50 h-9 text-[12px] rounded-xl"
+            variant="outline" 
+            className="w-full text-slate-600 hover:text-slate-900 hover:bg-slate-50 border-slate-200 h-9 text-[12px] rounded-xl"
             onClick={handleReset}
           >
             Limpiar filtros
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

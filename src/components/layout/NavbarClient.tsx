@@ -480,7 +480,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                 <div className="flex items-center gap-6">
                     <Link href="/catalogos" className="flex items-center gap-2 hover:text-slate-900 transition-colors"><BookOpen className="h-4 w-4 text-slate-400" />Catálogos</Link>
                     <Link href="/tiendas" className="flex items-center gap-2 hover:text-slate-900 transition-colors"><Store className="h-4 w-4 text-slate-400" />Tiendas</Link>
-                    <Link href="/venta-empresa" className={cn("flex items-center gap-2 transition-colors ", brandColorText)}><Truck className="h-4 w-4" />¡Abastece tu hogar por volumen!</Link>
+                    <Link href="/venta-empresa" className={cn("flex items-center gap-2 transition-colors ", brandColorText)}><Truck className="h-4 w-4" />¡Vende y comisiona!</Link>
                 </div>
             </div>
       </div>
