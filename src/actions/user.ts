@@ -26,7 +26,6 @@ export async function getUserProfile() {
         businessId: true,
         // Traemos las direcciones
         addresses: {
-            take: 3, // Solo las primeras 3 para el resumen
             orderBy: { createdAt: 'desc' }
         },
         // Traemos los pedidos recientes
@@ -41,6 +40,7 @@ export async function getUserProfile() {
         customer: {
           select: {
             id: true,
+            name: true,
             pointsBalance: true,
             totalSpent: true,
             visits: true,
@@ -64,6 +64,7 @@ export async function getUserProfile() {
         },
         select: {
           id: true,
+          name: true,
           pointsBalance: true,
           totalSpent: true,
           visits: true,

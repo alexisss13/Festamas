@@ -4,12 +4,13 @@ import { getUserProfile } from '@/actions/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Package, LogOut, Settings, Eye, ChevronRight, Gift, Phone, CreditCard } from 'lucide-react';
+import { MapPin, Package, LogOut, Settings, Eye, ChevronRight, Gift, Phone, CreditCard, Edit2, Trash2, Plus } from 'lucide-react';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { cn } from '@/lib/utils';
 import { logout } from '@/actions/auth-actions';
 import Link from 'next/link';
 import { EditCustomerInfo } from '@/components/profile/EditCustomerInfo';
+import { DeleteAddressButton } from '@/components/profile/DeleteAddressButton';
 
 export const metadata = {
   title: 'Mi Perfil | Festamas',
@@ -242,8 +243,8 @@ export default async function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-[16px] font-semibold text-slate-900">Mis Direcciones</h2>
                   <Link href="/profile/address">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-50">
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <Button variant="ghost" size="sm" className="text-[12px] h-8 hover:bg-slate-50" style={{ color: brandColor }}>
+                      Ver todas <ChevronRight className="w-3.5 h-3.5 ml-1" />
                     </Button>
                   </Link>
                 </div>
@@ -252,25 +253,42 @@ export default async function ProfilePage() {
               <div className="p-6">
                 {user.addresses.length > 0 ? (
                   <div className="space-y-3">
-                    {user.addresses.slice(0, 3).map((address) => (
-                      <div key={address.id} className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                    {user.addresses.slice(0, 2).map((address) => (
+                      <div key={address.id} className="p-4 bg-slate-50 rounded-lg border border-slate-100 group hover:border-slate-200 transition-colors">
                         <div className="flex items-start gap-3">
                           <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-medium text-slate-900 mb-1 line-clamp-1">
+                            <p className="text-[13px] font-medium text-slate-900 mb-1">
                               {address.address}
                             </p>
+                            {address.address2 && (
+                              <p className="text-[11px] text-slate-500 mb-1">
+                                {address.address2}
+                              </p>
+                            )}
                             <p className="text-[11px] text-slate-500">
-                              {address.city}, {address.province || 'Perú'}
+                              {address.city}{address.province ? `, ${address.province}` : ''} • Perú
                             </p>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Link href={`/profile/address/${address.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 hover:bg-white"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                              </Button>
+                            </Link>
+                            <DeleteAddressButton addressId={address.id} />
                           </div>
                         </div>
                       </div>
                     ))}
-                    {user.addresses.length > 3 && (
+                    {user.addresses.length > 2 && (
                       <Link href="/profile/address">
-                        <Button variant="ghost" size="sm" className="w-full text-[12px] h-9 hover:bg-slate-50" style={{ color: brandColor }}>
-                          Ver todas ({user.addresses.length})
+                        <Button variant="outline" className="w-full h-10 text-[12px]" style={{ color: brandColor }}>
+                          Ver todas las direcciones ({user.addresses.length})
                         </Button>
                       </Link>
                     )}
@@ -282,8 +300,12 @@ export default async function ProfilePage() {
                     </div>
                     <p className="text-[13px] font-medium text-slate-900 mb-1">Sin direcciones</p>
                     <p className="text-[11px] text-slate-500 mb-4">Agrega una dirección de entrega</p>
-                    <Link href="/profile/address">
-                      <Button size="sm" className="h-9 text-[12px] rounded-lg" style={{ backgroundColor: brandColor }}>
+                    <Link href="/profile/address/new">
+                      <Button
+                        variant="outline"
+                        className="h-10 border-dashed border-2 hover:border-slate-300 text-[13px] gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
                         Agregar dirección
                       </Button>
                     </Link>

@@ -475,7 +475,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
                 <button className="flex items-center gap-2 hover:text-slate-900 transition-colors">
                     <MapPin className="h-4 w-4 text-slate-400" />
                     <Link href="/profile/address"><span>¿Dónde quieres recibir tu pedido?</span></Link>
-                    <ChevronDown className="h-3 w-3 opacity-50" />
+                    
                 </button>
                 <div className="flex items-center gap-6">
                     <Link href="/catalogos" className="flex items-center gap-2 hover:text-slate-900 transition-colors"><BookOpen className="h-4 w-4 text-slate-400" />Catálogos</Link>
