@@ -55,6 +55,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
   const [loaded, setLoaded] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => setLoaded(true), []);
   
@@ -232,7 +233,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
       {/* 2. NAVBAR PRINCIPAL (STICKY) */}
       <header 
         className={cn(
-            "w-full h-[64px] md:h-[72px] z-50 print:hidden flex flex-col transition-all duration-300 ease-in-out", 
+            "w-full h-[64px] md:h-[72px] z-50 print:hidden flex flex-col transition-all duration-300 ease-in-out relative", 
             navbarBgClass,
             isAtTop ? "sticky top-0" : "sticky top-0 shadow-md", 
             (!isVisible && !isUserMenuOpen) && "-translate-y-full" 
@@ -385,7 +386,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
             </div>
 
             <div className="flex-1 min-w-0">
-                <Suspense><SmartSearch searchBtnColor={searchBtnBg} /></Suspense>
+                <Suspense><SmartSearch searchBtnColor={searchBtnBg} branchName={brandName} onOpenChange={setIsSearchOpen} /></Suspense>
             </div>
 
             <div className="flex items-center gap-1 md:gap-2 shrink-0">

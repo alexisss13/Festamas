@@ -24,9 +24,11 @@ interface Props {
   onSearch?: () => void;
   className?: string;
   searchBtnColor?: string;
+  branchName?: string;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export function SmartSearch({ onSearch, className, searchBtnColor }: Props) {
+export function SmartSearch({ onSearch, className, searchBtnColor, branchName, onOpenChange }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
@@ -38,6 +40,7 @@ export function SmartSearch({ onSearch, className, searchBtnColor }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const recent = localStorage.getItem('recentSearches');
@@ -149,28 +152,49 @@ export function SmartSearch({ onSearch, className, searchBtnColor }: Props) {
     if (window.innerWidth < 768) {
       setIsMobileFullscreen(true);
     }
+    if (onOpenChange) onOpenChange(true);
   };
 
   const closeSearch = () => {
     setIsOpen(false);
     setIsMobileFullscreen(false);
+    if (onOpenChange) onOpenChange(false);
   };
 
   const showSuggestions = isOpen && (suggestions.length > 0 || topProducts.length > 0 || recentSearches.length > 0);
+  const placeholderText = branchName ? `Buscar en ${branchName}` : 'Buscar...';
 
   return (
     <>
+      {/* Overlay oscuro cuando está abierto */}
+      {isOpen && !isMobileFullscreen && (
+        <div 
+          className="hidden md:block fixed inset-0 bg-black/60 z-[90] transition-opacity duration-300 animate-in fade-in"
+          onClick={closeSearch}
+        />
+      )}
+
       {/* Input normal */}
-      <div ref={wrapperRef} className={cn("relative w-full", className)}>
-        <form onSubmit={handleSearch} className="relative w-full group bg-slate-100 rounded-full shadow-sm hover:bg-slate-200/70 transition-colors">
+      <div ref={wrapperRef} className={cn("relative w-full", isOpen && "z-[100]", className)}>
+        <form onSubmit={handleSearch} className={cn("relative w-full group rounded-full shadow-sm transition-colors", isOpen ? "bg-white" : "bg-slate-100 hover:bg-slate-200/70")}>
           <Input
+            ref={inputRef}
             type="text"
-            placeholder="Buscar..."
+            placeholder={placeholderText}
             className="h-10 w-full pl-5 pr-12 border-0 rounded-full text-sm font-medium bg-transparent text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={openSearch}
           />
+          {query && isOpen && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="absolute right-12 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 rounded-full transition-colors z-10"
+            >
+              <X className="w-3.5 h-3.5 text-slate-500" />
+            </button>
+          )}
           <button 
             type="submit" 
             className="absolute right-1 top-1 h-8 w-8 flex items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm"
@@ -182,7 +206,7 @@ export function SmartSearch({ onSearch, className, searchBtnColor }: Props) {
 
         {/* Dropdown desktop */}
         {showSuggestions && !isMobileFullscreen && (
-          <div className="hidden md:block absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 max-h-[80vh] overflow-y-auto">
+          <div className="hidden md:block absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[100] max-h-[70vh] overflow-y-auto">
             <SearchContent
               query={query}
               suggestions={suggestions}
@@ -212,7 +236,7 @@ export function SmartSearch({ onSearch, className, searchBtnColor }: Props) {
               <form onSubmit={handleSearch} className="flex-1 relative">
                 <Input
                   type="text"
-                  placeholder="Buscar..."
+                  placeholder={placeholderText}
                   className="h-11 w-full pl-4 pr-10 border border-slate-200 rounded-full text-sm font-medium bg-slate-50 text-slate-800 placeholder:text-slate-400"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
