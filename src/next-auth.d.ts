@@ -11,6 +11,7 @@ declare module 'next-auth' {
       image?: string;
       businessId?: string;
       branchId?: string;
+      permissions?: Record<string, unknown> | null;
     } & DefaultSession['user'];
   }
 
@@ -23,6 +24,7 @@ declare module 'next-auth' {
     image?: string;
     businessId?: string;
     branchId?: string;
+    permissions?: Record<string, unknown> | null;
   }
 }
 
@@ -32,5 +34,6 @@ declare module 'next-auth/jwt' {
     role: string;
     businessId?: string;
     branchId?: string;
+    permissions?: Record<string, unknown> | null;
   }
 }

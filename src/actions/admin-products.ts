@@ -3,21 +3,23 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { SalesChannel } from '@prisma/client';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
-// Campos que se pueden editar desde el admin (solo ecommerce)
+// Campos editables desde el admin de ecommerce
 interface UpdateProductEcommerceData {
   description?: string;
   tags?: string[];
   groupTag?: string | null;
   isAvailable?: boolean;
   discountPercentage?: number;
+  availableChannels?: SalesChannel;
 }
 
 export async function getProductsForAdmin() {
   try {
     const session = await auth();
-    const allowedRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER'];
-    if (!session?.user || !allowedRoles.includes(session.user.role)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No autorizado' };
     }
 
@@ -45,9 +47,6 @@ export async function getProductsForAdmin() {
             name: true,
             sku: true,
             barcode: true,
-            price: true,
-            cost: true,
-            minStock: true,
             stock: {
               select: {
                 quantity: true,
@@ -72,11 +71,7 @@ export async function getProductsForAdmin() {
       basePrice: Number(product.basePrice),
       wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
       averageRating: Number(product.averageRating),
-      variants: product.variants.map(variant => ({
-        ...variant,
-        price: variant.price ? Number(variant.price) : null,
-        cost: Number(variant.cost),
-      })),
+      cost: Number(product.cost),
     }));
 
     return { success: true, products: serializedProducts };
@@ -89,8 +84,7 @@ export async function getProductsForAdmin() {
 export async function getProductForEdit(id: string) {
   try {
     const session = await auth();
-    const allowedRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER'];
-    if (!session?.user || !allowedRoles.includes(session.user.role)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No autorizado' };
     }
 
@@ -118,9 +112,6 @@ export async function getProductForEdit(id: string) {
             name: true,
             sku: true,
             barcode: true,
-            price: true,
-            cost: true,
-            minStock: true,
             attributes: true,
             images: true,
             stock: {
@@ -147,18 +138,7 @@ export async function getProductForEdit(id: string) {
       basePrice: Number(product.basePrice),
       wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
       averageRating: Number(product.averageRating),
-      variants: product.variants.map(variant => ({
-        id: variant.id,
-        name: variant.name,
-        sku: variant.sku,
-        barcode: variant.barcode,
-        price: variant.price ? Number(variant.price) : null,
-        cost: Number(variant.cost),
-        minStock: variant.minStock,
-        attributes: variant.attributes,
-        images: variant.images,
-        stock: variant.stock,
-      })),
+      cost: Number(product.cost),
     };
 
     return { success: true, product: serializedProduct };
@@ -171,8 +151,7 @@ export async function getProductForEdit(id: string) {
 export async function updateProductEcommerce(id: string, data: UpdateProductEcommerceData) {
   try {
     const session = await auth();
-    const allowedRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER'];
-    if (!session?.user || !allowedRoles.includes(session.user.role)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No autorizado' };
     }
 
@@ -196,6 +175,10 @@ export async function updateProductEcommerce(id: string, data: UpdateProductEcom
 
     if (data.discountPercentage !== undefined) {
       updateData.discountPercentage = Math.max(0, Math.min(100, data.discountPercentage));
+    }
+
+    if (data.availableChannels !== undefined) {
+      updateData.availableChannels = data.availableChannels;
     }
 
     const product = await prisma.product.update({

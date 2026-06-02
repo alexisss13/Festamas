@@ -3,6 +3,7 @@
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
+import { getEcommerceContextFromCookie } from "@/lib/ecommerce-context";
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -27,14 +28,17 @@ export async function createPreference(data: CheckoutData) {
   }
 
   try {
-    // Definimos la URL base (debe ser la de Vercel en producción)
     const rawUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
     const baseUrl = rawUrl.trim().replace(/\/$/, "");
+
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
 
     // 1. Crear Orden en BD
     const newOrder = await prisma.order.create({
       data: {
         userId: session.user.id,
+        businessId: business.id,
+        branchId: activeBranch.id,
         totalAmount: data.total,
         totalItems: data.items.reduce((acc: number, item: any) => acc + item.quantity, 0),
         status: "PENDING",

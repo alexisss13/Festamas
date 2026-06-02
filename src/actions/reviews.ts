@@ -3,6 +3,7 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 import { z } from 'zod';
 
 const reviewSchema = z.object({
@@ -286,7 +287,7 @@ export async function approveReview(reviewId: string) {
   try {
     const session = await auth();
     
-    if (!session?.user || !['ADMIN', 'SUPER_ADMIN', 'OWNER', 'MANAGER'].includes(session.user.role as string)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No tienes permisos' };
     }
 
@@ -312,7 +313,7 @@ export async function rejectReview(reviewId: string) {
   try {
     const session = await auth();
     
-    if (!session?.user || !['ADMIN', 'SUPER_ADMIN', 'OWNER', 'MANAGER'].includes(session.user.role as string)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No tienes permisos' };
     }
 
@@ -338,7 +339,7 @@ export async function getPendingReviews() {
   try {
     const session = await auth();
     
-    if (!session?.user || !['ADMIN', 'SUPER_ADMIN', 'OWNER', 'MANAGER'].includes(session.user.role as string)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No tienes permisos', reviews: [] };
     }
 
@@ -379,7 +380,7 @@ export async function getAllReviews(page: number = 1, status?: string) {
   try {
     const session = await auth();
     
-    if (!session?.user || !['ADMIN', 'SUPER_ADMIN', 'OWNER', 'MANAGER'].includes(session.user.role as string)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No tienes permisos', reviews: [], totalPages: 0, totalCount: 0 };
     }
 

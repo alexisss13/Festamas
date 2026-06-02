@@ -30,7 +30,7 @@ export type ProductWithCategory = {
 const mapProduct = (product: any, branchId: string, ecommerceCode?: string | null): ProductWithCategory => {
   const firstVariant = product.variants[0];
   const stock = firstVariant?.stock?.find((item: any) => item.branchId === branchId)?.quantity ?? 0;
-  const price = Number(firstVariant?.price ?? product.basePrice ?? 0);
+  const price = Number(product.basePrice ?? 0);
 
   return {
     id: product.id,
@@ -99,6 +99,7 @@ export async function getProducts({
       branchOwnerId: activeBranch.id,
       active: includeInactive ? undefined : true,
       isAvailable: includeInactive ? undefined : true,
+      availableChannels: includeInactive ? undefined : { in: ['ECOMMERCE', 'BOTH'] },
       categoryId: categoryId && categoryId !== 'all' ? categoryId : undefined,
       tags: tag ? { has: tag } : undefined,
       discountPercentage: discount ? { gt: 0 } : undefined,
@@ -231,6 +232,7 @@ export const getProductsByCategory = async (
       branchOwnerId: activeBranch.id,
       active: true,
       isAvailable: true,
+      availableChannels: { in: ['ECOMMERCE', 'BOTH'] },
       tags: tag ? { has: tag } : undefined,
       // Filtro de descuento
       discountPercentage: discount ? { gt: 0 } : undefined,
@@ -304,6 +306,7 @@ export const getProductsByTag = async (tag: string, take: number = 8) => {
         tags: { has: tag },
         isAvailable: true,
         active: true,
+        availableChannels: { in: ['ECOMMERCE', 'BOTH'] },
       },
       include: {
         category: { select: { name: true, slug: true } },
@@ -329,6 +332,7 @@ export const getSimilarProducts = async (categoryId: string, currentProductId: s
         branchOwnerId: activeBranch.id,
         isAvailable: true,
         active: true,
+        availableChannels: { in: ['ECOMMERCE', 'BOTH'] },
         NOT: { id: currentProductId },
       },
       include: {
@@ -366,6 +370,7 @@ export const getNewArrivalsProducts = async ({
     branchOwnerId: activeBranch.id,
     active: true,
     isAvailable: true,
+    availableChannels: { in: ['ECOMMERCE', 'BOTH'] },
     tags: tag ? { has: tag } : undefined,
   };
 

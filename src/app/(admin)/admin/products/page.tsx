@@ -1,109 +1,99 @@
 import { getProductsForAdmin } from '@/actions/admin-products';
 import { ProductsTable } from '@/components/admin/ProductsTable';
-import { Package, Layers, ShoppingBag, LucideIcon } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { getAdminBranch } from '@/actions/admin-settings';
+import { Globe, Monitor, Store, Tag, Percent, Info } from 'lucide-react';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+import { getAdminBranch } from '@/actions/admin-settings';
 
 export default async function ProductsAdminPage() {
   const result = await getProductsForAdmin();
   const branchId = await getAdminBranch();
   const { branches } = await getEcommerceContextFromCookie();
-  
   const activeBranch = branches.find(b => b.id === branchId) ?? branches[0];
-  const storeName = activeBranch ? activeBranch.name : 'Tienda';
 
   if (!result.success) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
           {result.error}
         </div>
       </div>
     );
   }
 
-  const products = result.products || [];
+  const products = (result.products ?? []) as any[];
 
-  // Componente de KPI card
-  function StatCard({ 
-    title, 
-    value, 
-    icon: Icon, 
-    description
-  }: { 
-    title: string; 
-    value: number; 
-    icon: LucideIcon; 
-    description: string;
-  }) {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs sm:text-sm font-semibold text-slate-600 leading-tight">{title}</span>
-          <div className="p-2 sm:p-2.5 rounded-full bg-primary/10 shrink-0">
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-          </div>
-        </div>
-        <div className="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{value}</div>
-        <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 font-medium leading-tight">{description}</p>
-      </div>
-    );
-  }
-
-  // Calcular estadísticas
   const stats = {
-    total: products.length,
-    available: products.filter((p: any) => p.isAvailable).length,
-    variants: products.reduce((sum: number, p: any) => sum + p.variants.length, 0),
+    total:    products.length,
+    online:   products.filter((p: any) => p.availableChannels === 'BOTH' || p.availableChannels === 'ECOMMERCE').length,
+    posOnly:  products.filter((p: any) => p.availableChannels === 'POS').length,
+    discount: products.filter((p: any) => p.discountPercentage > 0).length,
+    withTags: products.filter((p: any) => p.tags?.length > 0).length,
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-white min-h-[calc(100vh-4rem)]">
-      
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-white min-h-[calc(100vh-4rem)]">
+
       {/* Header */}
-      <div className="pb-2 lg:pb-4">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              Gestión de <span className="text-primary">Productos</span>
-            </h1>
-            <p className="text-sm sm:text-base text-slate-500 mt-1 sm:mt-2">
-              Edita la información de ecommerce de los productos de {storeName}.
-            </p>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+          Catálogo <span className="text-primary">E-commerce</span>
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Gestiona la presentación de productos en la tienda online de{' '}
+          <strong>{activeBranch?.name}</strong>.
+        </p>
+      </div>
+
+      {/* Info banner */}
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-blue-100 bg-blue-50/50 text-sm text-blue-800">
+        <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
+        <p>
+          Los <strong>precios, stock y variantes</strong> se gestionan desde el <strong>ERP Zaiko</strong>.
+          Aquí administra <strong>visibilidad, descuentos, etiquetas y contenido</strong> para la tienda online.
+        </p>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</span>
+            <Tag className="h-4 w-4 text-slate-300" />
           </div>
+          <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+          <p className="text-[11px] text-slate-400 mt-1">productos activos</p>
+        </div>
+
+        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Visibles</span>
+            <Globe className="h-4 w-4 text-emerald-400" />
+          </div>
+          <p className="text-2xl font-bold text-emerald-700">{stats.online}</p>
+          <p className="text-[11px] text-emerald-600/70 mt-1">en la tienda online</p>
+        </div>
+
+        <div className="bg-red-50 border border-red-100 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-red-500 uppercase tracking-wide">Con Descuento</span>
+            <Percent className="h-4 w-4 text-red-300" />
+          </div>
+          <p className="text-2xl font-bold text-red-600">{stats.discount}</p>
+          <p className="text-[11px] text-red-400/70 mt-1">tienen oferta activa</p>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Solo POS</span>
+            <Store className="h-4 w-4 text-slate-300" />
+          </div>
+          <p className="text-2xl font-bold text-slate-500">{stats.posOnly}</p>
+          <p className="text-[11px] text-slate-400 mt-1">no visibles online</p>
         </div>
       </div>
 
-      <Separator />
-
-      {/* KPIs - Indicadores visuales */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Productos"
-          value={stats.total}
-          icon={Package}
-          description="Productos activos"
-        />
-        <StatCard
-          title="Disponibles"
-          value={stats.available}
-          icon={ShoppingBag}
-          description="Visibles en tienda"
-        />
-        <StatCard
-          title="Variantes"
-          value={stats.variants}
-          icon={Layers}
-          description="Total de variantes"
-        />
-      </div>
-
-      {/* Lista de productos */}
-      <section>
-        <ProductsTable products={products} />
-      </section>
-
+      {/* Products table */}
+      <ProductsTable products={products} />
     </div>
   );
 }

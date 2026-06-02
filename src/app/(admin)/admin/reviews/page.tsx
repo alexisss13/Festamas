@@ -2,6 +2,7 @@ import { getAllReviews } from '@/actions/reviews';
 import { ReviewsManagement } from './ReviewsManagement';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, Clock, XCircle, LucideIcon } from 'lucide-react';
 import { getAdminBranch } from '@/actions/admin-settings';
@@ -22,8 +23,8 @@ interface Props {
 export default async function ReviewsPage({ searchParams }: Props) {
   const session = await auth();
 
-  if (!session?.user || !['ADMIN', 'SUPER_ADMIN', 'OWNER', 'MANAGER'].includes(session.user.role as string)) {
-    redirect('/');
+  if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
+    redirect('/admin-denied');
   }
 
   const branchId = await getAdminBranch();

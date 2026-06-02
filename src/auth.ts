@@ -30,7 +30,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
-          const user = await prisma.user.findUnique({ 
+          const user = await prisma.user.findUnique({
             where: { email: email.toLowerCase() },
             select: {
               id: true,
@@ -43,7 +43,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
               businessId: true,
               branchId: true,
               isActive: true,
-            }
+              permissions: true,
+            },
           });
 
           if (!user || !user.password) return null;

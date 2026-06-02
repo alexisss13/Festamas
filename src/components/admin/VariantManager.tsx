@@ -17,9 +17,6 @@ interface Variant {
   name: string;
   sku: string | null;
   barcode: string | null;
-  price: number | null;
-  cost: number;
-  minStock: number;
   attributes: any;
   images: string[];
   stock: Array<{
@@ -120,13 +117,13 @@ export function VariantManager({ productId, variants }: Props) {
   );
 }
 
-function VariantCard({ 
-  variant, 
-  onEdit, 
-  onDelete 
-}: { 
-  variant: Variant; 
-  onEdit: () => void; 
+function VariantCard({
+  variant,
+  onEdit,
+  onDelete
+}: {
+  variant: Variant;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const totalStock = variant.stock.reduce((sum, st) => sum + st.quantity, 0);
@@ -137,7 +134,7 @@ function VariantCard({
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="font-medium text-slate-900 mb-1">{variant.name}</div>
-          
+
           {Object.keys(attributes).length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
               {Object.entries(attributes).map(([key, value]) => (
@@ -155,7 +152,6 @@ function VariantCard({
             {variant.barcode && (
               <div>Código: <span className="font-mono font-medium">{variant.barcode}</span></div>
             )}
-            <div>Precio: <span className="font-medium text-slate-900">S/ {variant.price?.toFixed(2) || '0.00'}</span></div>
             <div>Stock: <span className="font-medium text-slate-900">{totalStock}</span></div>
           </div>
         </div>
@@ -187,26 +183,22 @@ function VariantCard({
   );
 }
 
-function VariantForm({ 
-  productId, 
-  variant, 
-  onSuccess, 
-  onCancel 
-}: { 
-  productId: string; 
-  variant?: Variant; 
-  onSuccess: () => void; 
+function VariantForm({
+  productId,
+  variant,
+  onSuccess,
+  onCancel
+}: {
+  productId: string;
+  variant?: Variant;
+  onSuccess: () => void;
   onCancel: () => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState(variant?.name || '');
   const [sku, setSku] = useState(variant?.sku || '');
   const [barcode, setBarcode] = useState(variant?.barcode || '');
-  const [price, setPrice] = useState(variant?.price?.toString() || '');
-  const [cost, setCost] = useState(variant?.cost.toString() || '0');
-  const [minStock, setMinStock] = useState(variant?.minStock.toString() || '5');
-  
-  // Atributos dinámicos
+
   const [attributes, setAttributes] = useState<Record<string, string>>(
     (variant?.attributes as Record<string, string>) || {}
   );
@@ -237,9 +229,6 @@ function VariantForm({
         name,
         sku: sku || undefined,
         barcode: barcode || undefined,
-        price: price ? parseFloat(price) : undefined,
-        cost: parseFloat(cost),
-        minStock: parseInt(minStock),
         attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
       };
 
@@ -293,41 +282,6 @@ function VariantForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="price">Precio</Label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
-        <div>
-          <Label htmlFor="cost">Costo *</Label>
-          <Input
-            id="cost"
-            type="number"
-            step="0.01"
-            value={cost}
-            onChange={(e) => setCost(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="minStock">Stock Mínimo *</Label>
-          <Input
-            id="minStock"
-            type="number"
-            value={minStock}
-            onChange={(e) => setMinStock(e.target.value)}
-            required
-          />
-        </div>
-      </div>
-
       <div>
         <Label>Atributos (Color, Talla, etc.)</Label>
         <div className="space-y-2 mt-2">
@@ -345,7 +299,7 @@ function VariantForm({
               </Badge>
             </div>
           ))}
-          
+
           <div className="flex gap-2">
             <Input
               placeholder="Atributo (ej: color)"

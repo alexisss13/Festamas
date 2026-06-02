@@ -8,7 +8,7 @@ const mapProductForBranch = (product: any, branchId: string, ecommerceCode?: str
   const firstVariant = product.variants[0];
   const variantStock = firstVariant?.stock?.find((item: any) => item.branchId === branchId);
   const stock = variantStock?.quantity ?? 0;
-  const price = Number(firstVariant?.price ?? product.basePrice ?? 0);
+  const price = Number(product.basePrice ?? 0);
   return {
     id: product.id,
     title: product.title,
@@ -42,6 +42,7 @@ export const getHomeData = async (businessId: string, branchId: string, ecommerc
         branchOwnerId: branchId,
         isAvailable: true,
         active: true,
+        availableChannels: { in: ['ECOMMERCE', 'BOTH'] },
       },
       orderBy: { createdAt: 'desc' },
       include: {

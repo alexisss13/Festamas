@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { OrderStatus } from '@prisma/client';
 import { auth } from '@/auth';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 const orderSchema = z.object({
   name: z.string().min(3),
@@ -40,13 +41,16 @@ export async function createOrder(data: CreateOrderInput) {
     return { success: false, message: 'Datos inválidos', errors: validation.error.flatten().fieldErrors };
   }
 
-  // Obtener el usuario actual si está logueado
   const session = await auth();
   const userId = session?.user?.id;
 
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+
   const order = await prisma.order.create({
     data: {
-      userId: userId || null, // Vincular al usuario si está logueado
+      userId: userId || null,
+      businessId: business.id,
+      branchId: activeBranch.id,
       clientName: data.name,
       clientPhone: data.phone,
       totalAmount: data.total,

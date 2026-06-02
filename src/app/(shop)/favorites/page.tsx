@@ -45,8 +45,8 @@ export default async function FavoritesPage() {
                 where: { branchId: activeBranch.id }
               }
             },
-            take: 1, 
-            orderBy: { price: 'asc' } 
+            take: 1,
+            orderBy: { createdAt: 'asc' }
           }
         }
       }
@@ -69,7 +69,7 @@ export default async function FavoritesPage() {
         title: fav.product.title,
         slug: fav.product.slug,
         images: firstVariant?.images?.length ? firstVariant.images : fav.product.images,
-        price: Number(firstVariant?.price ?? fav.product.basePrice ?? 0),
+        price: Number(fav.product.basePrice ?? 0),
         stock,
         isAvailable: fav.product.isAvailable,
         wholesalePrice: fav.product.wholesalePrice ? Number(fav.product.wholesalePrice) : 0,

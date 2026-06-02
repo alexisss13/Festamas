@@ -1,9 +1,11 @@
-// src/lib/auth-helpers.ts
 import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
 /**
- * Verifica si el usuario actual tiene acceso de administrador
- * Los usuarios OWNER solo pueden acceder a datos de su propio businessId
+ * Verifica que el usuario actual puede gestionar el admin de ecommerce.
+ * - SUPER_ADMIN y OWNER siempre pueden.
+ * - Otros roles necesitan el permiso `ecommerce_admin` en su JSON de permisos.
+ * - OWNER solo accede a su propio businessId.
  */
 export async function validateAdminAccess(requiredBusinessId?: string) {
   const session = await auth();
@@ -12,82 +14,41 @@ export async function validateAdminAccess(requiredBusinessId?: string) {
     return { authorized: false, error: 'No autenticado' };
   }
 
-  const adminRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
-  
-  if (!adminRoles.includes(session.user.role)) {
-    return { authorized: false, error: 'No tienes permisos de administrador' };
+  if (!canAccessEcommerceAdmin(session.user)) {
+    return { authorized: false, error: 'No tienes permiso para acceder al admin de ecommerce' };
   }
 
-  // Si es OWNER, validar que tenga businessId y que coincida con el requerido
   if (session.user.role === 'OWNER') {
     if (!session.user.businessId) {
       return { authorized: false, error: 'Usuario OWNER sin businessId asignado' };
     }
-
-    // Si se requiere un businessId específico, validar que coincida
     if (requiredBusinessId && session.user.businessId !== requiredBusinessId) {
-      return { 
-        authorized: false, 
-        error: 'No tienes acceso a este negocio' 
-      };
+      return { authorized: false, error: 'No tienes acceso a este negocio' };
     }
   }
 
-  return { 
-    authorized: true, 
+  return {
+    authorized: true,
     user: session.user,
     businessId: session.user.businessId,
-    branchId: session.user.branchId
+    branchId: session.user.branchId,
   };
 }
 
-/**
- * Obtiene el businessId del usuario actual
- * Para usuarios OWNER, retorna su businessId asignado
- * Para otros roles admin, puede retornar null (acceso a todos los negocios)
- */
+/** Retorna el businessId del usuario actual, o null. */
 export async function getCurrentUserBusinessId(): Promise<string | null> {
   const session = await auth();
-
-  if (!session?.user) {
-    return null;
-  }
-
-  // Si es OWNER, debe tener businessId
-  if (session.user.role === 'OWNER') {
-    return session.user.businessId || null;
-  }
-
-  // Otros roles pueden tener businessId opcional
-  return session.user.businessId || null;
+  return session?.user?.businessId ?? null;
 }
 
-/**
- * Verifica si el usuario tiene acceso a un negocio específico
- */
+/** Verifica si el usuario puede acceder a un businessId específico. */
 export async function canAccessBusiness(businessId: string): Promise<boolean> {
   const session = await auth();
+  if (!session?.user) return false;
+  if (!canAccessEcommerceAdmin(session.user)) return false;
 
-  if (!session?.user) {
-    return false;
-  }
+  if (session.user.role === 'SUPER_ADMIN') return true;
+  if (session.user.role === 'OWNER') return session.user.businessId === businessId;
 
-  const adminRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
-  
-  if (!adminRoles.includes(session.user.role)) {
-    return false;
-  }
-
-  // Si es OWNER, solo puede acceder a su propio negocio
-  if (session.user.role === 'OWNER') {
-    return session.user.businessId === businessId;
-  }
-
-  // SUPER_ADMIN puede acceder a cualquier negocio
-  if (session.user.role === 'SUPER_ADMIN') {
-    return true;
-  }
-
-  // Otros roles solo si tienen el businessId asignado
   return session.user.businessId === businessId;
 }

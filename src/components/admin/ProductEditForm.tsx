@@ -9,11 +9,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { updateProductEcommerce } from '@/actions/admin-products';
 import { toast } from 'sonner';
-import { Package, Lock, X } from 'lucide-react';
-import { VariantManager } from './VariantManager';
+import { Globe, Monitor, Store, X, Package, Info, Tag, Percent, Eye, EyeOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+type Channel = 'POS' | 'ECOMMERCE' | 'BOTH';
+
+const CHANNEL_OPTIONS: { value: Channel; label: string; description: string; icon: any; color: string }[] = [
+  {
+    value: 'BOTH',
+    label: 'Ambos canales',
+    description: 'Visible en tienda física y tienda online',
+    icon: Globe,
+    color: 'border-emerald-500 bg-emerald-50 text-emerald-800',
+  },
+  {
+    value: 'ECOMMERCE',
+    label: 'Solo E-commerce',
+    description: 'Visible únicamente en la tienda online',
+    icon: Monitor,
+    color: 'border-blue-500 bg-blue-50 text-blue-800',
+  },
+  {
+    value: 'POS',
+    label: 'Solo POS',
+    description: 'Visible solo en la tienda física — oculto en web',
+    icon: Store,
+    color: 'border-slate-400 bg-slate-50 text-slate-600',
+  },
+];
 
 interface Product {
   id: string;
@@ -23,6 +49,7 @@ interface Product {
   basePrice: number;
   images: string[];
   isAvailable: boolean;
+  availableChannels: Channel;
   tags: string[];
   groupTag: string | null;
   wholesalePrice: number | null;
@@ -32,506 +59,359 @@ interface Product {
   reviewCount: number;
   viewCount: number;
   salesCount: number;
-  category: {
-    id: string;
-    name: string;
-  };
-  supplier: {
-    id: string;
-    name: string;
-  } | null;
+  category: { id: string; name: string } | null;
+  supplier: { id: string; name: string } | null;
   variants: Array<{
     id: string;
     name: string;
     sku: string | null;
     barcode: string | null;
-    price: number | null;
-    cost: number;
-    minStock: number;
-    stock: Array<{
-      quantity: number;
-      branch: {
-        name: string;
-      };
-    }>;
+    stock: Array<{ quantity: number; branch: { name: string } }>;
   }>;
 }
 
-interface Props {
-  product: Product;
-}
-
-export function ProductEditForm({ product }: Props) {
+export function ProductEditForm({ product }: { product: Product }) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Estados editables
-  const [description, setDescription] = useState(product.description);
-  const [tags, setTags] = useState<string[]>(product.tags);
-  const [tagInput, setTagInput] = useState('');
-  const [groupTag, setGroupTag] = useState(product.groupTag || '');
-  const [isAvailable, setIsAvailable] = useState(product.isAvailable);
-  const [discountPercentage, setDiscountPercentage] = useState(product.discountPercentage);
+  const [saving, setSaving] = useState(false);
 
-  const handleAddTag = () => {
-    const trimmed = tagInput.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      setTags([...tags, trimmed]);
-      setTagInput('');
-    }
-  };
+  const [description, setDescription]         = useState(product.description);
+  const [tags, setTags]                        = useState<string[]>(product.tags);
+  const [tagInput, setTagInput]               = useState('');
+  const [groupTag, setGroupTag]               = useState(product.groupTag ?? '');
+  const [isAvailable, setIsAvailable]         = useState(product.isAvailable);
+  const [discountPercentage, setDiscount]     = useState(product.discountPercentage);
+  const [channel, setChannel]                 = useState<Channel>(product.availableChannels ?? 'BOTH');
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+  const addTag = () => {
+    const t = tagInput.trim().toLowerCase();
+    if (t && !tags.includes(t)) { setTags([...tags, t]); setTagInput(''); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
+    setSaving(true);
     try {
-      const result = await updateProductEcommerce(product.id, {
+      const res = await updateProductEcommerce(product.id, {
         description,
         tags,
         groupTag: groupTag || null,
         isAvailable,
         discountPercentage,
+        availableChannels: channel,
       });
-
-      if (result.success) {
-        toast.success('Producto actualizado correctamente');
+      if (res.success) {
+        toast.success('Producto actualizado');
         router.push('/admin/products');
         router.refresh();
       } else {
-        toast.error(result.error || 'Error al actualizar producto');
+        toast.error(res.error ?? 'Error al guardar');
       }
-    } catch (error) {
-      console.error(error);
-      toast.error('Error al actualizar producto');
     } finally {
-      setIsSubmitting(false);
+      setSaving(false);
     }
   };
+
+  const totalStock = product.variants.reduce(
+    (sum, v) => sum + v.stock.reduce((s, st) => s + st.quantity, 0),
+    0,
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Columna izquierda: Datos del POS (solo lectura) */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Lock className="w-5 h-5 text-slate-400" />
-                Datos del POS
+
+        {/* ── Left column: POS data (read-only) ── */}
+        <div className="lg:col-span-1 space-y-5">
+
+          {/* Product snapshot */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="h-4 w-4 text-slate-400" />
+                Datos del Producto
               </CardTitle>
-              <p className="text-xs text-slate-500">
-                Estos campos no se pueden editar desde aquí
-              </p>
+              <CardDescription className="text-[11px]">
+                Gestionado desde el ERP Zaiko
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              
-              {/* Imágenes */}
-              <div>
-                <Label className="text-xs text-slate-500 uppercase">Imágenes</Label>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {product.images.slice(0, 5).map((img, idx) => (
-                    <div key={idx} className="aspect-square bg-slate-100 rounded-lg overflow-hidden">
+              {/* Images */}
+              {product.images.length > 0 && (
+                <div className="grid grid-cols-4 gap-1.5">
+                  {product.images.slice(0, 4).map((img, i) => (
+                    <div key={i} className="aspect-square rounded-lg overflow-hidden bg-slate-50 border border-slate-100">
                       <Image
                         loader={cloudinaryLoader}
                         src={img}
-                        alt={`${product.title} ${idx + 1}`}
-                        width={100}
-                        height={100}
+                        alt={`${product.title} ${i + 1}`}
+                        width={80}
+                        height={80}
                         className="w-full h-full object-contain"
                       />
                     </div>
                   ))}
-                  {product.images.length === 0 && (
-                    <div className="aspect-square bg-slate-100 rounded-lg flex items-center justify-center">
-                      <Package className="w-8 h-8 text-slate-300" />
+                </div>
+              )}
+
+              <div className="space-y-2 text-sm">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Nombre</p>
+                  <p className="font-medium text-slate-800">{product.title}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Categoría</p>
+                    <p className="text-slate-700">{product.category?.name ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Proveedor</p>
+                    <p className="text-slate-700">{product.supplier?.name ?? '—'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Precio Base</p>
+                    <p className="font-semibold text-slate-800">S/ {product.basePrice.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Stock Total</p>
+                    <p className={cn('font-semibold', totalStock > 0 ? 'text-emerald-600' : 'text-red-500')}>{totalStock} u.</p>
+                  </div>
+                </div>
+                {product.wholesalePrice && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Precio Mayorista</p>
+                    <p className="text-slate-700">S/ {product.wholesalePrice.toFixed(2)} · mín. {product.wholesaleMinCount}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Variantes */}
+              {product.variants.length > 0 && (
+                <div className="pt-3 border-t border-slate-100">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-2">Variantes ({product.variants.length})</p>
+                  <div className="space-y-1.5">
+                    {product.variants.map(v => {
+                      const st = v.stock.reduce((s, r) => s + r.quantity, 0);
+                      return (
+                        <div key={v.id} className="flex justify-between items-center text-xs text-slate-600 bg-slate-50 rounded-md px-2.5 py-1.5">
+                          <span className="truncate">{v.name}</span>
+                          <span className={cn('font-semibold ml-2 flex-shrink-0', st > 0 ? 'text-emerald-600' : 'text-red-400')}>{st} u.</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="pt-3 border-t border-slate-100 grid grid-cols-3 gap-2">
+                {[
+                  { label: 'Ventas',  value: product.salesCount },
+                  { label: 'Vistas',  value: product.viewCount },
+                  { label: 'Reseñas', value: product.reviewCount },
+                ].map(s => (
+                  <div key={s.label} className="bg-slate-50 rounded-lg p-2 text-center">
+                    <p className="text-[10px] text-slate-400">{s.label}</p>
+                    <p className="text-base font-bold text-slate-800">{s.value}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── Right column: editable ecommerce fields ── */}
+        <div className="lg:col-span-2 space-y-5">
+
+          {/* Canal de ventas */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary" />
+                Canal de Ventas
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Controla dónde aparece este producto
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {CHANNEL_OPTIONS.map(opt => {
+                  const Icon = opt.icon;
+                  const isSelected = channel === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setChannel(opt.value)}
+                      className={cn(
+                        'flex flex-col items-start gap-1.5 p-3.5 rounded-xl border-2 text-left transition-all',
+                        isSelected
+                          ? opt.color + ' shadow-sm'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300',
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span className="text-sm font-semibold">{opt.label}</span>
+                      </div>
+                      <p className="text-[11px] leading-snug opacity-75">{opt.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Visibilidad + Descuento */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Percent className="h-4 w-4 text-primary" />
+                Visibilidad y Oferta
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {/* isAvailable toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50">
+                <div>
+                  <p className="text-sm font-medium text-slate-800">Disponible en tienda online</p>
+                  <p className="text-xs text-slate-500">Si está desactivado, no aparece aunque el canal sea Ecommerce</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAvailable(true)}
+                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border', isAvailable ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'border-slate-200 text-slate-500 bg-white')}
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Sí
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAvailable(false)}
+                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border', !isAvailable ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'border-slate-200 text-slate-500 bg-white')}
+                  >
+                    <EyeOff className="h-3.5 w-3.5" /> No
+                  </button>
+                </div>
+              </div>
+
+              {/* Discount */}
+              <div>
+                <Label className="text-sm font-semibold text-slate-700 mb-2 block">
+                  Descuento Web <span className="text-slate-400 font-normal">(0 – 100%)</span>
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={discountPercentage}
+                    onChange={e => setDiscount(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                    className="w-24 h-9 text-center font-bold"
+                  />
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={discountPercentage}
+                    onChange={e => setDiscount(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-slate-200 rounded-lg accent-primary"
+                  />
+                  {discountPercentage > 0 && (
+                    <div className="text-right">
+                      <Badge className="bg-red-100 text-red-700 font-bold">-{discountPercentage}%</Badge>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        S/ {(product.basePrice * (1 - discountPercentage / 100)).toFixed(2)}
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Nombre */}
-              <div>
-                <Label className="text-xs text-slate-500 uppercase">Nombre</Label>
-                <div className="mt-1 text-sm font-medium text-slate-900">
-                  {product.title}
-                </div>
-              </div>
-
-              {/* Categoría */}
-              <div>
-                <Label className="text-xs text-slate-500 uppercase">Categoría</Label>
-                <div className="mt-1 text-sm text-slate-700">
-                  {product.category.name}
-                </div>
-              </div>
-
-              {/* Proveedor */}
-              <div>
-                <Label className="text-xs text-slate-500 uppercase">Proveedor</Label>
-                <div className="mt-1 text-sm text-slate-700">
-                  {product.supplier?.name || '-'}
-                </div>
-              </div>
-
-              {/* Precio Base */}
-              <div>
-                <Label className="text-xs text-slate-500 uppercase">Precio Base</Label>
-                <div className="mt-1 text-sm font-medium text-slate-900">
-                  S/ {product.basePrice.toFixed(2)}
-                </div>
-              </div>
-
-              {/* Precio Mayorista */}
-              {product.wholesalePrice && (
-                <div>
-                  <Label className="text-xs text-slate-500 uppercase">Precio Mayorista</Label>
-                  <div className="mt-1 text-sm text-slate-700">
-                    S/ {product.wholesalePrice.toFixed(2)}
-                    {product.wholesaleMinCount && (
-                      <span className="text-xs text-slate-500 ml-1">
-                        (mín. {product.wholesaleMinCount})
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Descuento */}
-              {product.discountPercentage > 0 && (
-                <div>
-                  <Label className="text-xs text-slate-500 uppercase">Descuento</Label>
-                  <div className="mt-1">
-                    <Badge className="bg-red-100 text-red-700">
-                      {product.discountPercentage}% OFF
-                    </Badge>
-                  </div>
-                </div>
-              )}
-
-              {/* Estadísticas Automáticas */}
-              <div className="pt-4 border-t border-slate-200">
-                <Label className="text-xs text-slate-500 uppercase mb-3 block">Estadísticas</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs text-slate-500 mb-1">Ventas</div>
-                    <div className="text-lg font-bold text-slate-900">{product.salesCount}</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs text-slate-500 mb-1">Vistas</div>
-                    <div className="text-lg font-bold text-slate-900">{product.viewCount}</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs text-slate-500 mb-1">Reseñas</div>
-                    <div className="text-lg font-bold text-slate-900">{product.reviewCount}</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs text-slate-500 mb-1">Rating</div>
-                    <div className="text-lg font-bold text-slate-900">{product.averageRating.toFixed(1)} ⭐</div>
-                  </div>
-                </div>
-              </div>
-
             </CardContent>
           </Card>
 
-          {/* Variantes */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Lock className="w-5 h-5 text-slate-400" />
-                Variantes (Solo Lectura)
+          {/* SEO & Contenido */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Tag className="h-4 w-4 text-primary" />
+                SEO & Etiquetas
               </CardTitle>
-              <p className="text-xs text-slate-500">
-                Variantes creadas desde el POS - No editables aquí
-              </p>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {product.variants.map((variant) => {
-                const totalStock = variant.stock.reduce((sum, st) => sum + st.quantity, 0);
-                
-                return (
-                  <div key={variant.id} className="p-3 bg-slate-50 rounded-lg space-y-2">
-                    <div className="font-medium text-sm text-slate-900">
-                      {variant.name}
-                    </div>
-                    
-                    {variant.sku && (
-                      <div className="text-xs text-slate-600">
-                        SKU: <span className="font-mono">{variant.sku}</span>
-                      </div>
-                    )}
-                    
-                    {variant.barcode && (
-                      <div className="text-xs text-slate-600">
-                        Código: <span className="font-mono">{variant.barcode}</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-600">
-                        Precio: <span className="font-medium text-slate-900">
-                          S/ {variant.price ? variant.price.toFixed(2) : '0.00'}
-                        </span>
-                      </span>
-                      <span className="text-slate-600">
-                        Stock: <span className="font-medium text-slate-900">
-                          {totalStock}
-                        </span>
-                      </span>
-                    </div>
-
-                    {variant.stock.length > 0 && (
-                      <div className="pt-2 border-t border-slate-200">
-                        <div className="text-xs text-slate-500 mb-1">Por sucursal:</div>
-                        {variant.stock.map((st, idx) => (
-                          <div key={idx} className="text-xs text-slate-600 flex justify-between">
-                            <span>{st.branch.name}</span>
-                            <span className="font-medium">{st.quantity}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
-          {/* Gestión de Variantes Web */}
-          <VariantManager 
-            productId={product.id} 
-            variants={product.variants as any} 
-          />
-        </div>
-
-        {/* Columna derecha: Campos editables */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">
-                Información de E-commerce
-              </CardTitle>
-              <p className="text-xs text-slate-500">
-                Edita estos campos para mejorar la presentación en la tienda online
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              
-              {/* Descripción */}
+            <CardContent className="space-y-5">
+              {/* Description */}
               <div>
-                <Label htmlFor="description">
-                  Descripción del Producto
-                </Label>
+                <Label className="text-sm font-semibold text-slate-700 mb-1.5 block">Descripción</Label>
                 <Textarea
-                  id="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={6}
-                  placeholder="Describe el producto para tus clientes..."
-                  className="mt-1"
+                  onChange={e => setDescription(e.target.value)}
+                  rows={5}
+                  placeholder="Descripción para la tienda online…"
+                  className="resize-none"
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  Una buena descripción ayuda a los clientes a entender mejor el producto
-                </p>
               </div>
 
               {/* Tags */}
               <div>
-                <Label htmlFor="tags">
-                  Etiquetas (Tags)
+                <Label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                  Tags <span className="text-slate-400 font-normal text-xs">(búsqueda, filtros, secciones home)</span>
                 </Label>
-                <div className="flex gap-2 mt-1">
+                <div className="flex gap-2">
                   <Input
-                    id="tags"
                     value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddTag();
-                      }
-                    }}
-                    placeholder="Escribe una etiqueta y presiona Enter"
+                    onChange={e => setTagInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                    placeholder="ej: verano, niños, oferta"
+                    className="h-9"
                   />
-                  <Button
-                    type="button"
-                    onClick={handleAddTag}
-                    variant="outline"
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={addTag} className="h-9">
                     Agregar
                   </Button>
                 </div>
-                
                 {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="pl-2 pr-1 py-1"
-                      >
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="gap-1 pr-1 text-xs">
                         {tag}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTag(tag)}
-                          className="ml-1 hover:text-red-600"
-                        >
-                          <X className="w-3 h-3" />
+                        <button type="button" onClick={() => setTags(tags.filter(t => t !== tag))} className="hover:text-red-500 ml-0.5">
+                          <X className="h-3 w-3" />
                         </button>
                       </Badge>
                     ))}
                   </div>
                 )}
-                
-                <p className="text-xs text-slate-500 mt-1">
-                  Las etiquetas ayudan a organizar y filtrar productos
-                </p>
               </div>
 
-              {/* Group Tag */}
+              {/* Group tag */}
               <div>
-                <Label htmlFor="groupTag">
-                  Etiqueta de Grupo
+                <Label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                  Grupo <span className="text-slate-400 font-normal text-xs">(secciones Home, colecciones)</span>
                 </Label>
                 <Input
-                  id="groupTag"
                   value={groupTag}
-                  onChange={(e) => setGroupTag(e.target.value)}
-                  placeholder="Ej: nuevo, destacado, oferta"
-                  className="mt-1"
+                  onChange={e => setGroupTag(e.target.value.toUpperCase())}
+                  placeholder="Ej: NUEVO, DESTACADO, OFERTA"
+                  className="h-9 font-mono uppercase"
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  Usa esto para agrupar productos en secciones especiales de la tienda
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Permite agrupar productos en secciones especiales de la tienda
                 </p>
               </div>
-
-              {/* Disponibilidad */}
-              <div>
-                <Label htmlFor="isAvailable">
-                  Disponibilidad en E-commerce
-                </Label>
-                <div className="flex items-center gap-3 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAvailable(true)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                      isAvailable
-                        ? 'border-green-500 bg-green-50 text-green-700 font-medium'
-                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                    }`}
-                  >
-                    Disponible
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAvailable(false)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                      !isAvailable
-                        ? 'border-red-500 bg-red-50 text-red-700 font-medium'
-                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                    }`}
-                  >
-                    No disponible
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  Controla si el producto se muestra en la tienda online
-                </p>
-              </div>
-
-              {/* Descuento Web */}
-              <div>
-                <Label htmlFor="discountPercentage">
-                  Descuento Web (%)
-                </Label>
-                <div className="flex items-center gap-3 mt-2">
-                  <Input
-                    id="discountPercentage"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={discountPercentage}
-                    onChange={(e) => setDiscountPercentage(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
-                    className="w-32"
-                  />
-                  <div className="flex-1">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={discountPercentage}
-                      onChange={(e) => setDiscountPercentage(parseInt(e.target.value))}
-                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
-                    />
-                  </div>
-                  {discountPercentage > 0 && (
-                    <Badge className="bg-red-100 text-red-700 font-bold">
-                      {discountPercentage}% OFF
-                    </Badge>
-                  )}
-                </div>
-                
-                {/* Vista previa del precio con descuento */}
-                {discountPercentage > 0 && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="text-xs font-semibold text-blue-700 mb-2">Vista Previa del Precio:</div>
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-xs text-slate-500">Precio Original</div>
-                        <div className="text-sm font-medium text-slate-400 line-through">
-                          S/ {product.basePrice.toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="text-xl text-slate-400">→</div>
-                      <div>
-                        <div className="text-xs text-blue-700 font-semibold">Precio Final</div>
-                        <div className="text-lg font-bold text-blue-700">
-                          S/ {(product.basePrice * (1 - discountPercentage / 100)).toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="ml-auto">
-                        <div className="text-xs text-green-700">Ahorro</div>
-                        <div className="text-sm font-bold text-green-700">
-                          S/ {(product.basePrice * (discountPercentage / 100)).toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <p className="text-xs text-slate-500 mt-2">
-                  Aplica un descuento exclusivo para la tienda online (0-100%)
-                </p>
-              </div>
-
             </CardContent>
           </Card>
 
-          {/* Botones de acción */}
-          <div className="flex gap-3 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push('/admin/products')}
-              disabled={isSubmitting}
-            >
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2">
+            <Button type="button" variant="ghost" onClick={() => router.push('/admin/products')} disabled={saving}>
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+            <Button type="submit" disabled={saving} className="min-w-[140px]">
+              {saving ? 'Guardando…' : 'Guardar Cambios'}
             </Button>
           </div>
         </div>
-
       </div>
     </form>
   );

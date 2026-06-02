@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, ShoppingCart, Settings, LogOut, 
-  Ticket, Images, Store, Menu, ChevronLeft, ChevronRight, BookOpen, Star, Package
+import {
+  LayoutDashboard, ShoppingCart, Settings, LogOut, Menu,
+  ChevronLeft, ChevronRight, Tag, Images, Store, BookOpen,
+  Star, Ticket, Megaphone, Sparkles, ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -14,21 +15,43 @@ import { hexToHslString } from '@/lib/utils';
 import { logout } from '@/actions/auth-actions';
 import { AdminStoreSwitcher } from './AdminStoreSwitcher';
 
-
-const storeNavItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
-  { href: '/admin/products', label: 'Productos', icon: Package },
-  { href: '/admin/reviews', label: 'Reseñas', icon: Star },
-  { href: '/admin/catalogs', label: 'Catálogos', icon: BookOpen },
-  { href: '/admin/banners', label: 'Banners', icon: Images },
-  { href: '/admin/sections', label: 'Secciones Home', icon: Store },
+// ─── Nav structure ────────────────────────────────────────────
+const NAV_GROUPS = [
+  {
+    label: 'Operaciones',
+    items: [
+      { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/admin/orders',    label: 'Pedidos',   icon: ShoppingCart },
+    ],
+  },
+  {
+    label: 'Catálogo',
+    items: [
+      { href: '/admin/products', label: 'Mis Productos', icon: Tag },
+      { href: '/admin/reviews',  label: 'Reseñas',       icon: Star },
+    ],
+  },
+  {
+    label: 'Tienda Visual',
+    items: [
+      { href: '/admin/banners',   label: 'Banners',         icon: Images },
+      { href: '/admin/sections',  label: 'Secciones Inicio',icon: Store },
+      { href: '/admin/catalogs',  label: 'Catálogos',       icon: BookOpen },
+    ],
+  },
+  {
+    label: 'Marketing',
+    items: [
+      { href: '/admin/coupons', label: 'Cupones', icon: Ticket },
+    ],
+  },
 ];
 
-const globalNavItems = [
-  { href: '/admin/coupons', label: 'Cupones', icon: Ticket },
+const BOTTOM_ITEMS = [
   { href: '/admin/settings', label: 'Configuración', icon: Settings },
 ];
+
+// ─────────────────────────────────────────────────────────────
 
 interface Props {
   activeBranch: any;
@@ -40,145 +63,93 @@ export const AdminSidebar = ({ activeBranch, branches }: Props) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Detectar si estamos en un módulo global
-  const isGlobalModule = pathname.startsWith('/admin/coupons') || 
-                         pathname.startsWith('/admin/settings');
-
-  const brandName = activeBranch ? activeBranch.name : 'Tienda';
+  const brandName   = activeBranch?.name ?? 'Tienda';
   const primaryColor = activeBranch?.brandColors?.primary ?? '#fc4b65';
 
-  // Inyectar el color primario de la sucursal activa como variable CSS global
   useEffect(() => {
     document.documentElement.style.setProperty('--primary', hexToHslString(primaryColor));
   }, [primaryColor]);
 
   useEffect(() => {
-    const mainContent = document.getElementById('admin-main-content');
-    if (mainContent) {
-      if (window.innerWidth >= 768) {
-         mainContent.style.marginLeft = isCollapsed ? '80px' : '256px';
-      } else {
-         mainContent.style.marginLeft = '0px';
-      }
+    const el = document.getElementById('admin-main-content');
+    if (el && window.innerWidth >= 768) {
+      el.style.marginLeft = isCollapsed ? '80px' : '256px';
     }
   }, [isCollapsed]);
 
+  const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon: any }) => {
+    const isActive = pathname === href || (href !== '/admin/dashboard' && pathname.startsWith(href));
+    return (
+      <Link
+        href={href}
+        onClick={() => setIsMobileOpen(false)}
+        title={isCollapsed ? label : undefined}
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 group relative',
+          isCollapsed ? 'justify-center' : '',
+          isActive
+            ? 'bg-primary/10 text-primary font-semibold'
+            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
+        )}
+      >
+        <Icon className={cn('h-[18px] w-[18px] flex-shrink-0 transition-colors', isActive ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600')} />
+        {!isCollapsed && <span className="truncate">{label}</span>}
+        {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-7 rounded-r-full bg-primary" />}
+      </Link>
+    );
+  };
+
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white text-slate-600">
-      
-      <div className={cn(
-          "flex flex-col border-b px-4 py-4 gap-4 transition-all duration-300 border-slate-100", 
-          isCollapsed ? "items-center" : ""
-      )}>
-        {!isCollapsed && (
-            <span className="text-xl font-bold tracking-tighter flex items-center gap-2 text-slate-800 transition-colors px-2">
-              {isGlobalModule ? (
-                <>
-                  Sistema
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 uppercase font-bold text-slate-600 tracking-wider">
-                    Admin
-                  </span>
-                </>
-              ) : (
-                <>
-                  {brandName} 
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 uppercase font-bold text-primary tracking-wider">
-                    Admin
-                  </span>
-                </>
-              )}
-            </span>
-        )}
-        <AdminStoreSwitcher activeBranch={activeBranch} branches={branches} isCollapsed={isCollapsed} isGlobalModule={isGlobalModule} />
+    <div className="flex flex-col h-full bg-white">
+
+      {/* Header */}
+      <div className={cn('flex flex-col gap-3 border-b border-slate-100 px-4 py-4', isCollapsed && 'items-center')}>
+        
+        <AdminStoreSwitcher activeBranch={activeBranch} branches={branches} isCollapsed={isCollapsed} isGlobalModule={false} />
       </div>
-      
-      <nav className="flex-1 space-y-1 px-3 py-6 scrollbar-hide overflow-y-auto">
-        {/* Módulos de Tienda */}
-        {storeNavItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
 
-          return (
-            <Link 
-              key={item.href}
-              href={item.href} 
-              onClick={() => setIsMobileOpen(false)}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative",
-                isCollapsed ? "justify-center" : "",
-                isActive 
-                  ? "bg-primary/10 text-primary font-bold" 
-                  : "text-slate-500 hover:bg-primary/5 hover:text-primary"
-              )}
-              title={isCollapsed ? item.label : undefined}
-            >
-              <item.icon className={cn(
-                  "h-5 w-5 transition-colors", 
-                  isActive ? "text-primary" : "text-slate-400 group-hover:text-primary"
-              )} />
-              {!isCollapsed && <span>{item.label}</span>}
-              {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full bg-primary" />
-              )}
-            </Link>
-          );
-        })}
-
-        {/* Separador con etiqueta */}
-        {!isCollapsed ? (
-          <div className="pt-6 pb-2 px-3">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Global
-              </span>
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-hide">
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? 'pt-4' : ''}>
+            {/* Group label */}
+            {!isCollapsed ? (
+              <div className="px-3 mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{group.label}</span>
+              </div>
+            ) : (
+              gi > 0 && <div className="my-3 mx-auto w-6 h-px bg-slate-200" />
+            )}
+            {group.items.map(item => <NavLink key={item.href} {...item} />)}
           </div>
-        ) : (
-          <div className="my-4 mx-auto w-8 h-px bg-slate-300" />
-        )}
-
-        {/* Módulos Globales */}
-        {globalNavItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
-
-          return (
-            <Link 
-              key={item.href}
-              href={item.href} 
-              onClick={() => setIsMobileOpen(false)}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative",
-                isCollapsed ? "justify-center" : "",
-                isActive 
-                  ? "bg-slate-100 text-slate-900 font-bold" 
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              )}
-              title={isCollapsed ? item.label : undefined}
-            >
-              <item.icon className={cn(
-                  "h-5 w-5 transition-colors", 
-                  isActive ? "text-slate-700" : "text-slate-400 group-hover:text-slate-700"
-              )} />
-              {!isCollapsed && <span>{item.label}</span>}
-              {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full bg-slate-700" />
-              )}
-            </Link>
-          );
-        })}
+        ))}
       </nav>
 
-      <div className="border-t border-slate-100 p-4">
-        <Button 
-          variant="ghost" 
-          className={cn(
-              "w-full text-red-500 hover:bg-red-50 hover:text-red-600",
-              isCollapsed ? "justify-center px-0" : "justify-start gap-3"
-          )}
-          onClick={async () => await logout()}
+      {/* Bottom */}
+      <div className="border-t border-slate-100 p-3 space-y-1">
+        {BOTTOM_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
+
+        {/* Link to ERP */}
+        {!isCollapsed && (
+          <a
+            href="http://localhost:3001"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            <ExternalLink className="h-4 w-4 flex-shrink-0" />
+            <span>Abrir ERP Zaiko</span>
+          </a>
+        )}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn('w-full text-red-500 hover:bg-red-50 hover:text-red-600 text-sm', isCollapsed ? 'justify-center px-0' : 'justify-start gap-3')}
+          onClick={() => logout()}
         >
-          <LogOut className="h-5 w-5" />
-          {!isCollapsed && "Cerrar Sesión"}
+          <LogOut className="h-4 w-4 flex-shrink-0" />
+          {!isCollapsed && 'Cerrar sesión'}
         </Button>
       </div>
     </div>
@@ -186,51 +157,42 @@ export const AdminSidebar = ({ activeBranch, branches }: Props) => {
 
   return (
     <>
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-primary/20 flex items-center px-4 justify-between shadow-sm transition-colors print:hidden">
-         <div className="flex items-center gap-3">
-            <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-                <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="-ml-2">
-                        <Menu className="h-6 w-6 text-slate-600" />
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-72">
-                    <SheetHeader className="sr-only">
-                        <SheetTitle>Menú de Navegación</SheetTitle>
-                    </SheetHeader>
-                    <SidebarContent />
-                </SheetContent>
-            </Sheet>
-            {/* 👇 TÍTULO MÓVIL */}
-            <span className="font-bold text-lg text-slate-800 flex items-center gap-1.5">
-              {isGlobalModule ? (
-                <>
-                  Sistema <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 uppercase">Admin</span>
-                </>
-              ) : (
-                <>
-                  {brandName} <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary uppercase">Admin</span>
-                </>
-              )}
-            </span>
-         </div>
-         <div className="w-3 h-3 rounded-full border-2 border-white ring-1 ring-slate-100 bg-primary" />
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-white border-b border-slate-100 flex items-center px-4 justify-between shadow-sm print:hidden">
+        <div className="flex items-center gap-3">
+          <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="-ml-2">
+                <Menu className="h-5 w-5 text-slate-600" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-72 border-r border-slate-100">
+              <SheetHeader className="sr-only"><SheetTitle>Navegación</SheetTitle></SheetHeader>
+              <SidebarContent />
+            </SheetContent>
+          </Sheet>
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="font-bold text-sm text-slate-800">{brandName}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary uppercase font-bold">E-comm</span>
+          </div>
+        </div>
+        <Megaphone className="h-4 w-4 text-slate-300" />
       </div>
 
-      <aside 
-        className={cn(
-            "fixed inset-y-0 left-0 z-40 hidden md:flex flex-col border-r border-slate-200 bg-white transition-all duration-300 shadow-sm",
-            isCollapsed ? "w-20" : "w-64"
-        )}
-      >
+      {/* Desktop sidebar */}
+      <aside className={cn(
+        'fixed inset-y-0 left-0 z-40 hidden md:flex flex-col border-r border-slate-200 bg-white transition-all duration-300 shadow-sm',
+        isCollapsed ? 'w-20' : 'w-64',
+      )}>
         <SidebarContent />
-        <button 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute -right-3 top-20 bg-white border shadow-md rounded-full p-1 text-slate-400 hover:text-slate-900 transition-colors z-50"
+        <button
+          onClick={() => setIsCollapsed(c => !c)}
+          className="absolute -right-3 top-20 bg-white border border-slate-200 shadow-md rounded-full p-1 text-slate-400 hover:text-slate-700 transition-colors z-50"
         >
-            {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </button>
       </aside>
     </>
   );
-}
+};

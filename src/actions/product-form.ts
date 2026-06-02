@@ -78,8 +78,9 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
         await prisma.productVariant.update({
           where: { id: firstVariant.id },
           data: {
-             price, barcode, name: color || 'Default Variant',
-             attributes: color ? { color } : {}
+            barcode,
+            name: color || 'Default Variant',
+            attributes: color ? { color } : {},
           }
         });
       }
@@ -95,8 +96,7 @@ export async function createOrUpdateProduct(formData: FormData, id?: string) {
           productId: newProduct.id,
           name: color || 'Default Variant',
           barcode,
-          price,
-          attributes: color ? { color } : {}
+          attributes: color ? { color } : {},
         }
       });
       // Stock will be created separately when received in inventory, or we can create 0 stock here

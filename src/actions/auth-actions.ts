@@ -4,6 +4,7 @@ import { signIn, signOut } from '@/auth';
 import prisma from '@/lib/prisma';
 import { AuthError } from 'next-auth';
 import bcryptjs from 'bcryptjs';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
 // --- LOGIN CON GOOGLE ---
 export async function loginWithGoogle() {
@@ -21,14 +22,15 @@ export async function authenticate(prevState: string | undefined, formData: Form
     const password = formData.get('password') as string;
 
     // Validar que el usuario existe y está activo
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-      select: { 
+      select: {
         id: true,
         role: true,
         isActive: true,
         password: true,
-      }
+        permissions: true,
+      },
     });
 
     if (!user) {
@@ -46,9 +48,8 @@ export async function authenticate(prevState: string | undefined, formData: Form
       redirect: false,
     });
 
-    // Redirección según rol
-    const adminRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
-    if (adminRoles.includes(user.role)) {
+    // Redirección post-login según permisos
+    if (canAccessEcommerceAdmin({ role: user.role, permissions: user.permissions as any })) {
       return 'Redirect:Admin';
     }
 

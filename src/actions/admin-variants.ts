@@ -3,16 +3,14 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
 interface CreateVariantData {
   productId: string;
   name: string;
-  attributes?: Record<string, string>; // { color: "Rojo", talla: "M" }
+  attributes?: Record<string, string>;
   sku?: string;
   barcode?: string;
-  price?: number;
-  cost: number;
-  minStock: number;
   images?: string[];
 }
 
@@ -21,9 +19,6 @@ interface UpdateVariantData {
   attributes?: Record<string, string>;
   sku?: string;
   barcode?: string;
-  price?: number;
-  cost?: number;
-  minStock?: number;
   images?: string[];
   active?: boolean;
 }
@@ -31,12 +26,10 @@ interface UpdateVariantData {
 export async function createVariant(data: CreateVariantData) {
   try {
     const session = await auth();
-    const allowedRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER'];
-    if (!session?.user || !allowedRoles.includes(session.user.role)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No autorizado' };
     }
 
-    // Verificar que el producto existe
     const product = await prisma.product.findUnique({
       where: { id: data.productId },
     });
@@ -45,7 +38,6 @@ export async function createVariant(data: CreateVariantData) {
       return { success: false, error: 'Producto no encontrado' };
     }
 
-    // Crear la variante
     const variant = await prisma.productVariant.create({
       data: {
         productId: data.productId,
@@ -53,9 +45,6 @@ export async function createVariant(data: CreateVariantData) {
         attributes: data.attributes || {},
         sku: data.sku,
         barcode: data.barcode,
-        price: data.price,
-        cost: data.cost,
-        minStock: data.minStock,
         images: data.images || [],
         active: true,
       },
@@ -65,21 +54,14 @@ export async function createVariant(data: CreateVariantData) {
     revalidatePath(`/admin/products/${data.productId}`);
     revalidatePath(`/product/${product.slug}`);
 
-    // Serializar
-    const serializedVariant = {
-      ...variant,
-      price: variant.price ? Number(variant.price) : null,
-      cost: Number(variant.cost),
-    };
-
-    return { success: true, variant: serializedVariant };
+    return { success: true, variant };
   } catch (error: any) {
     console.error('Error al crear variante:', error);
-    
+
     if (error.code === 'P2002') {
       return { success: false, error: 'Ya existe una variante con ese nombre para este producto' };
     }
-    
+
     return { success: false, error: 'Error al crear variante' };
   }
 }
@@ -87,8 +69,7 @@ export async function createVariant(data: CreateVariantData) {
 export async function updateVariant(variantId: string, data: UpdateVariantData) {
   try {
     const session = await auth();
-    const allowedRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER'];
-    if (!session?.user || !allowedRoles.includes(session.user.role)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No autorizado' };
     }
 
@@ -98,9 +79,6 @@ export async function updateVariant(variantId: string, data: UpdateVariantData) 
     if (data.attributes !== undefined) updateData.attributes = data.attributes;
     if (data.sku !== undefined) updateData.sku = data.sku;
     if (data.barcode !== undefined) updateData.barcode = data.barcode;
-    if (data.price !== undefined) updateData.price = data.price;
-    if (data.cost !== undefined) updateData.cost = data.cost;
-    if (data.minStock !== undefined) updateData.minStock = data.minStock;
     if (data.images !== undefined) updateData.images = data.images;
     if (data.active !== undefined) updateData.active = data.active;
 
@@ -121,21 +99,14 @@ export async function updateVariant(variantId: string, data: UpdateVariantData) 
     revalidatePath(`/admin/products/${variant.product.id}`);
     revalidatePath(`/product/${variant.product.slug}`);
 
-    // Serializar
-    const serializedVariant = {
-      ...variant,
-      price: variant.price ? Number(variant.price) : null,
-      cost: Number(variant.cost),
-    };
-
-    return { success: true, variant: serializedVariant };
+    return { success: true, variant };
   } catch (error: any) {
     console.error('Error al actualizar variante:', error);
-    
+
     if (error.code === 'P2002') {
       return { success: false, error: 'Ya existe una variante con ese nombre para este producto' };
     }
-    
+
     return { success: false, error: 'Error al actualizar variante' };
   }
 }
@@ -143,12 +114,10 @@ export async function updateVariant(variantId: string, data: UpdateVariantData) 
 export async function deleteVariant(variantId: string) {
   try {
     const session = await auth();
-    const allowedRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER'];
-    if (!session?.user || !allowedRoles.includes(session.user.role)) {
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) {
       return { success: false, error: 'No autorizado' };
     }
 
-    // Obtener la variante con el producto
     const variant = await prisma.productVariant.findUnique({
       where: { id: variantId },
       include: {
@@ -165,7 +134,6 @@ export async function deleteVariant(variantId: string) {
       return { success: false, error: 'Variante no encontrada' };
     }
 
-    // Soft delete: marcar como inactiva en lugar de eliminar
     await prisma.productVariant.update({
       where: { id: variantId },
       data: { active: false },
@@ -182,7 +150,6 @@ export async function deleteVariant(variantId: string) {
   }
 }
 
-// Obtener atributos comunes para variantes (sugerencias)
 export async function getVariantAttributeSuggestions() {
   return {
     success: true,

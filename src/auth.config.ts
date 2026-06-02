@@ -1,37 +1,30 @@
 import type { NextAuthConfig } from 'next-auth';
 import prisma from '@/lib/prisma';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
 export const authConfig: NextAuthConfig = {
   pages: {
     signIn: '/auth/login',
     newUser: '/auth/new-account',
   },
-  
+
   callbacks: {
-    // 0. SignIn callback - Se ejecuta cuando un usuario inicia sesión
+    // ── SignIn: vincular Customer al User OAuth ───────────────────────────────
     async signIn({ user, account }) {
-      // Solo procesar para OAuth (Google, etc.)
       if (account?.provider === 'google' && user.email) {
         try {
-          // Buscar el usuario en la base de datos
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email.toLowerCase() },
-            select: { id: true, customerId: true }
+            select: { id: true, customerId: true },
           });
 
-          // Si el usuario existe pero no tiene Customer vinculado
           if (dbUser && !dbUser.customerId) {
-            // Buscar si existe un Customer con este email (creado desde el POS)
             let customer = await prisma.customer.findFirst({
               where: { email: user.email.toLowerCase() },
             });
 
-            // Si no existe Customer, crear uno nuevo
             if (!customer) {
-              const business = await prisma.business.findFirst({
-                select: { id: true }
-              });
-
+              const business = await prisma.business.findFirst({ select: { id: true } });
               if (business) {
                 customer = await prisma.customer.create({
                   data: {
@@ -46,25 +39,22 @@ export const authConfig: NextAuthConfig = {
               }
             }
 
-            // Vincular el Customer al User
             if (customer) {
               await prisma.user.update({
                 where: { id: dbUser.id },
-                data: { customerId: customer.id }
+                data: { customerId: customer.id },
               });
             }
           }
         } catch (error) {
           console.error('Error vinculando Customer en signIn:', error);
-          // No bloqueamos el login si falla la vinculación
         }
       }
-      
       return true;
     },
 
-    // 1. El JWT se genera primero
-    async jwt({ token, user, trigger }) {
+    // ── JWT: persiste datos del usuario incluyendo permisos ──────────────────
+    async jwt({ token, user }) {
       if (user) {
         token.data = {
           id: user.id,
@@ -75,18 +65,13 @@ export const authConfig: NextAuthConfig = {
           image: user.image,
           businessId: user.businessId,
           branchId: user.branchId,
+          permissions: (user as any).permissions ?? null,
         };
       }
-      
-      // Si se actualiza la sesión, refrescar datos del usuario
-      if (trigger === 'update') {
-        // Aquí podrías refrescar los datos del usuario si es necesario
-      }
-      
       return token;
     },
 
-    // 2. La Sesión lee del JWT
+    // ── Session: expone datos del JWT ─────────────────────────────────────────
     async session({ session, token }) {
       if (token.data) {
         session.user = token.data as any;
@@ -94,36 +79,33 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
 
-    // 3. Middleware de protección
+    // ── Authorized: middleware de rutas ───────────────────────────────────────
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const userRole = auth?.user?.role;
-      
-      // Proteger rutas de admin
-      const isAdminRoute = nextUrl.pathname.startsWith('/admin');
-      if (isAdminRoute) {
+      const user = auth?.user as any;
+
+      // ── Rutas admin ──
+      if (nextUrl.pathname.startsWith('/admin')) {
         if (!isLoggedIn) return false;
-        
-        const adminRoles = ['ADMIN', 'OWNER', 'SUPER_ADMIN', 'MANAGER', 'SELLER'];
-        if (!adminRoles.includes(userRole as string)) {
-          return false;
-        }
-        
-        return true;
+
+        // Verificación rápida con datos del JWT (sin DB)
+        if (canAccessEcommerceAdmin(user)) return true;
+
+        // Usuario logueado pero sin permiso → redirigir a página de acceso denegado
+        return Response.redirect(new URL('/admin-denied', nextUrl));
       }
 
-      // Proteger rutas de perfil y pedidos
-      const isProtectedRoute = nextUrl.pathname.startsWith('/profile') || 
-                               nextUrl.pathname.startsWith('/orders') ||
-                               nextUrl.pathname.startsWith('/favorites');
-      
-      if (isProtectedRoute && !isLoggedIn) {
-        return false;
-      }
+      // ── Rutas protegidas del cliente ──
+      const isProtected =
+        nextUrl.pathname.startsWith('/profile') ||
+        nextUrl.pathname.startsWith('/orders') ||
+        nextUrl.pathname.startsWith('/favorites');
+
+      if (isProtected && !isLoggedIn) return false;
 
       return true;
     },
   },
-  
-  providers: [], // Los providers se configuran en auth.ts
+
+  providers: [],
 };
