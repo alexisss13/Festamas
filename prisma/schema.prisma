@@ -681,7 +681,8 @@ model VariantAttribute {
 model StockMovement {
   id            String       @id @default(uuid())
   variantId     String
-  branchId      String
+  branchId      String?
+  warehouseId   String?
   userId        String
   type          MovementType
   quantity      Int
@@ -690,9 +691,10 @@ model StockMovement {
   reason        String?
   createdAt     DateTime     @default(now())
 
-  variant ProductVariant @relation(fields: [variantId], references: [id])
-  branch  Branch         @relation(fields: [branchId], references: [id])
-  user    User           @relation(fields: [userId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  branch    Branch?        @relation(fields: [branchId], references: [id])
+  warehouse Warehouse?     @relation(fields: [warehouseId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
 }
 
 model PurchaseOrder {
@@ -781,6 +783,7 @@ model Business {
   loyaltyRedeemRate Decimal @default(0.1) @db.Decimal(10, 2)
 
   branches       Branch[]
+  warehouses     Warehouse[]
   users          User[]
   products       Product[]
   categories     Category[]
@@ -825,19 +828,14 @@ model Branch {
   ecommerceCode      String? @unique
   attendanceQrToken  String? @unique
 
-  isWarehouse    Boolean @default(false)
-  parentBranchId String?
-  parentBranch   Branch?  @relation("SubLocations", fields: [parentBranchId], references: [id])
-  subLocations   Branch[] @relation("SubLocations")
-
   business       Business        @relation(fields: [businessId], references: [id])
   stock          Stock[]
   stockMovements StockMovement[]
   users          User[]
   cashSessions   CashSession[]
   sales          Sale[]
-  transfersOut   StockTransfer[] @relation("TransferFrom")
-  transfersIn    StockTransfer[] @relation("TransferTo")
+  transfersOut   StockTransfer[] @relation("TransferFromBranch")
+  transfersIn    StockTransfer[] @relation("TransferToBranch")
   attendances    Attendance[]
 
   banners       Banner[]
@@ -852,6 +850,31 @@ model Branch {
 
   orders Order[]
   quotes Quote[]
+}
+
+// ==========================================
+// 🏭 ALMACENES (BODEGAS)
+// ==========================================
+model Warehouse {
+  id         String  @id @default(uuid())
+  businessId String
+  name       String
+  address    String?
+  phone      String?
+  notes      String?
+  isActive   Boolean @default(true)
+
+  business       Business        @relation(fields: [businessId], references: [id])
+  stock          Stock[]
+  stockMovements StockMovement[]
+  transfersOut   StockTransfer[] @relation("TransferFromWarehouse")
+  transfersIn    StockTransfer[] @relation("TransferToWarehouse")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, isActive])
 }
 
 model Partner {
@@ -887,18 +910,22 @@ model PartnerProduct {
 // 💸 OPERACIONES Y PUNTOS
 // ==========================================
 model Stock {
-  id        String @id @default(uuid())
-  branchId  String
-  variantId String
-  quantity  Int    @default(0)
+  id          String  @id @default(uuid())
+  branchId    String?
+  warehouseId String?
+  variantId   String
+  quantity    Int     @default(0)
 
-  branch  Branch         @relation(fields: [branchId], references: [id])
-  variant ProductVariant @relation(fields: [variantId], references: [id])
+  branch    Branch?    @relation(fields: [branchId], references: [id])
+  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
 
   updatedAt DateTime @updatedAt
 
   @@unique([branchId, variantId])
+  @@unique([warehouseId, variantId])
   @@index([branchId])
+  @@index([warehouseId])
   @@index([branchId, quantity])
 }
 
@@ -1089,16 +1116,21 @@ model AuditLog {
 }
 
 model StockTransfer {
-  id            String         @id @default(uuid())
-  fromBranchId  String
-  toBranchId    String
-  requestedById String
-  status        TransferStatus @default(PENDING)
+  id              String         @id @default(uuid())
+  fromBranchId    String?
+  fromWarehouseId String?
+  toBranchId      String?
+  toWarehouseId   String?
+  requestedById   String
+  status          TransferStatus @default(PENDING)
+  notes           String?
 
-  fromBranch  Branch              @relation("TransferFrom", fields: [fromBranchId], references: [id])
-  toBranch    Branch              @relation("TransferTo", fields: [toBranchId], references: [id])
-  requestedBy User                @relation(fields: [requestedById], references: [id])
-  items       StockTransferItem[]
+  fromBranch    Branch?    @relation("TransferFromBranch",    fields: [fromBranchId],    references: [id])
+  fromWarehouse Warehouse? @relation("TransferFromWarehouse", fields: [fromWarehouseId], references: [id])
+  toBranch      Branch?    @relation("TransferToBranch",      fields: [toBranchId],      references: [id])
+  toWarehouse   Warehouse? @relation("TransferToWarehouse",   fields: [toWarehouseId],   references: [id])
+  requestedBy   User       @relation(fields: [requestedById], references: [id])
+  items         StockTransferItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
