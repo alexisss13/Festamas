@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { OrderStatus } from '@prisma/client';
 import { auth } from '@/auth';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+import { sendNewOrderEmail, sendStatusEmail } from '@/lib/email';
 
 const orderSchema = z.object({
   name: z.string().min(3),
@@ -69,10 +70,26 @@ export async function createOrder(data: CreateOrderInput) {
           price: item.price,
         })),
       },
+      trackingEvents: {
+        create: { status: 'PENDING', description: 'Pedido recibido y pendiente de pago' },
+      },
     },
   });
 
   revalidatePath('/profile/orders');
+
+  void sendNewOrderEmail({
+    orderId: order.id,
+    customerName: data.name,
+    customerPhone: data.phone,
+    totalAmount: data.total,
+    items: data.items.map(i => ({ title: i.title ?? 'Producto', quantity: i.quantity })),
+    deliveryMethod: data.deliveryMethod ?? 'PICKUP',
+    shippingAddress: data.shippingAddress,
+    shippingCost: data.shippingCost ?? 0,
+    notes: data.notes,
+  });
+
   return { success: true, orderId: order.id };
 }
 
@@ -96,7 +113,10 @@ export async function getOrders() {
 export async function getOrderById(id: string) {
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { orderItems: true },
+    include: {
+      orderItems: true,
+      trackingEvents: { orderBy: { createdAt: 'asc' } },
+    },
   });
   if (!order) return null;
   return {
@@ -110,18 +130,33 @@ export async function getOrderById(id: string) {
   };
 }
 
-export async function updateOrderStatus(id: string, newStatus: OrderStatus, isPaid: boolean) {
+const STATUS_TRACKING_DESC: Record<string, string> = {
+  PENDING:          'Pedido recibido y pendiente de pago',
+  PAID:             'Pago confirmado',
+  PROCESSING:       'Pedido en preparación',
+  SHIPPED:          'Pedido enviado al transportista',
+  READY_FOR_PICKUP: 'Listo para recoger en tienda',
+  DELIVERED:        'Pedido entregado al cliente',
+  CANCELLED:        'Pedido cancelado',
+};
+
+export async function updateOrderStatus(
+  id: string,
+  newStatus: OrderStatus,
+  isPaid: boolean,
+  extra?: { trackingNumber?: string | null; carrier?: string | null; cancelReason?: string | null }
+) {
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { 
-      user: { 
-        select: { 
-          id: true, 
+    include: {
+      user: {
+        select: {
+          id: true,
           customerId: true,
           email: true,
           businessId: true
-        } 
-      } 
+        }
+      }
     }
   });
 
@@ -132,8 +167,44 @@ export async function updateOrderStatus(id: string, newStatus: OrderStatus, isPa
   // Actualizar el pedido
   await prisma.order.update({
     where: { id },
-    data: { status: newStatus, isPaid },
+    data: {
+      status: newStatus,
+      isPaid,
+      ...(extra?.trackingNumber !== undefined && { trackingNumber: extra.trackingNumber }),
+      ...(extra?.carrier !== undefined && { carrier: extra.carrier }),
+      ...(extra?.cancelReason !== undefined && { cancelReason: extra.cancelReason }),
+      ...(newStatus === 'SHIPPED' && !order.shippedAt && { shippedAt: new Date() }),
+      ...(newStatus === 'DELIVERED' && !order.deliveredAt && { deliveredAt: new Date() }),
+      ...(newStatus === 'CANCELLED' && !order.cancelledAt && { cancelledAt: new Date() }),
+    },
   });
+
+  // Registrar evento en el historial si el estado cambió
+  if (newStatus !== order.status) {
+    const desc = newStatus === 'SHIPPED' && extra?.carrier
+      ? `Enviado con ${extra.carrier}${extra.trackingNumber ? ` · Tracking: ${extra.trackingNumber}` : ''}`
+      : newStatus === 'CANCELLED' && extra?.cancelReason
+        ? `Cancelado: ${extra.cancelReason}`
+        : STATUS_TRACKING_DESC[newStatus] ?? newStatus;
+
+    await prisma.orderTracking.create({
+      data: { orderId: id, status: newStatus, description: desc },
+    });
+  }
+
+  // Enviar email al cliente en cambios de estado clave
+  const EMAIL_STATUSES = ['PAID', 'SHIPPED', 'READY_FOR_PICKUP', 'DELIVERED', 'CANCELLED'];
+  if (newStatus !== order.status && EMAIL_STATUSES.includes(newStatus) && order.user?.email) {
+    void sendStatusEmail({
+      orderId: id,
+      customerName: order.clientName,
+      customerEmail: order.user.email,
+      status: newStatus,
+      trackingNumber: extra?.trackingNumber,
+      carrier: extra?.carrier,
+      cancelReason: extra?.cancelReason,
+    });
+  }
 
   // Si el pedido se marca como pagado y tiene usuario con Customer vinculado
   if (isPaid && !order.isPaid && order.user?.customerId) {

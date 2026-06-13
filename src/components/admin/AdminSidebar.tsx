@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Settings, LogOut, Menu,
   ChevronLeft, ChevronRight, Tag, Images, Store, BookOpen,
-  Star, Ticket, Megaphone, Sparkles, ExternalLink,
+  Star, Ticket, Megaphone, Sparkles, ExternalLink, Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -27,8 +27,9 @@ const NAV_GROUPS = [
   {
     label: 'Catálogo',
     items: [
-      { href: '/admin/products', label: 'Mis Productos', icon: Tag },
-      { href: '/admin/reviews',  label: 'Reseñas',       icon: Star },
+      { href: '/admin/products',    label: 'Mis Productos', icon: Tag },
+      { href: '/admin/collections', label: 'Colecciones',   icon: Layers },
+      { href: '/admin/reviews',     label: 'Reseñas',       icon: Star },
     ],
   },
   {
@@ -132,7 +133,7 @@ export const AdminSidebar = ({ activeBranch, branches }: Props) => {
         {/* Link to ERP */}
         {!isCollapsed && (
           <a
-            href="http://localhost:3001"
+            href={process.env.NEXT_PUBLIC_ERP_URL ?? 'http://localhost:3001'}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"

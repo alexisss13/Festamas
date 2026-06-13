@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { OrderActions } from './OrderActions';
 import { MapPin, Store, Truck, MessageSquarePlus } from 'lucide-react';
+import { OrderTimeline } from './OrderTimeline';
 
 
 interface Props {
@@ -77,7 +78,7 @@ export default async function OrderDetailPage({ params }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* COLUMNA IZQUIERDA: ITEMS */}
+        {/* COLUMNA IZQUIERDA: ITEMS + TIMELINE */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader><CardTitle>Productos</CardTitle></CardHeader>
@@ -136,11 +137,20 @@ export default async function OrderDetailPage({ params }: Props) {
               </div>
             </CardContent>
           </Card>
+
+          <OrderTimeline events={order.trackingEvents} />
         </div>
 
         {/* COLUMNA DERECHA: INFO Y ACCIONES */}
         <div className="space-y-6">
-          <OrderActions orderId={order.id} initialStatus={order.status} initialIsPaid={order.isPaid} />
+          <OrderActions
+            orderId={order.id}
+            initialStatus={order.status}
+            initialIsPaid={order.isPaid}
+            initialTracking={order.trackingNumber}
+            initialCarrier={order.carrier}
+            initialCancelReason={order.cancelReason}
+          />
 
           {/* DATOS DE ENTREGA */}
           <Card>

@@ -1,6 +1,7 @@
-import { Plus, BookOpen, Eye, EyeOff, LucideIcon } from 'lucide-react';
+import { Plus, BookOpen, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { StatCard } from '@/components/admin/StatCard';
 import { getAdminCatalogs } from '@/actions/catalogs';
 import { getAdminBranch } from '@/actions/admin-settings';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
@@ -15,32 +16,6 @@ export default async function AdminCatalogsPage() {
   const activeBranch = branches.find((b: any) => b.id === branchId) ?? branches[0];
   const storeName = activeBranch ? activeBranch.name : 'Tienda';
   const filteredCatalogs = catalogs?.filter((c: any) => c.branchId === activeBranch?.id) || [];
-
-  // Componente de KPI card
-  function StatCard({ 
-    title, 
-    value, 
-    icon: Icon, 
-    description
-  }: { 
-    title: string; 
-    value: number; 
-    icon: LucideIcon; 
-    description: string;
-  }) {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs sm:text-sm font-semibold text-slate-600 leading-tight">{title}</span>
-          <div className="p-2 sm:p-2.5 rounded-full bg-primary/10 shrink-0">
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-          </div>
-        </div>
-        <div className="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{value}</div>
-        <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 font-medium leading-tight">{description}</p>
-      </div>
-    );
-  }
 
   // Calcular estadísticas
   const stats = {

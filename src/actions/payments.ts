@@ -4,6 +4,7 @@ import { MercadoPagoConfig, Preference } from "mercadopago";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { getEcommerceContextFromCookie } from "@/lib/ecommerce-context";
+import { reserveCartItems } from '@/actions/reservations';
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -28,10 +29,29 @@ export async function createPreference(data: CheckoutData) {
   }
 
   try {
+    // 0. Verificar y reservar stock
+    const reservation = await reserveCartItems(
+      data.items.map((item: any) => ({ productId: item.id, quantity: item.quantity }))
+    );
+    if (!reservation.success) {
+      return { success: false, message: reservation.message ?? 'Stock insuficiente' };
+    }
+
     const rawUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
     const baseUrl = rawUrl.trim().replace(/\/$/, "");
 
     const { business, activeBranch } = await getEcommerceContextFromCookie();
+
+    // Build variantId map from reservation
+    const variantLookup: Record<string, string> = {};
+    for (const item of data.items as any[]) {
+      const variant = await prisma.productVariant.findFirst({
+        where: { productId: item.id, active: true },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+      });
+      if (variant) variantLookup[item.id] = variant.id;
+    }
 
     // 1. Crear Orden en BD
     const newOrder = await prisma.order.create({
@@ -50,8 +70,8 @@ export async function createPreference(data: CheckoutData) {
         shippingCost: data.shippingCost,
         notes: data.notes,
         orderItems: {
-          create: data.items.map((item) => ({
-            variantId: null,
+          create: data.items.map((item: any) => ({
+            variantId: variantLookup[item.id] ?? null,
             productName: item.title,
             variantName: null,
             quantity: item.quantity,

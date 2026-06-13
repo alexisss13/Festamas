@@ -2,7 +2,8 @@ import { getOrders } from '@/actions/order';
 import { OrdersView } from './OrdersView';
 import { ExportButton } from './ExportButton';
 import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, Truck, Clock, CheckCircle2, LucideIcon } from 'lucide-react';
+import { StatCard } from '@/components/admin/StatCard';
+import { ShoppingCart, Truck, Clock, CheckCircle2, PackageCheck, Send, Store } from 'lucide-react';
 
 export default async function AdminOrdersPage() {
   const { success, data: orders } = await getOrders();
@@ -25,57 +26,30 @@ export default async function AdminOrdersPage() {
     orderItems: order.orderItems.map((item: any) => ({
       ...item,
       price: Number(item.price),
-      product: {
-        ...item.product,
-        price: Number(item.product.price),
-        wholesalePrice: item.product.wholesalePrice 
-          ? Number(item.product.wholesalePrice) 
-          : 0,
-        // 👇 SOLUCIÓN AL ERROR: Convertimos 'cost' que venía como Decimal
-        cost: item.product.cost 
-          ? Number(item.product.cost) 
-          : 0, 
-      },
+      product: item.product
+        ? {
+            ...item.product,
+            price: Number(item.product.price),
+            wholesalePrice: item.product.wholesalePrice
+              ? Number(item.product.wholesalePrice)
+              : 0,
+            cost: item.product.cost
+              ? Number(item.product.cost)
+              : 0,
+          }
+        : null,
     })),
   }));
 
-  // Componente de KPI card (solo visual, no clickeable)
-  function StatCard({ 
-    title, 
-    value, 
-    icon: Icon, 
-    description
-  }: { 
-    title: string; 
-    value: number; 
-    icon: LucideIcon; 
-    description: string;
-  }) {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs sm:text-sm font-semibold text-slate-600 leading-tight">{title}</span>
-          <div className="p-2 sm:p-2.5 rounded-full bg-primary/10 shrink-0">
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-          </div>
-        </div>
-        <div className="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{value}</div>
-        <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 font-medium leading-tight">{description}</p>
-      </div>
-    );
-  }
-
   // Calcular estadísticas
   const stats = {
-    total: plainOrders.length,
-    // Por Despachar: Pagados pero no entregados (PAID status)
-    toDispatch: plainOrders.filter((o: any) => o.isPaid && o.status === 'PAID').length,
-    // Por Pagar: Pendientes de pago (PENDING status y no pagado)
-    toPay: plainOrders.filter((o: any) => !o.isPaid && o.status === 'PENDING').length,
-    // Completados: Entregados
-    completed: plainOrders.filter((o: any) => o.status === 'DELIVERED').length,
-    // Cancelados
-    cancelled: plainOrders.filter((o: any) => o.status === 'CANCELLED').length,
+    total:          plainOrders.length,
+    toPay:          plainOrders.filter((o: any) => !o.isPaid && o.status === 'PENDING').length,
+    toDispatch:     plainOrders.filter((o: any) => o.isPaid && o.status === 'PAID').length,
+    processing:     plainOrders.filter((o: any) => o.status === 'PROCESSING').length,
+    shipped:        plainOrders.filter((o: any) => o.status === 'SHIPPED').length,
+    readyPickup:    plainOrders.filter((o: any) => o.status === 'READY_FOR_PICKUP').length,
+    completed:      plainOrders.filter((o: any) => o.status === 'DELIVERED').length,
   };
 
   return (
@@ -95,33 +69,20 @@ export default async function AdminOrdersPage() {
 
       <Separator />
 
-      {/* KPIs - Indicadores visuales */}
+      {/* KPIs */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Pedidos"
-          value={stats.total}
-          icon={ShoppingCart}
-          description="Órdenes registradas"
-        />
-        <StatCard
-          title="Por Despachar"
-          value={stats.toDispatch}
-          icon={Truck}
-          description="Pagados pendientes de envío"
-        />
-        <StatCard
-          title="Por Pagar"
-          value={stats.toPay}
-          icon={Clock}
-          description="Esperando confirmación"
-        />
-        <StatCard
-          title="Completados"
-          value={stats.completed}
-          icon={CheckCircle2}
-          description="Entregados exitosamente"
-        />
+        <StatCard title="Total Pedidos"   value={stats.total}       icon={ShoppingCart} description="Órdenes registradas" />
+        <StatCard title="Por Pagar"       value={stats.toPay}       icon={Clock}        description="Esperando confirmación" />
+        <StatCard title="Por Despachar"   value={stats.toDispatch}  icon={Truck}        description="Pagados, pendientes de envío" />
+        <StatCard title="Completados"     value={stats.completed}   icon={CheckCircle2} description="Entregados exitosamente" />
       </div>
+      {(stats.processing > 0 || stats.shipped > 0 || stats.readyPickup > 0) && (
+        <div className="grid gap-3 sm:gap-4 grid-cols-3">
+          <StatCard title="En Preparación" value={stats.processing}  icon={PackageCheck} description="Procesando pedido" />
+          <StatCard title="Enviados"        value={stats.shipped}     icon={Send}         description="En camino al cliente" />
+          <StatCard title="Listo Recoger"   value={stats.readyPickup} icon={Store}        description="Disponible en tienda" />
+        </div>
+      )}
 
       {/* Tabla de pedidos */}
       <section>

@@ -12,8 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { updateProductEcommerce } from '@/actions/admin-products';
 import { toast } from 'sonner';
-import { Globe, Monitor, Store, X, Package, Info, Tag, Percent, Eye, EyeOff } from 'lucide-react';
+import { Globe, Monitor, Store, X, Package, Tag, Percent, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const ERP_URL = process.env.NEXT_PUBLIC_ERP_URL ?? 'http://localhost:3001';
 
 type Channel = 'POS' | 'ECOMMERCE' | 'BOTH';
 
@@ -46,6 +48,7 @@ interface Product {
   title: string;
   slug: string;
   description: string;
+  ecommerceDescription: string | null;
   basePrice: number;
   images: string[];
   isAvailable: boolean;
@@ -74,13 +77,13 @@ export function ProductEditForm({ product }: { product: Product }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
-  const [description, setDescription]         = useState(product.description);
-  const [tags, setTags]                        = useState<string[]>(product.tags);
-  const [tagInput, setTagInput]               = useState('');
-  const [groupTag, setGroupTag]               = useState(product.groupTag ?? '');
-  const [isAvailable, setIsAvailable]         = useState(product.isAvailable);
-  const [discountPercentage, setDiscount]     = useState(product.discountPercentage);
-  const [channel, setChannel]                 = useState<Channel>(product.availableChannels ?? 'BOTH');
+  const [ecommerceDescription, setEcommerceDescription] = useState(product.ecommerceDescription ?? '');
+  const [tags, setTags]                                  = useState<string[]>(product.tags);
+  const [tagInput, setTagInput]                          = useState('');
+  const [groupTag, setGroupTag]                          = useState(product.groupTag ?? '');
+  const [isAvailable, setIsAvailable]                    = useState(product.isAvailable);
+  const [discountPercentage, setDiscount]                = useState(product.discountPercentage);
+  const [channel, setChannel]                            = useState<Channel>(product.availableChannels ?? 'BOTH');
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase();
@@ -92,7 +95,7 @@ export function ProductEditForm({ product }: { product: Product }) {
     setSaving(true);
     try {
       const res = await updateProductEcommerce(product.id, {
-        description,
+        ecommerceDescription: ecommerceDescription || null,
         tags,
         groupTag: groupTag || null,
         isAvailable,
@@ -126,13 +129,26 @@ export function ProductEditForm({ product }: { product: Product }) {
           {/* Product snapshot */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Package className="h-4 w-4 text-slate-400" />
-                Datos del Producto
-              </CardTitle>
-              <CardDescription className="text-[11px]">
-                Gestionado desde el ERP Zaiko
-              </CardDescription>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Package className="h-4 w-4 text-slate-400" />
+                    Datos del Producto
+                  </CardTitle>
+                  <CardDescription className="text-[11px]">
+                    Gestionado desde el ERP Zaiko
+                  </CardDescription>
+                </div>
+                <a
+                  href={`${ERP_URL}/dashboard/products`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-100 transition-colors whitespace-nowrap"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Editar en ERP
+                </a>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Images */}
@@ -184,9 +200,17 @@ export function ProductEditForm({ product }: { product: Product }) {
                     <p className="text-slate-700">S/ {product.wholesalePrice.toFixed(2)} · mín. {product.wholesaleMinCount}</p>
                   </div>
                 )}
+
+                {/* Descripción ERP (solo lectura) */}
+                {product.description && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Descripción ERP</p>
+                    <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">{product.description}</p>
+                  </div>
+                )}
               </div>
 
-              {/* Variantes */}
+              {/* Variantes (solo lectura) */}
               {product.variants.length > 0 && (
                 <div className="pt-3 border-t border-slate-100">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-2">Variantes ({product.variants.length})</p>
@@ -332,25 +356,36 @@ export function ProductEditForm({ product }: { product: Product }) {
             </CardContent>
           </Card>
 
-          {/* SEO & Contenido */}
+          {/* Descripción Online + Tags */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Tag className="h-4 w-4 text-primary" />
-                SEO & Etiquetas
+                Contenido Online & Etiquetas
               </CardTitle>
+              <CardDescription className="text-xs">
+                Estos campos son exclusivos de la tienda online y no afectan el ERP
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Description */}
+              {/* Ecommerce description */}
               <div>
-                <Label className="text-sm font-semibold text-slate-700 mb-1.5 block">Descripción</Label>
+                <Label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                  Descripción Online
+                  <span className="text-slate-400 font-normal text-xs ml-1">(copy de marketing para la web)</span>
+                </Label>
                 <Textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
+                  value={ecommerceDescription}
+                  onChange={e => setEcommerceDescription(e.target.value)}
                   rows={5}
-                  placeholder="Descripción para la tienda online…"
-                  className="resize-none"
+                  placeholder={product.description
+                    ? `Descripción ERP: "${product.description.substring(0, 80)}…"\n\nEscribe aquí un copy de marketing más atractivo para la tienda online.`
+                    : 'Descripción de marketing para la tienda online…'}
+                  className="resize-none text-sm"
                 />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Si se deja vacío, se mostrará la descripción del ERP en la tienda.
+                </p>
               </div>
 
               {/* Tags */}
@@ -387,16 +422,16 @@ export function ProductEditForm({ product }: { product: Product }) {
               {/* Group tag */}
               <div>
                 <Label className="text-sm font-semibold text-slate-700 mb-1.5 block">
-                  Grupo <span className="text-slate-400 font-normal text-xs">(secciones Home, colecciones)</span>
+                  Colección <span className="text-slate-400 font-normal text-xs">(secciones Home, colecciones temáticas)</span>
                 </Label>
                 <Input
                   value={groupTag}
                   onChange={e => setGroupTag(e.target.value.toUpperCase())}
-                  placeholder="Ej: NUEVO, DESTACADO, OFERTA"
+                  placeholder="Ej: NAVIDAD, HALLOWEEN, CUMPLEANOS"
                   className="h-9 font-mono uppercase"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Permite agrupar productos en secciones especiales de la tienda
+                  Agrupa este producto en una colección temática de la tienda
                 </p>
               </div>
             </CardContent>

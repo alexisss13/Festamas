@@ -79,6 +79,7 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [editedPhone, setEditedPhone] = useState(user.phone);
   const [tempPhone, setTempPhone] = useState(user.phone);
   const [tempNotes, setTempNotes] = useState('');
@@ -683,19 +684,20 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
                     size="lg"
                     className="w-full h-12 text-[14px] md:text-[15px] font-semibold transition-all hover:opacity-90 text-white shadow-sm"
                     style={{ backgroundColor: brandColor }}
-                    onClick={handleCheckout}
+                    onClick={() => {
+                      const newErrors: typeof errors = {};
+                      if ((deliveryMethod === 'DELIVERY' || deliveryMethod === 'PROVINCE') && !selectedAddressId) {
+                        newErrors.address = ["Debes seleccionar una dirección de entrega"];
+                        setErrors(newErrors);
+                        toast.error("Por favor selecciona una dirección de entrega");
+                        return;
+                      }
+                      setErrors({});
+                      setIsConfirmModalOpen(true);
+                    }}
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Procesando...
-                      </>
-                    ) : (
-                      <>
-                        Proceder al Pago <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
+                    Proceder al Pago <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   
                   <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
@@ -719,6 +721,120 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmación de Pedido */}
+      <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[18px] font-semibold text-[#333]">Confirmar Pedido</DialogTitle>
+            <DialogDescription className="text-[13px] text-slate-500">
+              Revisa los detalles antes de continuar al pago
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Productos */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Productos</p>
+              <div className="space-y-2">
+                {items.map((item: CartProduct) => {
+                  const price = getEffectivePrice(item);
+                  return (
+                    <div key={item.id} className="flex justify-between items-center gap-3 py-1.5 border-b border-slate-100 last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-[#333] line-clamp-1">{item.title}</p>
+                        <p className="text-[11px] text-slate-500">{item.quantity} × {formatPrice(price)}</p>
+                      </div>
+                      <p className="text-[14px] font-semibold text-[#333] shrink-0">{formatPrice(price * item.quantity)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Entrega */}
+            <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Entrega</p>
+              <div className="flex justify-between text-[13px]">
+                <span className="text-slate-600">Método</span>
+                <span className="font-medium text-[#333]">
+                  {deliveryMethod === 'PICKUP' ? 'Recojo en tienda' : deliveryMethod === 'DELIVERY' ? 'Delivery Local' : 'Envío a Provincia'}
+                </span>
+              </div>
+              {(deliveryMethod === 'DELIVERY' || deliveryMethod === 'PROVINCE') && selectedAddressId && (() => {
+                const addr = user.addresses.find(a => a.id === selectedAddressId);
+                return addr ? (
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-slate-600">Dirección</span>
+                    <span className="font-medium text-[#333] text-right max-w-[55%]">{addr.address}, {addr.city}</span>
+                  </div>
+                ) : null;
+              })()}
+              <div className="flex justify-between text-[13px]">
+                <span className="text-slate-600">Contacto</span>
+                <span className="font-medium text-[#333]">{editedPhone || user.phone || '—'}</span>
+              </div>
+              {notes && (
+                <div className="flex justify-between text-[13px] items-start gap-3">
+                  <span className="text-slate-600 shrink-0">Nota</span>
+                  <span className="font-medium text-[#333] text-right text-[12px] italic line-clamp-2">{notes}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Totales */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[13px] text-slate-600">
+                <span>Subtotal</span>
+                <span className="font-medium text-[#333]">{formatPrice(getSubtotalPrice())}</span>
+              </div>
+              {coupon && (
+                <div className="flex justify-between text-[13px] text-green-600 font-semibold">
+                  <span>Descuento ({coupon.code})</span>
+                  <span>- {formatPrice(getDiscountAmount())}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-[13px] text-slate-600">
+                <span>Envío</span>
+                <span className="font-medium text-[#333]">
+                  {getShippingCost() > 0 ? formatPrice(getShippingCost()) : (deliveryMethod === 'PROVINCE' ? 'Por pagar en destino' : 'Gratis')}
+                </span>
+              </div>
+              <Separator className="my-2" />
+              <div className="flex justify-between items-center">
+                <span className="text-[15px] font-semibold text-[#333]">Total a pagar</span>
+                <span className="text-[24px] font-bold text-[#333] leading-none">{formatPrice(getGrandTotal())}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsConfirmModalOpen(false)}
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              Revisar carrito
+            </Button>
+            <Button
+              onClick={async () => {
+                setIsConfirmModalOpen(false);
+                await handleCheckout();
+              }}
+              disabled={isSubmitting}
+              className="flex-1 text-white font-semibold"
+              style={{ backgroundColor: brandColor }}
+            >
+              {isSubmitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</>
+              ) : (
+                <><CreditCard className="mr-2 h-4 w-4" />Confirmar y Pagar</>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Editar Teléfono */}
       <Dialog open={isPhoneModalOpen} onOpenChange={setIsPhoneModalOpen}>

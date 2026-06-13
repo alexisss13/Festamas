@@ -3,44 +3,50 @@ import prisma from '@/lib/prisma';
 import { SITE_URL } from '@/lib/utils'; // O pon tu URL directa aquí
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // 1. Obtener datos dinámicos
-  const products = await prisma.product.findMany({ where: { isAvailable: true, active: true } });
-  const categories = await prisma.category.findMany({
-    where: {
-      products: {
-        some: {
-          isAvailable: true,
-          active: true,
-        },
-      },
-    },
-  });
+  const now = new Date();
 
-  // 2. Mapear productos
-  const productsUrls = products.map((product) => ({
-    url: `${SITE_URL}/product/${product.slug}`,
-    lastModified: product.updatedAt,
+  const [products, categories, collections] = await Promise.all([
+    prisma.product.findMany({
+      where: { isAvailable: true, active: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.category.findMany({
+      where: { products: { some: { isAvailable: true, active: true } } },
+      select: { slug: true },
+    }),
+    prisma.productCollection.findMany({
+      where: { active: true },
+      select: { slug: true, updatedAt: true },
+    }),
+  ]);
+
+  const productsUrls = products.map((p) => ({
+    url: `${SITE_URL}/product/${p.slug}`,
+    lastModified: p.updatedAt,
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }));
 
-  // 3. Mapear categorías
-  const categoriesUrls = categories.map((category) => ({
-    url: `${SITE_URL}/category/${category.slug}`,
-    lastModified: new Date(),
+  const categoriesUrls = categories.map((c) => ({
+    url: `${SITE_URL}/category/${c.slug}`,
+    lastModified: now,
     changeFrequency: 'weekly' as const,
     priority: 0.9,
   }));
 
-  // 4. Rutas estáticas
+  const collectionsUrls = collections.map((col) => ({
+    url: `${SITE_URL}/collections/${col.slug}`,
+    lastModified: col.updatedAt,
+    changeFrequency: 'weekly' as const,
+    priority: 0.85,
+  }));
+
   return [
-    {
-      url: SITE_URL,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1,
-    },
+    { url: SITE_URL,                   lastModified: now, changeFrequency: 'daily',  priority: 1   },
+    { url: `${SITE_URL}/collections`,  lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${SITE_URL}/tiendas`,      lastModified: now, changeFrequency: 'monthly',priority: 0.7 },
     ...categoriesUrls,
+    ...collectionsUrls,
     ...productsUrls,
   ];
 }

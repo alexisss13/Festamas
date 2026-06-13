@@ -104,6 +104,13 @@ enum CouponType {
   PERCENTAGE
 }
 
+enum ReturnRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
 enum BannerPosition {
   TOP_BAR
   MAIN_HERO
@@ -148,6 +155,9 @@ enum MovementType {
   SALE_ECOMMERCE // Venta online
   PURCHASE // Compra a proveedor
   TRANSFER // Traslado entre tiendas
+  RETURN_POS // Devolución en tienda
+  RETURN_ECOMMERCE // Devolución online
+  RESERVATION // Reserva de stock
 }
 
 enum AttendanceStatus {
@@ -290,6 +300,7 @@ model User {
   stockTransfers StockTransfer[]
   stockMovements StockMovement[]
   purchaseOrders PurchaseOrder[]
+  cartItems      CartItem[]
 
   // Accounting
   journalEntries      JournalEntry[]
@@ -549,8 +560,9 @@ model Product {
   sku      String?
   barcode  String?
 
-  tags     String[]
-  groupTag String?
+  tags                 String[]
+  groupTag             String?
+  ecommerceDescription String? // Descripción de marketing para la tienda online, separada de la descripción del ERP
 
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
@@ -578,6 +590,11 @@ model Product {
 
   variants ProductVariant[]
   partners PartnerProduct[]
+
+  // SEO fields
+  metaTitle       String?
+  metaDescription String?
+  publishedAt     DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -616,6 +633,9 @@ model ProductVariant {
   partOfCombos      ComboItem[]         @relation("ComboChild")
   quoteItems        QuoteItem[]
   variantAttributes VariantAttribute[]
+  cartItems         CartItem[]
+  stockReservations StockReservation[]
+  returnItems       ReturnItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -683,7 +703,7 @@ model StockMovement {
   variantId     String
   branchId      String?
   warehouseId   String?
-  userId        String
+  userId        String?
   type          MovementType
   quantity      Int
   previousStock Int
@@ -694,7 +714,7 @@ model StockMovement {
   variant   ProductVariant @relation(fields: [variantId], references: [id])
   branch    Branch?        @relation(fields: [branchId], references: [id])
   warehouse Warehouse?     @relation(fields: [warehouseId], references: [id])
-  user      User           @relation(fields: [userId], references: [id])
+  user      User?          @relation(fields: [userId], references: [id])
 }
 
 model PurchaseOrder {
@@ -807,8 +827,10 @@ model Business {
   // Attributes
   attributeTypes AttributeType[]
 
-  orders Order[]
-  quotes Quote[]
+  orders             Order[]
+  quotes             Quote[]
+  productCollections ProductCollection[]
+  returnRequests     ReturnRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -827,6 +849,7 @@ model Branch {
   customAddress   String?
   ecommerceCode      String? @unique
   attendanceQrToken  String? @unique
+  businessHours      Json?   // { lun:"9:00-18:00", mar:"9:00-18:00", ... } para tienda online
 
   business       Business        @relation(fields: [businessId], references: [id])
   stock          Stock[]
@@ -984,6 +1007,7 @@ model Customer {
   notes        String?
   tags         String[]
   tier         CustomerTier @default(REGULAR)
+  priceLevel   String       @default("RETAIL") // RETAIL | WHOLESALE | VIP
   referredById String?
   referredBy   Customer?    @relation("CustomerReferral", fields: [referredById], references: [id])
   referrals    Customer[]   @relation("CustomerReferral")
@@ -992,12 +1016,27 @@ model Customer {
   sales       Sale[]
   pointLedger PointTransaction[]
   quotes      Quote[]
+  children    CustomerChild[]
 
   // Accounting
   accountsReceivable AccountsReceivable[]
 
   @@unique([businessId, docNumber])
   @@index([businessId, tier])
+}
+
+model CustomerChild {
+  id         String   @id @default(uuid())
+  customerId String
+  name       String
+  birthdate  DateTime
+  notes      String?
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
 }
 
 model Sale {
@@ -1009,6 +1048,7 @@ model Sale {
   cashSessionId String?
   userId        String
   customerId    String?
+  notes         String?
 
   subtotal       Decimal @db.Decimal(12, 2)
   discount       Decimal @default(0) @db.Decimal(12, 2)
@@ -1048,6 +1088,7 @@ model SaleItem {
   quantity    Int
   price       Decimal @db.Decimal(12, 2)
   subtotal    Decimal @db.Decimal(12, 2)
+  notes       String?
 
   sale    Sale            @relation(fields: [saleId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
@@ -1242,6 +1283,14 @@ model Order {
   shippingAddress String?
   shippingCost    Decimal     @default(0) @db.Decimal(10, 2)
   notes           String?
+  source          String      @default("ONLINE")
+
+  trackingNumber  String?
+  carrier         String?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
 
   termsAcceptedAt DateTime?
 
@@ -1253,9 +1302,10 @@ model Order {
   business Business?          @relation(fields: [businessId], references: [id])
   branch   Branch?            @relation(fields: [branchId], references: [id])
 
-  orderItems     OrderItem[]
-  trackingEvents OrderTracking[]
-  pointLedger    PointTransaction[]
+  orderItems      OrderItem[]
+  trackingEvents  OrderTracking[]
+  pointLedger     PointTransaction[]
+  returnRequests  ReturnRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1288,6 +1338,27 @@ model OrderTracking {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+}
+
+model ProductCollection {
+  id          String    @id @default(uuid())
+  businessId  String
+  name        String
+  slug        String
+  description String?
+  coverImage  String?
+  groupTag    String    // Coincide con Product.groupTag para filtrar productos
+  activeFrom  DateTime?
+  activeUntil DateTime? // Para colecciones estacionales (Navidad, Halloween, etc.)
+  sortOrder   Int       @default(0)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, slug])
+  @@index([businessId, active])
 }
 
 model StoreConfig {
@@ -1636,4 +1707,73 @@ model QuoteItem {
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([quoteId])
+}
+
+// ==========================================
+// 🛒 CART (Persistencia cross-device)
+// ==========================================
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  variantId String
+  quantity  Int      @default(1)
+  addedAt   DateTime @default(now())
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, variantId])
+  @@index([userId])
+}
+
+// ==========================================
+// 📦 STOCK RESERVATION
+// ==========================================
+model StockReservation {
+  id        String   @id @default(uuid())
+  variantId String
+  userId    String?
+  quantity  Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId])
+  @@index([expiresAt])
+}
+
+// ==========================================
+// 🔄 DEVOLUCIONES
+// ==========================================
+model ReturnRequest {
+  id         String             @id @default(uuid())
+  businessId String
+  orderId    String
+  userId     String?
+  reason     String
+  status     ReturnRequestStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  business Business      @relation(fields: [businessId], references: [id])
+  order    Order         @relation(fields: [orderId], references: [id])
+  items    ReturnItem[]
+
+  @@index([businessId])
+  @@index([orderId])
+}
+
+model ReturnItem {
+  id              String  @id @default(uuid())
+  returnRequestId String
+  variantId       String?
+  productName     String
+  variantName     String?
+  quantity        Int
+  price           Decimal @db.Decimal(10, 2)
+
+  returnRequest ReturnRequest  @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  variant       ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 }

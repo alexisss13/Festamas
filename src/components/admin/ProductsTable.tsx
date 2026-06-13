@@ -5,13 +5,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Search, Package, Globe, Monitor, Store, Zap } from 'lucide-react';
+import { Edit, Search, Package, Globe, Monitor, Store, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 import { updateProductEcommerce } from '@/actions/admin-products';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+
+const PAGE_SIZE = 20;
 
 type Channel = 'POS' | 'ECOMMERCE' | 'BOTH';
 
@@ -86,6 +87,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState<'ALL' | Channel>('ALL');
+  const [page, setPage] = useState(1);
 
   const filtered = products.filter(p => {
     const matchesSearch =
@@ -97,6 +99,12 @@ export function ProductsTable({ products }: { products: Product[] }) {
     const matchesChannel = channelFilter === 'ALL' || p.availableChannels === channelFilter;
     return matchesSearch && matchesChannel;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const handleFilterChange = (fn: () => void) => { fn(); setPage(1); };
 
   const totalStock = (product: Product) =>
     product.variants.reduce((sum, v) => sum + v.stock.reduce((s, st) => s + st.quantity, 0), 0);
@@ -110,7 +118,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
           <Input
             placeholder="Buscar por nombre, categoría, tag, SKU…"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => handleFilterChange(() => setSearch(e.target.value))}
             className="pl-10 h-9"
           />
         </div>
@@ -120,7 +128,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
           {(['ALL', 'BOTH', 'ECOMMERCE', 'POS'] as const).map(ch => (
             <button
               key={ch}
-              onClick={() => setChannelFilter(ch)}
+              onClick={() => handleFilterChange(() => setChannelFilter(ch))}
               className={cn(
                 'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
                 channelFilter === ch
@@ -136,7 +144,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" id="products-table-top">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -151,7 +159,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.length === 0 && (
+              {paginated.length === 0 && (
                 <tr>
                   <td colSpan={7} className="py-16 text-center">
                     <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
@@ -159,7 +167,8 @@ export function ProductsTable({ products }: { products: Product[] }) {
                   </td>
                 </tr>
               )}
-              {filtered.map((product, idx) => {
+              {paginated.map((product, idx) => {
+                const globalIdx = (safePage - 1) * PAGE_SIZE + idx;
                 const stock = totalStock(product);
                 const isPosOnly = product.availableChannels === 'POS';
 
@@ -172,7 +181,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
                     )}
                   >
                     {/* Index */}
-                    <td className="px-4 py-3 text-xs text-slate-400 tabular-nums">{idx + 1}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400 tabular-nums">{globalIdx + 1}</td>
 
                     {/* Product */}
                     <td className="px-4 py-3">
@@ -272,6 +281,32 @@ export function ProductsTable({ products }: { products: Product[] }) {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50">
+            <p className="text-xs text-slate-500">
+              {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} de {filtered.length} productos
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white disabled:opacity-40 transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-xs font-semibold text-slate-600 px-2">{safePage} / {totalPages}</span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white disabled:opacity-40 transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

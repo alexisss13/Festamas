@@ -7,59 +7,148 @@ const client = new MercadoPagoConfig({
 });
 
 export async function POST(request: NextRequest) {
-  // 1. Validar que sea un aviso de pago
   const body = await request.json().catch(() => null);
-  
-  // MercadoPago a veces manda un test de validación al crear el webhook
+
   if (body?.action === "test.created") {
-    console.log("🟢 Webhook de prueba recibido correctamente");
     return NextResponse.json({ success: true }, { status: 200 });
   }
 
-  // Solo nos interesan los eventos de 'payment'
-  // (type: 'payment' suele venir en el query string o en el body dependiendo la versión)
-  // Pero la data.id siempre viene en el body para notificaciones v1
   const paymentId = body?.data?.id;
-
   if (!paymentId) {
-    // Si no hay ID, ignoramos (puede ser otro tipo de evento)
     return NextResponse.json({ message: "Evento ignorado" }, { status: 200 });
   }
 
   try {
-    // 2. Consultar a MercadoPago el estado REAL de ese pago
-    // (Nunca confíes solo en el body, pregunta a la API oficial)
     const payment = new Payment(client);
     const paymentData = await payment.get({ id: paymentId });
 
-    console.log(`💰 Procesando pago ${paymentId}. Estado: ${paymentData.status}`);
+    if (paymentData.status !== 'approved') {
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
 
-    // 3. Si el pago está APROBADO, actualizamos la orden
-    if (paymentData.status === 'approved') {
-      
-      // external_reference es el ID de nuestra orden (lo pusimos en payments.ts)
-      const orderId = paymentData.external_reference;
+    const orderId = paymentData.external_reference;
+    if (!orderId) {
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
 
-      if (orderId) {
-        await prisma.order.update({
-          where: { id: orderId },
-          data: {
-            isPaid: true,
-            status: 'PAID', // Cambiamos de PENDING a PAID
-            updatedAt: new Date(),
-            // Opcional: Podrías guardar el ID del pago real de MP
-            // mercadoPagoId: String(paymentId) 
+    // Idempotencia: si ya está pagada, no reintentamos
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: {
+          select: {
+            variantId: true,
+            productName: true,
+            variantName: true,
+            quantity: true,
           },
-        });
-        console.log(`✅ Orden ${orderId} pagada exitosamente.`);
+        },
+      },
+    });
+
+    if (!existingOrder) {
+      return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
+    }
+
+    if (existingOrder.isPaid) {
+      // Ya procesada — respuesta 200 para que MP no reintente
+      return NextResponse.json({ success: true, message: "Ya procesada" }, { status: 200 });
+    }
+
+    // Procesar en transacción: pagar orden + descontar stock + acumular puntos
+    await prisma.$transaction(async (tx) => {
+      // 1. Marcar como pagada
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          isPaid: true,
+          status: 'PAID',
+          mercadoPagoId: String(paymentId),
+          updatedAt: new Date(),
+        },
+      });
+
+      // 2. Descontar stock por cada item con variantId
+      if (existingOrder.branchId) {
+        for (const item of existingOrder.orderItems) {
+          if (!item.variantId) continue;
+
+          const stockRecord = await tx.stock.findUnique({
+            where: {
+              branchId_variantId: {
+                branchId: existingOrder.branchId,
+                variantId: item.variantId,
+              },
+            },
+          });
+
+          if (!stockRecord) continue;
+
+          const previousQty = stockRecord.quantity;
+          const newQty = Math.max(0, previousQty - item.quantity);
+
+          await tx.stock.update({
+            where: { id: stockRecord.id },
+            data: { quantity: newQty },
+          });
+
+          await tx.stockMovement.create({
+            data: {
+              variantId: item.variantId,
+              branchId: existingOrder.branchId,
+              type: 'SALE_ECOMMERCE',
+              quantity: -item.quantity,
+              previousStock: previousQty,
+              currentStock: newQty,
+              reason: `Venta Online #${existingOrder.receiptNumber ?? orderId} — ${item.productName}${item.variantName ? ` (${item.variantName})` : ''}`,
+            },
+          });
+        }
       }
+
+      // 3. Acumular puntos si el pedido está asociado a un Customer
+      if (existingOrder.customerId && existingOrder.businessId) {
+        const total = Number(existingOrder.totalAmount ?? 0);
+        const pointsEarned = Math.floor(total / 2);
+        if (pointsEarned > 0) {
+          await tx.pointTransaction.create({
+            data: {
+              businessId: existingOrder.businessId,
+              customerId: existingOrder.customerId,
+              points: pointsEarned,
+              type: 'EARN',
+              description: `Compra online #${existingOrder.receiptNumber ?? orderId.slice(0, 8)}`,
+              orderId: orderId,
+            },
+          });
+
+          await tx.customer.update({
+            where: { id: existingOrder.customerId },
+            data: {
+              pointsBalance: { increment: pointsEarned },
+              totalSpent: { increment: total },
+              visits: { increment: 1 },
+              lastPurchase: new Date(),
+            },
+          });
+        }
+      }
+    });
+
+    // Release stock reservations for the order's variants
+    const variantIds = existingOrder.orderItems
+      .map(i => i.variantId)
+      .filter(Boolean) as string[];
+    if (variantIds.length > 0) {
+      await prisma.stockReservation.deleteMany({
+        where: { variantId: { in: variantIds } },
+      });
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error) {
-    console.error("❌ Error en Webhook:", error);
-    // Retornamos 500 para que MP sepa que falló y reintente más tarde
+    console.error("Error en Webhook Mercado Pago:", error);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }

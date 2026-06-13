@@ -6,9 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { SalesChannel } from '@prisma/client';
 import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
-// Campos editables desde el admin de ecommerce
+// Campos editables desde el admin de ecommerce (NO incluye description ni precio — esos son del ERP)
 interface UpdateProductEcommerceData {
-  description?: string;
+  ecommerceDescription?: string | null;
   tags?: string[];
   groupTag?: string | null;
   isAvailable?: boolean;
@@ -157,8 +157,8 @@ export async function updateProductEcommerce(id: string, data: UpdateProductEcom
 
     const updateData: any = {};
 
-    if (data.description !== undefined) {
-      updateData.description = data.description;
+    if (data.ecommerceDescription !== undefined) {
+      updateData.ecommerceDescription = data.ecommerceDescription;
     }
 
     if (data.tags !== undefined) {

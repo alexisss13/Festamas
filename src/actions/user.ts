@@ -47,7 +47,12 @@ export async function getUserProfile() {
             lastPurchase: true,
             docType: true,
             docNumber: true,
-            phone: true
+            phone: true,
+            pointLedger: {
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+              select: { id: true, points: true, type: true, description: true, createdAt: true },
+            },
           }
         }
       },
@@ -71,7 +76,12 @@ export async function getUserProfile() {
           lastPurchase: true,
           docType: true,
           docNumber: true,
-          phone: true
+          phone: true,
+          pointLedger: {
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+            select: { id: true, points: true, type: true, description: true, createdAt: true },
+          },
         }
       });
 

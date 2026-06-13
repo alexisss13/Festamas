@@ -4,7 +4,7 @@ import { getUserProfile } from '@/actions/user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Package, LogOut, Settings, Eye, ChevronRight, Gift, Phone, CreditCard, Edit2, Trash2, Plus } from 'lucide-react';
+import { MapPin, Package, LogOut, Settings, Eye, ChevronRight, Gift, Phone, CreditCard, Edit2, Trash2, Plus, TrendingUp, TrendingDown } from 'lucide-react';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { cn } from '@/lib/utils';
 import { logout } from '@/actions/auth-actions';
@@ -392,6 +392,79 @@ export default async function ProfilePage() {
           </div>
 
         </div>
+
+        {/* HISTORIAL DE PUNTOS */}
+        {user.customer && (
+          <div className="mt-6 bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-[16px] font-semibold text-slate-900">Mis Puntos de Lealtad</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] text-slate-500">Saldo actual:</span>
+                  <span className="text-[16px] font-bold text-amber-600">{(user.customer.pointsBalance ?? 0).toLocaleString()} pts</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Info de canje */}
+              <div className="mb-5 p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3">
+                <Gift className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[13px] font-semibold text-amber-800 mb-1">¿Cómo canjear tus puntos?</p>
+                  <p className="text-[12px] text-amber-700 leading-relaxed">
+                    Acumula puntos con cada compra online y en tienda física. Habla con nuestros asesores para canjear tu saldo por descuentos en tu próxima compra. <strong>100 pts = S/ 5 de descuento</strong>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Ledger */}
+              {user.customer.pointLedger && user.customer.pointLedger.length > 0 ? (
+                <div className="space-y-2">
+                  {user.customer.pointLedger.map(entry => (
+                    <div key={entry.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
+                      <div className={cn(
+                        "p-2 rounded-lg shrink-0",
+                        entry.points > 0 ? 'bg-emerald-50' : 'bg-red-50'
+                      )}>
+                        {entry.points > 0
+                          ? <TrendingUp className="w-4 h-4 text-emerald-600" />
+                          : <TrendingDown className="w-4 h-4 text-red-500" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-slate-900 truncate">
+                          {entry.description ?? (entry.type === 'EARN' ? 'Puntos ganados' : entry.type === 'REDEEM' ? 'Canje de puntos' : 'Ajuste manual')}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {new Date(entry.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <span className={cn(
+                        "text-[14px] font-bold shrink-0",
+                        entry.points > 0 ? 'text-emerald-600' : 'text-red-500'
+                      )}>
+                        {entry.points > 0 ? '+' : ''}{entry.points} pts
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="p-4 bg-amber-50 rounded-full mb-3">
+                    <Gift className="w-8 h-8 text-amber-300" />
+                  </div>
+                  <p className="text-[13px] font-medium text-slate-900 mb-1">Sin movimientos aún</p>
+                  <p className="text-[11px] text-slate-500">Realiza tu primera compra para comenzar a acumular puntos</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

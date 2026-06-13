@@ -1,16 +1,19 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { CartSyncProvider } from '@/components/providers/CartSyncProvider';
 
 interface Props {
   children: React.ReactNode;
-  session?: any; // Recibimos la sesión desde el servidor
+  session?: any;
 }
 
 export const Providers = ({ children, session }: Props) => {
   return (
     <SessionProvider session={session}>
-      {children}
+      <CartSyncProvider>
+        {children}
+      </CartSyncProvider>
     </SessionProvider>
   );
 };
