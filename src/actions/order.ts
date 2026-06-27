@@ -209,15 +209,31 @@ export async function updateOrderStatus(
   // Si el pedido se marca como pagado y tiene usuario con Customer vinculado
   if (isPaid && !order.isPaid && order.user?.customerId) {
     const totalAmount = Number(order.totalAmount);
+    const businessId = order.user?.businessId || order.businessId;
+
+    let loyaltyEnabled = false;
+    let rate = 10;
+
+    if (businessId) {
+      const business = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: {
+          loyaltyEnabled: true,
+          loyaltyEarnRate: true,
+        }
+      });
+      loyaltyEnabled = business?.loyaltyEnabled ?? false;
+      rate = Number(business?.loyaltyEarnRate) || 10;
+    }
     
-    // Calcular puntos ganados (ejemplo: 1 punto por cada 10 soles)
-    const pointsEarned = Math.floor(totalAmount / 10);
+    // Calcular puntos ganados
+    const pointsEarned = loyaltyEnabled && rate > 0 ? Math.floor(totalAmount / rate) : 0;
 
     // Actualizar el Customer
     await prisma.customer.update({
       where: { id: order.user.customerId },
       data: {
-        pointsBalance: { increment: pointsEarned },
+        ...(pointsEarned > 0 ? { pointsBalance: { increment: pointsEarned } } : {}),
         totalSpent: { increment: totalAmount },
         visits: { increment: 1 },
         lastPurchase: new Date(),
@@ -225,10 +241,10 @@ export async function updateOrderStatus(
     });
 
     // Registrar la transacción de puntos
-    if (pointsEarned > 0 && order.user.businessId) {
+    if (pointsEarned > 0 && businessId) {
       await prisma.pointTransaction.create({
         data: {
-          businessId: order.user.businessId,
+          businessId,
           customerId: order.user.customerId,
           orderId: order.id,
           points: pointsEarned,
@@ -239,10 +255,12 @@ export async function updateOrderStatus(
     }
 
     // Actualizar el pedido con los puntos ganados
-    await prisma.order.update({
-      where: { id },
-      data: { pointsEarned }
-    });
+    if (pointsEarned > 0) {
+      await prisma.order.update({
+        where: { id },
+        data: { pointsEarned }
+      });
+    }
   }
 
   revalidatePath('/admin/orders');

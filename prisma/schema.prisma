@@ -59,6 +59,7 @@ enum NotificationType {
   HR_PAYROLL_PAID
   ORDER_NEW
   ORDER_STATUS_UPDATE
+  CUSTOMER_BIRTHDAY_UPCOMING
 }
 
 enum TransferStatus {
@@ -1019,6 +1020,10 @@ model Customer {
   referredBy   Customer?    @relation("CustomerReferral", fields: [referredById], references: [id])
   referrals    Customer[]   @relation("CustomerReferral")
 
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   business    Business           @relation(fields: [businessId], references: [id])
   sales       Sale[]
   orders      Order[]
@@ -1031,15 +1036,18 @@ model Customer {
 
   @@unique([businessId, docNumber])
   @@index([businessId, tier])
+  @@index([businessId, isActive])
 }
 
 model CustomerChild {
-  id         String   @id @default(uuid())
-  customerId String
-  name       String
-  birthdate  DateTime
-  notes      String?
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  customerId    String
+  name          String
+  birthdate     DateTime
+  gender        String?
+  favoriteTheme String?
+  notes         String?
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1149,6 +1157,7 @@ model Notification {
   message    String
   type       NotificationType
   read       Boolean          @default(false)
+  sourceId   String?
   createdAt  DateTime         @default(now())
 }
 

@@ -109,7 +109,31 @@ export async function POST(request: NextRequest) {
       // 3. Acumular puntos si el pedido está asociado a un Customer
       if (existingOrder.customerId && existingOrder.businessId) {
         const total = Number(existingOrder.totalAmount ?? 0);
-        const pointsEarned = Math.floor(total / 2);
+        
+        // Consultar configuración de lealtad en los ajustes del negocio
+        const business = await tx.business.findUnique({
+          where: { id: existingOrder.businessId },
+          select: {
+            loyaltyEnabled: true,
+            loyaltyEarnRate: true,
+          }
+        });
+
+        const loyaltyEnabled = business?.loyaltyEnabled ?? false;
+        const rate = Number(business?.loyaltyEarnRate) || 10;
+        const pointsEarned = loyaltyEnabled && rate > 0 ? Math.floor(total / rate) : 0;
+
+        // Actualizar estadísticas del cliente
+        await tx.customer.update({
+          where: { id: existingOrder.customerId },
+          data: {
+            ...(pointsEarned > 0 ? { pointsBalance: { increment: pointsEarned } } : {}),
+            totalSpent: { increment: total },
+            visits: { increment: 1 },
+            lastPurchase: new Date(),
+          },
+        });
+
         if (pointsEarned > 0) {
           await tx.pointTransaction.create({
             data: {
@@ -122,14 +146,10 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          await tx.customer.update({
-            where: { id: existingOrder.customerId },
-            data: {
-              pointsBalance: { increment: pointsEarned },
-              totalSpent: { increment: total },
-              visits: { increment: 1 },
-              lastPurchase: new Date(),
-            },
+          // Actualizar el pedido con los puntos ganados
+          await tx.order.update({
+            where: { id: orderId },
+            data: { pointsEarned }
           });
         }
       }
