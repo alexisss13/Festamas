@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     where: { id },
   });
 
-  if (!order) return { title: 'Boleta no encontrada' };
+  if (!order) return { title: 'Ticket no encontrado' };
 
   const isFestamas = order.notes?.includes('JUGUETERIA') ?? false;
   const brandName = isFestamas ? 'Festamas' : 'FiestasYa';
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const receiptNum = order.receiptNumber || `WEB-${order.id.split('-')[0].toUpperCase()}`;
 
   return {
-    title: `Boleta ${receiptNum} - ${brandName}`,
+    title: `Ticket ${receiptNum} - ${brandName}`,
   };
 }
 
@@ -85,8 +85,6 @@ export default async function InvoicePage({ params }: Props) {
     email: isFestamas ? "ventas@festamas.com" : "ventas@fiestasya.com"
   };
 
-  const subtotal = Number(order.totalAmount) / 1.18;
-  const igv = Number(order.totalAmount) - subtotal;
 
   const timeZone = 'America/Lima';
   const zonedDate = toZonedTime(order.createdAt, timeZone);
@@ -108,7 +106,7 @@ export default async function InvoicePage({ params }: Props) {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            /* Ocultamos todo lo que no sea la boleta */
+            /* Ocultamos todo lo que no sea el ticket */
             nav, footer, header, .no-print { 
                 display: none !important; 
             }
@@ -120,7 +118,7 @@ export default async function InvoicePage({ params }: Props) {
                 height: auto !important;
                 background: white !important;
             }
-            /* La boleta en sí con márgenes internos controlados */
+            /* El ticket en sí con márgenes internos controlados */
             .invoice-container {
                 width: 100% !important;
                 max-width: 21cm !important; /* Ancho A4 exacto */
@@ -136,7 +134,7 @@ export default async function InvoicePage({ params }: Props) {
 
       <div className="invoice-page-wrapper flex items-start justify-center py-10 min-h-screen">
         
-        {/* BOLETA */}
+        {/* TICKET */}
         <div className="invoice-container bg-white w-full max-w-[21cm] min-h-[29.7cm] p-12 shadow-xl rounded-sm relative box-border">
           
           {/* HEADER */}
@@ -167,10 +165,10 @@ export default async function InvoicePage({ params }: Props) {
             
             <div className="text-right">
               <div className={`inline-block border-2 p-4 rounded-lg text-center min-w-[220px] ${isFestamas ? 'border-red-100 bg-red-50' : 'border-pink-100 bg-pink-50'}`}>
-                  <h2 className="text-xl font-black text-slate-800 uppercase mb-1">Boleta de Venta</h2>
-                  <p className="text-xs text-slate-500 mb-3 tracking-widest uppercase">Electrónica</p>
+                  <h2 className="text-xl font-black text-slate-800 uppercase mb-1">Ticket de Pedido</h2>
+                  <p className="text-xs text-slate-500 mb-3 tracking-widest uppercase">Venta online</p>
                   
-                  <p className="text-xs text-slate-400 font-bold uppercase mb-1">N° Comprobante</p>
+                  <p className="text-xs text-slate-400 font-bold uppercase mb-1">N° Pedido</p>
                   <p className="font-mono text-xl font-bold text-slate-900 tracking-wider">
                     {/* 👇 AQUÍ EL FIX: Si no hay receiptNumber, mostramos el ID corto WEB-XXXX */}
                     {order.receiptNumber || `WEB-${order.id.split('-')[0].toUpperCase()}`}
@@ -257,12 +255,8 @@ export default async function InvoicePage({ params }: Props) {
           <div className="flex justify-end mb-16">
               <div className="w-72 space-y-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
                   <div className="flex justify-between text-slate-500 text-xs">
-                      <span>Op. Gravada</span>
-                      <span className="font-mono">{formatCurrency(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-500 text-xs">
-                      <span>I.G.V. (18%)</span>
-                      <span className="font-mono">{formatCurrency(igv)}</span>
+                      <span>Subtotal</span>
+                      <span className="font-mono">{formatCurrency(Number(order.totalAmount) - Number(order.shippingCost))}</span>
                   </div>
                   {Number(order.shippingCost) > 0 && (
                     <div className="flex justify-between text-slate-600 text-xs font-medium pt-1">
@@ -285,9 +279,8 @@ export default async function InvoicePage({ params }: Props) {
                 ¡Gracias por comprar en {brandConfig.name}!
               </p>
               <p className="text-[10px] text-slate-400 leading-tight max-w-md mx-auto">
-                Representación impresa de la BOLETA DE VENTA ELECTRÓNICA. 
-                Consulte este documento en festamas.vercel.app. 
-                Bienes transferidos en la Amazonía Región Selva para ser consumidos en la misma.
+                Representación impresa del ticket de pedido online. 
+                Consulte el detalle desde su cuenta Festamas.
               </p>
               <p className="mt-2 font-mono text-[9px] text-slate-300">UUID: {order.id}</p>
           </div>

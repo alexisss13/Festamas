@@ -39,7 +39,7 @@ export const getHomeData = async (businessId: string, branchId: string, ecommerc
       take: 8,
       where: {
         businessId,
-        branchOwnerId: branchId,
+        OR: [{ branchOwnerId: branchId }, { branchOwnerId: null }],
         isAvailable: true,
         active: true,
         availableChannels: { in: ['ECOMMERCE', 'BOTH'] },
@@ -66,7 +66,7 @@ export const getHomeData = async (businessId: string, branchId: string, ecommerc
         products: {
           some: {
             businessId,
-            branchOwnerId: branchId,
+            OR: [{ branchOwnerId: branchId }, { branchOwnerId: null }],
             isAvailable: true,
             active: true,
           },

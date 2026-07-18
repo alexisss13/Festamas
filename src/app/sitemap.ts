@@ -2,20 +2,24 @@ import { MetadataRoute } from 'next';
 import prisma from '@/lib/prisma';
 import { SITE_URL } from '@/lib/utils'; // O pon tu URL directa aquí
 
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const businessId = process.env.NEXT_PUBLIC_BUSINESS_ID;
+  if (!businessId) return [];
 
   const [products, categories, collections] = await Promise.all([
     prisma.product.findMany({
-      where: { isAvailable: true, active: true },
+      where: { businessId, isAvailable: true, active: true, availableChannels: { in: ['ECOMMERCE', 'BOTH'] } },
       select: { slug: true, updatedAt: true },
     }),
     prisma.category.findMany({
-      where: { products: { some: { isAvailable: true, active: true } } },
+      where: { businessId, products: { some: { isAvailable: true, active: true, availableChannels: { in: ['ECOMMERCE', 'BOTH'] } } } },
       select: { slug: true },
     }),
     prisma.productCollection.findMany({
-      where: { active: true },
+      where: { businessId, active: true },
       select: { slug: true, updatedAt: true },
     }),
   ]);

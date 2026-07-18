@@ -49,6 +49,8 @@ interface Product {
   slug: string;
   description: string;
   ecommerceDescription: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
   basePrice: number;
   images: string[];
   isAvailable: boolean;
@@ -69,7 +71,7 @@ interface Product {
     name: string;
     sku: string | null;
     barcode: string | null;
-    stock: Array<{ quantity: number; branch: { name: string } }>;
+    stock: Array<{ quantity: number; branch: { name: string } | null }>;
   }>;
 }
 
@@ -78,12 +80,12 @@ export function ProductEditForm({ product }: { product: Product }) {
   const [saving, setSaving] = useState(false);
 
   const [ecommerceDescription, setEcommerceDescription] = useState(product.ecommerceDescription ?? '');
+  const [metaTitle, setMetaTitle] = useState(product.metaTitle ?? '');
+  const [metaDescription, setMetaDescription] = useState(product.metaDescription ?? '');
   const [tags, setTags]                                  = useState<string[]>(product.tags);
   const [tagInput, setTagInput]                          = useState('');
   const [groupTag, setGroupTag]                          = useState(product.groupTag ?? '');
   const [isAvailable, setIsAvailable]                    = useState(product.isAvailable);
-  const [discountPercentage, setDiscount]                = useState(product.discountPercentage);
-  const [channel, setChannel]                            = useState<Channel>(product.availableChannels ?? 'BOTH');
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase();
@@ -96,11 +98,11 @@ export function ProductEditForm({ product }: { product: Product }) {
     try {
       const res = await updateProductEcommerce(product.id, {
         ecommerceDescription: ecommerceDescription || null,
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
         tags,
         groupTag: groupTag || null,
         isAvailable,
-        discountPercentage,
-        availableChannels: channel,
       });
       if (res.success) {
         toast.success('Producto actualizado');
@@ -255,20 +257,20 @@ export function ProductEditForm({ product }: { product: Product }) {
                 <Globe className="h-4 w-4 text-primary" />
                 Canal de Ventas
               </CardTitle>
-              <CardDescription className="text-xs">
-                Controla dónde aparece este producto
+                      <CardDescription className="text-xs">
+                El canal se administra desde el POS
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {CHANNEL_OPTIONS.map(opt => {
                   const Icon = opt.icon;
-                  const isSelected = channel === opt.value;
+                  const isSelected = product.availableChannels === opt.value;
                   return (
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setChannel(opt.value)}
+                      disabled
                       className={cn(
                         'flex flex-col items-start gap-1.5 p-3.5 rounded-xl border-2 text-left transition-all',
                         isSelected
@@ -321,33 +323,31 @@ export function ProductEditForm({ product }: { product: Product }) {
                 </div>
               </div>
 
-              {/* Discount */}
+              {/* Discount (solo lectura: el precio/campaña maestra pertenece al POS) */}
               <div>
                 <Label className="text-sm font-semibold text-slate-700 mb-2 block">
-                  Descuento Web <span className="text-slate-400 font-normal">(0 – 100%)</span>
+                  Descuento actual <span className="text-slate-400 font-normal">(gestionado desde POS)</span>
                 </Label>
                 <div className="flex items-center gap-3">
                   <Input
                     type="number"
-                    min="0"
-                    max="100"
-                    value={discountPercentage}
-                    onChange={e => setDiscount(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                    value={product.discountPercentage}
+                    disabled
                     className="w-24 h-9 text-center font-bold"
                   />
                   <input
                     type="range"
                     min="0"
                     max="100"
-                    value={discountPercentage}
-                    onChange={e => setDiscount(parseInt(e.target.value))}
+                    value={product.discountPercentage}
+                    disabled
                     className="flex-1 h-2 bg-slate-200 rounded-lg accent-primary"
                   />
-                  {discountPercentage > 0 && (
+                  {product.discountPercentage > 0 && (
                     <div className="text-right">
-                      <Badge className="bg-red-100 text-red-700 font-bold">-{discountPercentage}%</Badge>
+                      <Badge className="bg-red-100 text-red-700 font-bold">-{product.discountPercentage}%</Badge>
                       <p className="text-[10px] text-slate-400 mt-1">
-                        S/ {(product.basePrice * (1 - discountPercentage / 100)).toFixed(2)}
+                        S/ {(product.basePrice * (1 - product.discountPercentage / 100)).toFixed(2)}
                       </p>
                     </div>
                   )}
@@ -386,6 +386,19 @@ export function ProductEditForm({ product }: { product: Product }) {
                 <p className="text-[11px] text-slate-400 mt-1">
                   Si se deja vacío, se mostrará la descripción del ERP en la tienda.
                 </p>
+              </div>
+
+              <div className="border-t border-slate-100 pt-4 space-y-4">
+                <div>
+                  <Label className="text-sm font-semibold text-slate-700 mb-1.5 block">Título SEO</Label>
+                  <Input value={metaTitle} onChange={e => setMetaTitle(e.target.value)} maxLength={60} placeholder={product.title} />
+                  <p className="text-[11px] text-slate-400 mt-1">Recomendado: hasta 60 caracteres.</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-slate-700 mb-1.5 block">Descripción SEO</Label>
+                  <Textarea value={metaDescription} onChange={e => setMetaDescription(e.target.value)} maxLength={160} rows={3} placeholder="Resumen atractivo para Google y redes…" className="resize-none text-sm" />
+                  <p className="text-[11px] text-slate-400 mt-1">Recomendado: hasta 160 caracteres.</p>
+                </div>
               </div>
 
               {/* Tags */}

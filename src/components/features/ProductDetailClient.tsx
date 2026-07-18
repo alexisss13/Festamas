@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo, ReactNode } from 'react';
+import { useState, useMemo, ReactNode, useEffect } from 'react';
 import { ProductImageGallery } from './ProductImageGallery';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useCartStore, CartProduct } from '@/store/cart';
 import { toast } from 'sonner';
 import { ShoppingCart, Minus, Plus, Heart, Package, Tag } from 'lucide-react';
+import { recordProductView } from '@/actions/products';
 
 // ─────────────────────────────────────────────
 // Types
@@ -142,6 +143,12 @@ function normalizeAttrs(v: RawVariant): NormalizedAttr[] {
 // ─────────────────────────────────────────────
 
 export function ProductDetailClient({ product, variants: rawVariants, headerSlot }: Props) {
+  useEffect(() => {
+    const key = `festamas-viewed-${product.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    void recordProductView(product.id);
+  }, [product.id]);
   // Normalize variants
   const variants = useMemo<NormalizedVariant[]>(
     () => rawVariants.map(v => ({ ...v, attrs: normalizeAttrs(v) })),
@@ -257,6 +264,8 @@ export function ProductDetailClient({ product, variants: rawVariants, headerSlot
 
     const item: CartProduct = {
       id: product.id + (variantLabel ? `-${selectedVariant!.id}` : ''),
+      productId: product.id,
+      variantId: selectedVariant?.id,
       slug: product.slug,
       title: product.title + (variantLabel ? ` — ${variantLabel}` : ''),
       price: product.basePrice,

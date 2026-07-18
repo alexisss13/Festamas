@@ -42,7 +42,7 @@ async function getProductData(slug: string) {
     },
   });
 
-  if (!product || product.businessId !== business.id || product.branchOwnerId !== activeBranch.id) return null;
+  if (!product || product.businessId !== business.id || (product.branchOwnerId !== null && product.branchOwnerId !== activeBranch.id)) return null;
 
   // Serialize variants: sum stock per branchId and serialize Decimals
   const variants = product.variants.map(v => ({
@@ -107,14 +107,21 @@ async function getProductData(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.product.findUnique({ where: { slug } });
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const product = await prisma.product.findFirst({
+    where: {
+      slug,
+      businessId: business.id,
+      OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }],
+    },
+  });
   if (!product) return { title: 'Producto no encontrado' };
   const metaDesc = (product.ecommerceDescription || product.description || '').substring(0, 160);
   return {
-    title: `${product.title} | FiestasYa`,
+    title: product.metaTitle || `${product.title} | FiestasYa`,
     description: metaDesc,
     openGraph: {
-      title: product.title,
+      title: product.metaTitle || product.title,
       description: metaDesc,
       images: [{ url: product.images[0] || `${SITE_URL}/og-image.jpg` }],
     },

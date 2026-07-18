@@ -6,10 +6,11 @@ import Image from 'next/image';
 import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { useUIStore } from '@/store/ui';
 import { getUserOrders } from '@/actions/order';
+import { getUserReturnRequests } from '@/actions/returns';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Package, Calendar, MapPin, ChevronRight, ShoppingBag, Loader2 } from 'lucide-react';
+import { Package, Calendar, MapPin, ChevronRight, ShoppingBag, Loader2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { FileText } from 'lucide-react';
@@ -17,6 +18,7 @@ import { FileText } from 'lucide-react';
 export default function OrdersPage() {
   const { activeBranchId, branches } = useUIStore();
   const [orders, setOrders] = useState<any[]>([]);
+  const [returns, setReturns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 🎨 Lógica de Tema Dinámico
@@ -25,10 +27,11 @@ export default function OrdersPage() {
   
   useEffect(() => {
     async function loadOrders() {
-      const fetchedOrders = await getUserOrders();
+      const [fetchedOrders, fetchedReturns] = await Promise.all([getUserOrders(), getUserReturnRequests()]);
       if (fetchedOrders) {
         setOrders(fetchedOrders || []);
       }
+      setReturns(fetchedReturns || []);
       setLoading(false);
     }
     loadOrders();
@@ -120,6 +123,11 @@ export default function OrdersPage() {
                 </div>
               </div>
             </CardHeader>
+            {returns.filter(request => request.orderId === order.id).map(request => (
+              <div key={request.id} className="mx-4 mt-4 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-800">
+                Solicitud de {request.type === 'RETURN' ? 'devolución' : 'cambio'}: <strong>{({ PENDING: 'pendiente', APPROVED: 'aprobada', REJECTED: 'rechazada', COMPLETED: 'completada' } as any)[request.status] ?? request.status}</strong>
+              </div>
+            ))}
 
             <CardContent className="p-4 sm:p-6">
               {/* Información de entrega */}
@@ -188,9 +196,16 @@ export default function OrdersPage() {
     {/* 👇 AQUÍ ESTÁ EL CAMBIO: Apunta a /orders/{id}/invoice */}
                 <Button variant="ghost" className="gap-2 text-slate-600 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-200 shadow-sm" asChild>
                     <Link href={`/orders/${order.id}/invoice`} target="_blank">
-                        <FileText className="h-4 w-4" /> Ver Boleta / Detalle
+                        <FileText className="h-4 w-4" /> Ver Ticket / Detalle
                     </Link>
                 </Button>
+                {(order.status === 'DELIVERED' || order.status === 'READY_FOR_PICKUP') && order.isPaid && (
+                  <Button variant="outline" className="gap-2 text-slate-600" asChild>
+                    <Link href={`/orders/${order.id}/returns/new`}>
+                      <RotateCcw className="h-4 w-4" /> Solicitar cambio/devolución
+                    </Link>
+                  </Button>
+                )}
             </CardFooter>
           </Card>
         ))}

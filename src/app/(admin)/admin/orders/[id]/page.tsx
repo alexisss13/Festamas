@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { OrderActions } from './OrderActions';
 import { MapPin, Store, Truck, MessageSquarePlus } from 'lucide-react';
 import { OrderTimeline } from './OrderTimeline';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 
 interface Props {
@@ -21,6 +22,7 @@ export default async function OrderDetailPage({ params }: Props) {
   if (!result || !result.order) notFound();
 
   const { order } = result;
+  const { branches } = await getEcommerceContextFromCookie();
 
   const formatPrice = (value: number) =>
     new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
@@ -150,6 +152,10 @@ export default async function OrderDetailPage({ params }: Props) {
             initialTracking={order.trackingNumber}
             initialCarrier={order.carrier}
             initialCancelReason={order.cancelReason}
+            branches={branches}
+            currentBranchId={order.branchId}
+            initialPackingNotes={order.packingNotes}
+            packedAt={order.packedAt}
           />
 
           {/* DATOS DE ENTREGA */}

@@ -8,6 +8,7 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 60; // Revalida caché cada minuto
+export const dynamic = 'force-dynamic';
 
 export default async function CatalogosPage() {
   // Pedimos los catálogos a la BD

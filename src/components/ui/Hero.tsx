@@ -1,16 +1,18 @@
 import prisma from '@/lib/prisma';
 import { HeroClient } from './HeroClient';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 // Esta función se ejecuta en el SERVIDOR (rápido y seguro)
 export async function Hero() {
-  
-  // Obtenemos TODOS los banners activos ordenados por el campo 'order'
+  const { activeBranch } = await getEcommerceContextFromCookie();
   const banners = await prisma.banner.findMany({
     where: {
-      active: true, // Solo los que activaste en el admin
+      active: true,
+      position: 'MAIN_HERO',
+      OR: [{ branchId: activeBranch.id }, { branchId: null }],
     },
     orderBy: {
-      order: 'asc', // Orden 1, 2, 3...
+      order: 'asc',
     }
   });
 

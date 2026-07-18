@@ -4,6 +4,10 @@
 
 Este módulo permite a los administradores editar la información de **ecommerce** de los productos que fueron creados en el sistema POS. 
 
+No es un maestro de productos: precios, descuentos, canales, stock, variantes y
+categorías permanecen bajo control del POS/ERP. El ecommerce solo administra
+merchandising y contenido comercial.
+
 ## Características
 
 ### ✅ Campos Editables (Solo E-commerce)

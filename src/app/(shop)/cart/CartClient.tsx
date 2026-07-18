@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useCartStore, getEffectivePrice, CartProduct } from '@/store/cart';
 import { useUIStore } from '@/store/ui';
-import { createPreference } from '@/actions/payments';
+import { createCulqiChargeForCheckout } from '@/actions/payments';
 import { validateCoupon } from '@/actions/coupon';
 import { getProducts } from '@/actions/products';
 import { ProductCarousel } from '@/components/features/ProductCarousel';
@@ -28,6 +28,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
+declare global {
+  interface Window {
+    Culqi?: {
+      settings: (options: Record<string, unknown>) => void;
+      options: (options: Record<string, unknown>) => void;
+      open: () => void;
+      close: () => void;
+      token?: { id: string };
+      error?: { user_message?: string };
+    };
+    culqi?: () => void;
+  }
+}
 
 interface Address {
   id: string;
@@ -90,6 +104,15 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
     }, 100);
 
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (document.querySelector('script[data-culqi-checkout]')) return;
+    const script = document.createElement('script');
+    script.src = 'https://checkout.culqi.com/js/v4';
+    script.async = true;
+    script.dataset.culqiCheckout = 'true';
+    document.body.appendChild(script);
   }, []);
 
   // Cargar Recomendaciones
@@ -177,6 +200,42 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
     if (errors.address) setErrors({});
   };
 
+  const submitCulqiToken = async (tokenId: string) => {
+    setIsSubmitting(true);
+    try {
+      const selectedAddress = getSelectedAddress();
+      const shippingAddress = selectedAddress
+        ? `${selectedAddress.address}${selectedAddress.address2 ? ', ' + selectedAddress.address2 : ''}, ${selectedAddress.city}, ${selectedAddress.province}`
+        : '';
+
+      const result = await createCulqiChargeForCheckout({
+        items: items.map(item => ({
+          productId: item.productId ?? item.id,
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+        deliveryMethod,
+        shippingAddress,
+        shippingCost: getShippingCost(),
+        contactName: user.name,
+        contactPhone: editedPhone,
+        notes,
+        couponCode: coupon?.code,
+      }, tokenId);
+
+      if (result.success && result.orderId) {
+        window.location.href = `/checkout/success?orderId=${result.orderId}`;
+      } else {
+        toast.error(result.message || 'Culqi rechazó el pago');
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Ocurrió un error inesperado al procesar el pago');
+      setIsSubmitting(false);
+    }
+  };
+
   const handleCheckout = async () => {
     // Validaciones
     const newErrors: typeof errors = {};
@@ -191,39 +250,34 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
       return;
     }
 
-    setIsSubmitting(true);
+    if (!window.Culqi) {
+      toast.error('El medio de pago todavía está cargando. Intenta nuevamente.');
+      return;
+    }
 
-    try {
-      const selectedAddress = getSelectedAddress();
-      const shippingAddress = selectedAddress
-        ? `${selectedAddress.address}${selectedAddress.address2 ? ', ' + selectedAddress.address2 : ''}, ${selectedAddress.city}, ${selectedAddress.province}`
-        : '';
-
-      const result = await createPreference({
-        items: items.map(item => ({
-          ...item,
-          price: getEffectivePrice(item)
-        })),
-        deliveryMethod,
-        shippingAddress,
-        shippingCost: getShippingCost(),
-        contactName: user.name,
-        contactPhone: editedPhone,
-        notes: notes,
-        total: getGrandTotal()
-      });
-
-      if (result.success && result.url) {
-        window.location.href = result.url;
+    window.culqi = () => {
+      if (window.Culqi?.token?.id) {
+        const tokenId = window.Culqi.token.id;
+        window.Culqi.close();
+        void submitCulqiToken(tokenId);
       } else {
-        toast.error(result.message || 'Error al generar el pago');
+        toast.error(window.Culqi?.error?.user_message || 'No se pudo validar el medio de pago.');
         setIsSubmitting(false);
       }
-    } catch (error) {
-      console.error(error);
-      toast.error('Ocurrió un error inesperado');
-      setIsSubmitting(false);
-    }
+    };
+
+    window.Culqi.settings({
+      title: 'Festamas',
+      currency: 'PEN',
+      amount: Math.round(getGrandTotal() * 100),
+    });
+    window.Culqi.options({
+      lang: 'auto',
+      installments: false,
+      paymentMethods: { tarjeta: true, yape: true, bancaMovil: true, agente: true, billetera: true, cuotealo: true },
+    });
+    setIsSubmitting(true);
+    window.Culqi.open();
   };
 
   if (!isMounted) {
@@ -702,7 +756,7 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
                   
                   <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
                     <CreditCard className="h-3.5 w-3.5" />
-                    <span>Pago seguro con MercadoPago</span>
+                    <span>Pago seguro con Culqi</span>
                   </div>
                 </div>
               </div>

@@ -10,6 +10,8 @@ export interface CartCoupon {
 
 export interface CartProduct {
   id: string;
+  productId?: string;
+  variantId?: string;
   slug: string;
   title: string;
   price: number;
@@ -149,7 +151,7 @@ export const useCartStore = create<CartState>()(
       }
     }),
     {
-      name: 'festamas-cart-v4', // Versión 4 para incluir cupones
+      name: 'festamas-cart-v5', // Incluye productId/variantId explícitos para checkout seguro
     }
   )
 );

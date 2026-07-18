@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers/Providers";
 import { auth } from "@/auth";
+import { MarketingAnalytics } from "@/components/analytics/MarketingAnalytics";
 
 // Configuración de Fuente Rubik
 const rubik = Rubik({ 
@@ -35,6 +36,7 @@ export default async function RootLayout({
         data-theme="festamas"
       >
         <Providers session={session}>
+          <MarketingAnalytics />
           {children}
           <Toaster richColors position="top-center" />
         </Providers>

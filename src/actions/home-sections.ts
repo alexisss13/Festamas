@@ -2,6 +2,9 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export interface HomeSectionInput {
   title: string;
@@ -14,7 +17,7 @@ export interface HomeSectionInput {
 
 export const getHomeSections = async (branchId: string, onlyActive: boolean = true) => {
   try {
-    const whereClause: any = { branchId };
+    const whereClause: any = { OR: [{ branchId }, { branchId: null }] };
     if (onlyActive) whereClause.isActive = true;
 
     const sections = await prisma.homeSection.findMany({
@@ -30,7 +33,8 @@ export const getHomeSections = async (branchId: string, onlyActive: boolean = tr
 
 export const getHomeSectionById = async (id: string) => {
   try {
-    return await prisma.homeSection.findUnique({ where: { id } });
+    const { activeBranch } = await getEcommerceContextFromCookie();
+    return await prisma.homeSection.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
   } catch (error) {
     return null;
   }
@@ -39,13 +43,19 @@ export const getHomeSectionById = async (id: string) => {
 // 🆕 Guardar (con cálculo automático de orden si es nuevo)
 export const saveHomeSection = async (data: HomeSectionInput, id?: string) => {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { ok: false, message: 'No autorizado' };
+    const { activeBranch } = await getEcommerceContextFromCookie();
+    const scopedData = { ...data, branchId: activeBranch.id };
     if (id) {
       // Actualizar existente
-      await prisma.homeSection.update({ where: { id }, data });
+      const current = await prisma.homeSection.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+      if (!current) return { ok: false, message: 'Sección no encontrada en la sucursal activa' };
+      await prisma.homeSection.update({ where: { id }, data: scopedData });
     } else {
       // Crear nuevo: Buscar el último orden para ponerlo al final
       const lastSection = await prisma.homeSection.findFirst({
-        where: { branchId: data.branchId ?? null },
+        where: { branchId: activeBranch.id },
         orderBy: { order: 'desc' },
         select: { order: true }
       });
@@ -53,7 +63,7 @@ export const saveHomeSection = async (data: HomeSectionInput, id?: string) => {
       const newOrder = (lastSection?.order ?? -1) + 1;
 
       await prisma.homeSection.create({ 
-        data: { ...data, order: newOrder } 
+        data: { ...scopedData, order: newOrder } 
       });
     }
     
@@ -69,6 +79,11 @@ export const saveHomeSection = async (data: HomeSectionInput, id?: string) => {
 // 🆕 Acción de Reordenamiento (Drag & Drop)
 export const reorderHomeSections = async (items: { id: string; order: number }[]) => {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { ok: false };
+    const { activeBranch } = await getEcommerceContextFromCookie();
+    const allowed = await prisma.homeSection.count({ where: { id: { in: items.map(item => item.id) }, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+    if (allowed !== items.length) return { ok: false };
     await prisma.$transaction(
       items.map((item) =>
         prisma.homeSection.update({
@@ -88,6 +103,11 @@ export const reorderHomeSections = async (items: { id: string; order: number }[]
 
 export const deleteHomeSection = async (id: string) => {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { ok: false };
+    const { activeBranch } = await getEcommerceContextFromCookie();
+    const current = await prisma.homeSection.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+    if (!current) return { ok: false };
     await prisma.homeSection.delete({ where: { id } });
     revalidatePath('/');
     revalidatePath('/admin/sections');

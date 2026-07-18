@@ -4,8 +4,14 @@ import { Globe, Monitor, Store, Tag, Percent, Info } from 'lucide-react';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { getAdminBranch } from '@/actions/admin-settings';
 
-export default async function ProductsAdminPage() {
-  const result = await getProductsForAdmin();
+export const dynamic = 'force-dynamic';
+
+export default async function ProductsAdminPage({ searchParams }: { searchParams: Promise<{ page?: string; search?: string; channel?: string }> }) {
+  const params = await searchParams;
+  const page = Math.max(1, Number(params.page ?? 1) || 1);
+  const search = params.search ?? '';
+  const channel = params.channel ?? 'ALL';
+  const result = await getProductsForAdmin({ page, search, channel });
   const branchId = await getAdminBranch();
   const { branches } = await getEcommerceContextFromCookie();
   const activeBranch = branches.find(b => b.id === branchId) ?? branches[0];
@@ -22,13 +28,7 @@ export default async function ProductsAdminPage() {
 
   const products = (result.products ?? []) as any[];
 
-  const stats = {
-    total:    products.length,
-    online:   products.filter((p: any) => p.availableChannels === 'BOTH' || p.availableChannels === 'ECOMMERCE').length,
-    posOnly:  products.filter((p: any) => p.availableChannels === 'POS').length,
-    discount: products.filter((p: any) => p.discountPercentage > 0).length,
-    withTags: products.filter((p: any) => p.tags?.length > 0).length,
-  };
+  const stats = result.stats ?? { total: 0, online: 0, posOnly: 0, discount: 0, withTags: 0 };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-white min-h-[calc(100vh-4rem)]">
@@ -93,7 +93,7 @@ export default async function ProductsAdminPage() {
       </div>
 
       {/* Products table */}
-      <ProductsTable products={products} />
+      <ProductsTable products={products} total={result.total ?? 0} page={result.page ?? page} pageSize={result.pageSize ?? 20} initialSearch={search} initialChannel={channel as any} />
     </div>
   );
 }

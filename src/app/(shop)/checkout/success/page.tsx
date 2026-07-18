@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 
-export default function SuccessPage() {
+export default async function SuccessPage({ searchParams }: { searchParams: Promise<{ orderId?: string }> }) {
+  const { orderId } = await searchParams;
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
       <CheckCircle className="h-20 w-20 text-green-500 mb-6" />
@@ -12,7 +13,7 @@ export default function SuccessPage() {
         Te llegará un correo con los detalles pronto.
       </p>
       <Button asChild>
-        <Link href="/profile">Ver mis pedidos</Link>
+        <Link href={orderId ? `/orders/${orderId}/invoice` : '/profile'}>Ver mi ticket</Link>
       </Button>
     </div>
   );

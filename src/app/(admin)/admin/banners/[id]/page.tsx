@@ -1,13 +1,15 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { BannerForm } from '@/components/admin/BannerForm';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 interface Props { params: Promise<{ id: string }> }
 
 export default async function EditBannerPage({ params }: Props) {
   const { id } = await params;
   
-  const banner = await prisma.banner.findUnique({ where: { id } });
+  const { activeBranch } = await getEcommerceContextFromCookie();
+  const banner = await prisma.banner.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
   
   if (!banner) notFound();
 

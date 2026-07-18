@@ -12,7 +12,7 @@ Plataforma de comercio electrónico moderna y escalable para la venta de artícu
 - **Autenticación:** NextAuth v5 (Auth.js).
 - **Imágenes:** Cloudinary.
 - **Emails:** Resend.
-- **Pagos:** Coordinación vía WhatsApp Smart Links.
+- **Pagos:** Culqi Checkout y cargos server-side.
 
 ## 🛠️ Instalación y Configuración
 
@@ -46,6 +46,11 @@ Plataforma de comercio electrónico moderna y escalable para la venta de artícu
     
     # URL Base (Para producción)
     NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+    # Culqi
+    NEXT_PUBLIC_CULQI_PUBLIC_KEY="pk_test_..."
+    CULQI_SECRET_KEY="sk_test_..."
+    CULQI_WEBHOOK_SECRET="..."
     ```
 
 4.  **Inicializar Base de Datos:**
@@ -73,7 +78,7 @@ Plataforma de comercio electrónico moderna y escalable para la venta de artícu
 - Carrito de compras persistente.
 - Cálculo de envíos (Local/Provincia).
 - Cupones de descuento.
-- Checkout vía WhatsApp con mensaje detallado.
+- Checkout con Culqi y confirmación de pago vía webhook.
 
 ### 🔐 Panel Administrativo (`/admin`)
 - **Dashboard:** Métricas de ventas en tiempo real y gráficos.

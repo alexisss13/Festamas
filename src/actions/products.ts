@@ -6,6 +6,19 @@ import { unstable_cache } from 'next/cache';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { inferLegacyDivision } from '@/lib/ecommerce-helpers';
 
+export async function recordProductView(productId: string) {
+  try {
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    await prisma.product.updateMany({
+      where: { id: productId, businessId: business.id, OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }], active: true },
+      data: { viewCount: { increment: 1 } },
+    });
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
 export type ProductWithCategory = {
   id: string;
   title: string;
@@ -96,7 +109,14 @@ export async function getProducts({
 
     const where: Prisma.ProductWhereInput = {
       businessId: business.id,
-      branchOwnerId: activeBranch.id,
+      AND: [
+        { OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }] },
+        ...(query ? [{ OR: [
+          { title: { contains: query, mode: 'insensitive' as const } },
+          { tags: { has: query.toLowerCase() } },
+          { slug: { contains: query, mode: 'insensitive' as const } },
+        ] }] : []),
+      ],
       active: includeInactive ? undefined : true,
       isAvailable: includeInactive ? undefined : true,
       availableChannels: includeInactive ? undefined : { in: ['ECOMMERCE', 'BOTH'] },
@@ -107,13 +127,6 @@ export async function getProducts({
         gte: minPrice ? minPrice : undefined,
         lte: maxPrice ? maxPrice : undefined,
       } : undefined,
-      OR: query
-        ? [
-            { title: { contains: query, mode: 'insensitive' } },
-            { tags: { has: query.toLowerCase() } },
-            { slug: { contains: query, mode: 'insensitive' } },
-          ]
-        : undefined,
     };
 
     // Filtro de stock
@@ -196,7 +209,7 @@ export async function getProducts({
 export const getProduct = unstable_cache(async (slug: string) => {
   const { business, activeBranch } = await getEcommerceContextFromCookie();
   const product = await prisma.product.findFirst({
-    where: { slug, businessId: business.id, branchOwnerId: activeBranch.id, active: true, isAvailable: true },
+    where: { slug, businessId: business.id, OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }], active: true, isAvailable: true },
     include: {
       category: true,
       variants: { where: { active: true }, include: { stock: { where: { branchId: activeBranch.id } } }, take: 1 },
@@ -229,7 +242,7 @@ export const getProductsByCategory = async (
     const whereClause: Prisma.ProductWhereInput = {
       categoryId: category.id,
       businessId: business.id,
-      branchOwnerId: activeBranch.id,
+      OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }],
       active: true,
       isAvailable: true,
       availableChannels: { in: ['ECOMMERCE', 'BOTH'] },
@@ -302,7 +315,7 @@ export const getProductsByTag = async (tag: string, take: number = 8) => {
       take,
       where: {
         businessId: business.id,
-        branchOwnerId: activeBranch.id,
+        OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }],
         tags: { has: tag },
         isAvailable: true,
         active: true,
@@ -329,7 +342,7 @@ export const getSimilarProducts = async (categoryId: string, currentProductId: s
       where: {
         categoryId,
         businessId: business.id,
-        branchOwnerId: activeBranch.id,
+        OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }],
         isAvailable: true,
         active: true,
         availableChannels: { in: ['ECOMMERCE', 'BOTH'] },
@@ -367,7 +380,7 @@ export const getNewArrivalsProducts = async ({
   const { business, activeBranch } = await getEcommerceContextFromCookie();
   const whereClause: Prisma.ProductWhereInput = {
     businessId: business.id,
-    branchOwnerId: activeBranch.id,
+        OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }],
     active: true,
     isAvailable: true,
     availableChannels: { in: ['ECOMMERCE', 'BOTH'] },

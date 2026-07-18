@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Save, Package, Truck, CheckCircle, XCircle, Clock, CreditCard } from 'lucide-react';
 import { OrderStatus } from '@prisma/client';
-import { updateOrderStatus } from '@/actions/order';
+import { confirmOrderPacking, updateOrderStatus } from '@/actions/order';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -29,11 +29,15 @@ interface Props {
   initialTracking?: string | null;
   initialCarrier?: string | null;
   initialCancelReason?: string | null;
+  branches: Array<{ id: string; name: string }>;
+  currentBranchId?: string | null;
+  initialPackingNotes?: string | null;
+  packedAt?: Date | null;
 }
 
 export function OrderActions({
   orderId, initialStatus, initialIsPaid,
-  initialTracking, initialCarrier, initialCancelReason,
+  initialTracking, initialCarrier, initialCancelReason, branches, currentBranchId, initialPackingNotes, packedAt,
 }: Props) {
   const router = useRouter();
   const [status,       setStatus]       = useState<OrderStatus>(initialStatus);
@@ -42,6 +46,8 @@ export function OrderActions({
   const [carrier,      setCarrier]      = useState(initialCarrier ?? '');
   const [cancelReason, setCancelReason] = useState(initialCancelReason ?? '');
   const [loading,      setLoading]      = useState(false);
+  const [packingBranch, setPackingBranch] = useState(currentBranchId ?? branches[0]?.id ?? '');
+  const [packingNotes, setPackingNotes] = useState(initialPackingNotes ?? '');
 
   const handleSave = async () => {
     setLoading(true);
@@ -59,12 +65,31 @@ export function OrderActions({
     setLoading(false);
   };
 
+  const handlePacking = async () => {
+    if (!packingBranch) return toast.error('Selecciona una sucursal de preparación');
+    setLoading(true);
+    const result = await confirmOrderPacking(orderId, packingBranch, packingNotes || null);
+    if (result.success) { toast.success('Preparación confirmada'); router.refresh(); }
+    else toast.error(result.message ?? 'No se pudo confirmar la preparación');
+    setLoading(false);
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Gestionar Pedido</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+
+        <div className="space-y-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+          <div><Label className="text-sm font-semibold text-indigo-900">Confirmar empaquetamiento</Label><p className="text-xs text-indigo-700 mt-1">Define la sucursal que finalmente prepara el pedido. Esto ajusta el stock entre sucursales si corresponde.</p></div>
+          <select value={packingBranch} onChange={e => setPackingBranch(e.target.value)} disabled={loading} className="w-full h-9 rounded-lg border border-indigo-200 bg-white px-3 text-sm">
+            {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+          </select>
+          <textarea value={packingNotes} onChange={e => setPackingNotes(e.target.value)} disabled={loading} rows={2} placeholder="Notas del empaquetamiento o incidencia…" className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm resize-none" />
+          <Button type="button" onClick={handlePacking} disabled={loading || !isPaid} className="w-full bg-indigo-600 hover:bg-indigo-700">{packedAt ? 'Actualizar preparación' : 'Confirmar preparación'}</Button>
+          {packedAt && <p className="text-[11px] text-indigo-700">Confirmado el {new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(packedAt))}</p>}
+        </div>
 
         {/* STATE MACHINE */}
         <div className="space-y-2">

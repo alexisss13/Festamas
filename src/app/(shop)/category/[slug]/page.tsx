@@ -11,6 +11,7 @@ import { PartyPopper, SearchX, SlidersHorizontal } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+import prisma from '@/lib/prisma';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -27,10 +28,13 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const title = slug.charAt(0).toUpperCase() + slug.slice(1);
+  const { business } = await getEcommerceContextFromCookie();
+  const category = await prisma.category.findFirst({ where: { slug, businessId: business.id }, select: { name: true, image: true } });
+  const title = category?.name ?? slug.charAt(0).toUpperCase() + slug.slice(1);
   return {
     title: `${title} | FiestasYa`,
     description: `Compra los mejores artículos de ${slug} en Trujillo.`,
+    openGraph: { title: `${title} | FiestasYa`, description: `Compra los mejores artículos de ${slug} en Trujillo.`, ...(category?.image ? { images: [{ url: category.image }] } : {}) },
   };
 }
 

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Settings, LogOut, Menu,
   ChevronLeft, ChevronRight, Tag, Images, Store, BookOpen,
-  Star, Ticket, Megaphone, Sparkles, ExternalLink, Layers,
+  Star, Ticket, Megaphone, Sparkles, ExternalLink, Layers, RotateCcw, MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -22,6 +22,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/admin/orders',    label: 'Pedidos',   icon: ShoppingCart },
+      { href: '/admin/returns',   label: 'Cambios y devoluciones', icon: RotateCcw },
     ],
   },
   {
@@ -38,6 +39,7 @@ const NAV_GROUPS = [
       { href: '/admin/banners',   label: 'Banners',         icon: Images },
       { href: '/admin/sections',  label: 'Secciones Inicio',icon: Store },
       { href: '/admin/catalogs',  label: 'Catálogos',       icon: BookOpen },
+      { href: '/admin/popups',    label: 'Popups',           icon: MessageSquare },
     ],
   },
   {

@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 const settingsSchema = z.object({
   whatsappPhone: z.string().min(9, "El número debe ser válido"),
@@ -11,7 +12,11 @@ const settingsSchema = z.object({
 });
 
 export async function getStoreConfig() {
-  const config = await prisma.storeConfig.findFirst();
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const config = await prisma.storeConfig.findFirst({
+    where: { businessId: business.id, OR: [{ branchId: activeBranch.id }, { branchId: null }] },
+    orderBy: { branchId: 'desc' },
+  });
   
   if (config) {
     return {
@@ -44,7 +49,8 @@ export async function getStoreConfig() {
 export async function updateStoreConfig(data: z.infer<typeof settingsSchema>) {
   try {
     const valid = settingsSchema.parse(data);
-    const existing = await prisma.storeConfig.findFirst();
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const existing = await prisma.storeConfig.findFirst({ where: { businessId: business.id, branchId: activeBranch.id } });
 
     if (existing) {
       await prisma.storeConfig.update({
@@ -53,7 +59,7 @@ export async function updateStoreConfig(data: z.infer<typeof settingsSchema>) {
       });
     } else {
       await prisma.storeConfig.create({
-        data: valid,
+        data: { ...valid, businessId: business.id, branchId: activeBranch.id },
       });
     }
 
