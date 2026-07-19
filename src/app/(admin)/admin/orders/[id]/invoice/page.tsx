@@ -1,7 +1,6 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz'; 
@@ -98,8 +97,8 @@ export default async function InvoicePage({ params }: Props) {
                <div className="relative w-40 h-16 mb-2">
                   {brandConfig.logo ? (
                       <Image 
-                        loader={cloudinaryLoader}
                         src={brandConfig.logo} 
+                        unoptimized
                         alt={brandConfig.name} 
                         fill 
                         sizes="160px"

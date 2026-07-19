@@ -29,7 +29,7 @@ const mapProductForBranch = (product: any, branchId: string, ecommerceCode?: str
     categoryId: product.categoryId,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
-    category: { name: product.category.name, slug: product.category.slug },
+    category: { name: product.category?.name ?? 'Sin categoría', slug: product.category?.slug ?? '' },
   };
 };
 

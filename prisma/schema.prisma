@@ -1446,6 +1446,8 @@ model StoreConfig {
   id                 String  @id @default(uuid())
   businessId         String?
   branchId           String?
+  templateKey        String  @default("classic")
+  themeConfig        Json?
   whatsappPhone      String  @default("51999999999")
   welcomeMessage     String  @default("Hola Festamas, quiero confirmar mi pedido...")
   localDeliveryPrice Decimal @default(10.00) @db.Decimal(10, 2)

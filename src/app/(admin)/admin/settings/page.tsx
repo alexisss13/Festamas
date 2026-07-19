@@ -26,6 +26,10 @@ const formSchema = z.object({
   whatsappPhone: z.string().min(9, "Ingresa un celular válido (ej: 519...)"),
   welcomeMessage: z.string().min(1, "El mensaje no puede estar vacío"),
   localDeliveryPrice: z.coerce.number().min(0, "El precio no puede ser negativo"),
+  templateKey: z.enum(['classic', 'modern', 'playful', 'editorial', 'minimal']),
+  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  secondaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
 
 // 2. Definir Tipo Explícito
@@ -43,6 +47,10 @@ export default function SettingsPage() {
       whatsappPhone: '',
       welcomeMessage: '',
       localDeliveryPrice: 0,
+      templateKey: 'classic',
+      primaryColor: '#475569',
+      secondaryColor: '#e2e8f0',
+      accentColor: '#0f172a',
     },
   });
 
@@ -53,6 +61,10 @@ export default function SettingsPage() {
         whatsappPhone: config.whatsappPhone,
         welcomeMessage: config.welcomeMessage,
         localDeliveryPrice: config.localDeliveryPrice || 0,
+        templateKey: config.templateKey as SettingsFormValues['templateKey'],
+        primaryColor: config.primaryColor,
+        secondaryColor: config.secondaryColor,
+        accentColor: config.accentColor,
       });
       setLoading(false);
     });
@@ -109,6 +121,9 @@ export default function SettingsPage() {
                   </FormItem>
                 )}
               />
+
+              <FormField control={form.control} name="templateKey" render={({ field }) => (<FormItem><FormLabel>Plantilla visual</FormLabel><FormControl><select {...field} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="classic">Clásica</option><option value="modern">Moderna</option><option value="playful">Dinámica</option><option value="editorial">Editorial</option><option value="minimal">Minimalista</option></select></FormControl><FormDescription>Define la estructura visual de esta sucursal.</FormDescription><FormMessage /></FormItem>)} />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3"><FormField control={form.control} name="primaryColor" render={({ field }) => (<FormItem><FormLabel>Color principal</FormLabel><FormControl><Input type="color" {...field} className="h-10 p-1" /></FormControl></FormItem>)} /><FormField control={form.control} name="secondaryColor" render={({ field }) => (<FormItem><FormLabel>Color secundario</FormLabel><FormControl><Input type="color" {...field} className="h-10 p-1" /></FormControl></FormItem>)} /><FormField control={form.control} name="accentColor" render={({ field }) => (<FormItem><FormLabel>Color de acento</FormLabel><FormControl><Input type="color" {...field} className="h-10 p-1" /></FormControl></FormItem>)} /></div>
 
               <FormField
                 control={form.control}

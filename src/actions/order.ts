@@ -8,6 +8,7 @@ import { canAccessEcommerceAdmin } from '@/lib/permissions';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { auth } from '@/auth';
 import { sendNewOrderEmail, sendStatusEmail } from '@/lib/email';
+import { recordAdminAudit } from '@/lib/admin-audit';
 
 const orderSchema = z.object({
   name: z.string().min(3),
@@ -109,6 +110,7 @@ export async function getOrders() {
     data: orders.map((order) => ({
       ...order,
       totalAmount: Number(order.totalAmount),
+      amountPaid: Number(order.amountPaid),
       shippingCost: Number(order.shippingCost),
       orderItems: order.orderItems.map((item) => ({ ...item, price: Number(item.price) })),
     })),
@@ -320,6 +322,7 @@ export async function confirmOrderPacking(id: string, fulfillmentBranchId: strin
     });
     revalidatePath(`/admin/orders/${id}`);
     revalidatePath('/admin/orders');
+    await recordAdminAudit({ businessId: business.id, userId: session.user.id, details: { action: 'CONFIRM_PACKING', orderId: id, branchId: fulfillmentBranchId } });
     return { success: true };
   } catch (error) {
     return { success: false, message: error instanceof Error ? error.message : 'No se pudo confirmar el empaquetamiento' };

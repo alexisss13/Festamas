@@ -1,10 +1,12 @@
-# 🎉 FiestasYa E-commerce
+# Ecommerce SaaS
 
-Plataforma de comercio electrónico moderna y escalable para la venta de artículos de fiesta. Desarrollada con las últimas tecnologías web.
+Storefront ecommerce multi-tenant. Cada negocio puede operar varias sucursales,
+con catálogo y stock sincronizados con el POS y una presentación configurable
+por negocio o por sucursal.
 
 ## 🚀 Tecnologías (Stack)
 
-- **Frontend:** Next.js 15 (App Router), React 19, Tailwind CSS v4.
+- **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS v4.
 - **UI Kit:** Shadcn/UI + Lucide React.
 - **Backend:** Server Actions.
 - **Base de Datos:** Neon Tech (PostgreSQL) + Prisma ORM.
@@ -18,8 +20,8 @@ Plataforma de comercio electrónico moderna y escalable para la venta de artícu
 
 1.  **Clonar el repositorio:**
     ```bash
-    git clone [https://github.com/alexisss13/FiestasYa.git](https://github.com/alexisss13/FiestasYa.git)
-    cd FiestasYa
+    git clone <URL_DEL_REPOSITORIO>
+    cd Festamas
     ```
 
 2.  **Instalar dependencias:**
@@ -56,11 +58,12 @@ Plataforma de comercio electrónico moderna y escalable para la venta de artícu
 4.  **Inicializar Base de Datos:**
     ```bash
     npx prisma generate
-    npx prisma db push
+    npx prisma migrate deploy
     ```
 
 5.  **Cargar Datos de Prueba (Semilla):**
-    Esto creará el usuario Admin inicial (`admin@fiestasya.com` / `123456`) y categorías base.
+    La semilla debe ejecutarse únicamente en entornos de desarrollo y debe
+    configurarse para el tenant de prueba correspondiente.
     ```bash
     npx prisma db seed
     ```
@@ -83,8 +86,13 @@ Plataforma de comercio electrónico moderna y escalable para la venta de artícu
 ### 🔐 Panel Administrativo (`/admin`)
 - **Dashboard:** Métricas de ventas en tiempo real y gráficos.
 - **Pedidos:** Gestión de estado (Pendiente/Pagado/Entregado) y exportación a Excel.
-- **Productos:** CRUD completo con gestión de stock e imágenes.
-- **Configuración:** Edición de teléfono de contacto y precios de envío.
+- **Catálogo ecommerce:** gestión de contenido comercial, publicación, SEO y
+  merchandising; productos, stock y variantes siguen siendo responsabilidad del POS.
+- **Configuración:** plantilla, tema, identidad visual, contenido y opciones
+  propias del storefront activo.
+
+La documentación central del workspace está en
+`../docs/README.md`.
 
 ## 🤝 Contribución
 
@@ -95,4 +103,4 @@ Plataforma de comercio electrónico moderna y escalable para la venta de artícu
 5.  Abrir un Pull Request.
 
 ---
-&copy; 2025 FiestasYa. Trujillo, Perú.
+La identidad, dominio y textos se configuran por tenant; no se fijan en el código fuente.

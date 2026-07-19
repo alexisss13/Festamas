@@ -9,7 +9,10 @@ import { revalidatePath } from 'next/cache';
  */
 export async function setAdminBranch(branchId: string) {
   const cookieStore = await cookies();
-  cookieStore.set('admin_branch', branchId, { path: '/' });
+  const options = { path: '/', sameSite: 'lax' as const };
+  cookieStore.set('admin_branch', branchId, options);
+  // Mantiene alineado el storefront que se visualiza en el mismo navegador.
+  cookieStore.set('festamas_branch_id', branchId, options);
   
   // Revalidamos todas las rutas del admin
   revalidatePath('/admin', 'layout');

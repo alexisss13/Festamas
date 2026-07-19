@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import cloudinaryLoader from '@/lib/cloudinaryLoader';
 import { getDashboardStats, getSalesChartData, getRecentSales, getTopProducts, getLogisticsStats, getOrderStatuses } from '@/actions/dashboard';
 import { DashboardCard } from './DashboardCard';
 import { SalesOverview } from './SalesOverview';
@@ -101,14 +100,14 @@ export default async function DashboardPage() {
           <CardContent className="p-0">
             <div className="flex flex-col">
               {topProducts.map((product, index) => (
-                <div key={product.id} className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/80 transition-colors group">
+                <div key={`${product.id}-${index}`} className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/80 transition-colors group">
                   <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                     <div className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 border border-slate-200 shrink-0 overflow-hidden">
                       <div className="absolute top-0 left-0 w-5 h-5 bg-primary text-white text-[10px] font-bold flex items-center justify-center rounded-br-lg z-10 shadow-sm">
                         {index + 1}
                       </div>
                       {product.images && product.images.length > 0 ? (
-                        <Image loader={cloudinaryLoader} src={product.images[0].includes('res.cloudinary.com') ? product.images[0].split('/upload/')[1]?.split('/').filter((p: string) => !p.startsWith('v') || p.length < 10).join('/').split('.')[0] || product.images[0] : product.images[0]} alt={product.title} fill className="object-cover transition-transform group-hover:scale-105" sizes="48px" />
+                        <Image src={product.images[0]} unoptimized alt={product.title} fill className="object-cover transition-transform group-hover:scale-105" sizes="48px" />
                       ) : (
                         <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
                       )}

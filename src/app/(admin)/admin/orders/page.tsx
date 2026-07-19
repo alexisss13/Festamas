@@ -21,6 +21,7 @@ export default async function AdminOrdersPage() {
   const plainOrders = orders.map((order: any) => ({
     ...order,
     totalAmount: Number(order.totalAmount),
+    amountPaid: Number(order.amountPaid),
     shippingCost: Number(order.shippingCost),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     orderItems: order.orderItems.map((item: any) => ({

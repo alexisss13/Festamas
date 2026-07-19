@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Cloudinary Loader para Next.js Image
  * 

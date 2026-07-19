@@ -1,0 +1,2 @@
+ALTER TABLE "StoreConfig" ADD COLUMN IF NOT EXISTS "templateKey" TEXT NOT NULL DEFAULT 'classic';
+ALTER TABLE "StoreConfig" ADD COLUMN IF NOT EXISTS "themeConfig" JSONB;

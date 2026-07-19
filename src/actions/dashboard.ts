@@ -87,10 +87,16 @@ export async function getTopProducts(branchId: string) {
     grouped.set(key, current);
   }
   const variants = await prisma.productVariant.findMany({ where: { id: { in: [...grouped.keys()] } }, select: { id: true, product: { select: { id: true, title: true, images: true, isAvailable: true } }, stock: { where: { branchId }, select: { quantity: true } } } });
-  return variants.map(variant => {
+  const byProduct = new Map<string, { id: string; title: string; images: string[]; isAvailable: boolean; stock: number; quantity: number; revenue: number }>();
+  for (const variant of variants) {
     const metrics = grouped.get(variant.id)!;
-    return { id: variant.product.id, title: variant.product.title, images: variant.product.images, isAvailable: variant.product.isAvailable, stock: variant.stock.reduce((sum, item) => sum + item.quantity, 0), price: metrics.revenue / metrics.quantity, _count: { orderItems: metrics.quantity } };
-  }).sort((a, b) => b._count.orderItems - a._count.orderItems).slice(0, 8);
+    const current = byProduct.get(variant.product.id) ?? { id: variant.product.id, title: variant.product.title, images: variant.product.images, isAvailable: variant.product.isAvailable, stock: 0, quantity: 0, revenue: 0 };
+    current.stock += variant.stock.reduce((sum, item) => sum + item.quantity, 0);
+    current.quantity += metrics.quantity;
+    current.revenue += metrics.revenue;
+    byProduct.set(variant.product.id, current);
+  }
+  return [...byProduct.values()].map(product => ({ id: product.id, title: product.title, images: product.images, isAvailable: product.isAvailable, stock: product.stock, price: product.revenue / product.quantity, _count: { orderItems: product.quantity } })).sort((a, b) => b._count.orderItems - a._count.orderItems).slice(0, 8);
 }
 
 export async function getOrderStatuses(branchId: string) {

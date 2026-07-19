@@ -169,7 +169,7 @@ export const AdminSidebar = ({ activeBranch, branches }: Props) => {
                 <Menu className="h-5 w-5 text-slate-600" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72 border-r border-slate-100">
+            <SheetContent id="admin-mobile-navigation" side="left" className="p-0 w-72 border-r border-slate-100">
               <SheetHeader className="sr-only"><SheetTitle>Navegación</SheetTitle></SheetHeader>
               <SidebarContent />
             </SheetContent>

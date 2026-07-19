@@ -36,15 +36,13 @@
 
 @layer base {
   :root {
-    /* --- CONFIGURACIÓN BASE (Festamas por defecto) --- */
+    /* Valores predeterminados de la plataforma; el storefront los sobrescribe. */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
-    /* ROJO FESTAMAS (#fc4b65) */
     --primary: 351 96% 64%; 
     --primary-foreground: 0 0% 100%;
 
-    /* AMARILLO FESTAMAS */
     --secondary: 45 93% 47%; 
     --secondary-foreground: 222.2 47.4% 11.2%;
 
@@ -60,7 +58,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 351 96% 64%; /* Mismo que primary Festamas */
+    --ring: 351 96% 64%;
     --radius: 0.5rem;
   }
  
@@ -71,11 +69,11 @@
     --primary-foreground: 0 0% 100%;
   }
 
-  /* 🌸 TEMA FIESTASYA (Override) */
-  [data-theme="fiestasya"] {
-    --primary: 329 96% 59%; /* ROSA (#fb3099) */
-    --ring: 329 96% 59%;
-    --secondary: 49 94% 57%; /* Amarillo FiestasYa */
+  [data-template] {
+    --primary: var(--brand-primary-hsl);
+    --ring: var(--brand-primary-hsl);
+    --secondary: var(--brand-secondary-hsl);
+    --accent: var(--brand-accent-hsl);
   }
 }
 
