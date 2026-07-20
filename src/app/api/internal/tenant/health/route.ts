@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { failure, success, verifyInternalRequestHeaders } from '@zaiko/contracts';
+import { failure, success, verifyInternalRequestHeaders } from '@/lib/zaiko-contracts';
 
 export async function GET(request: Request) {
   const context = await verifyInternalRequestHeaders(request.headers, process.env.ZAIKO_INTERNAL_SECRET || '');

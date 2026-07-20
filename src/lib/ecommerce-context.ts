@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { headers } from 'next/headers';
 import prisma from '@/lib/prisma';
-import { createTenantContext, createInternalRequestHeaders } from '@zaiko/contracts';
+import { createTenantContext, createInternalRequestHeaders } from '@/lib/zaiko-contracts';
 import { ECOMMERCE_BRANCH_COOKIE } from '@/lib/ecommerce-branch';
 const LEGACY_BRANCH_COOKIE = 'festamas_branch_id';
 

@@ -1,4 +1,4 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { failure, success, verifyInternalRequestHeaders } from '@zaiko/contracts';
+import { failure, success, verifyInternalRequestHeaders } from '@/lib/zaiko-contracts';
 export async function POST(request: Request) { const context = await verifyInternalRequestHeaders(request.headers, process.env.ZAIKO_INTERNAL_SECRET || ''); if (!context || context.source !== 'SAAS_PLATFORM') return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Solo la plataforma puede cambiar el ciclo de vida' } }, { status: 403 }); const body = await request.json().catch(() => null) as { status?: 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED' } | null; if (!body?.status) return NextResponse.json(failure('VALIDATION_ERROR', 'status es obligatorio', context), { status: 400 }); const business = await prisma.business.update({ where: { id: context.businessId }, data: { isActive: body.status === 'ACTIVE' } }); return NextResponse.json(success({ businessId: business.id, status: body.status, isActive: business.isActive }, context)); }
