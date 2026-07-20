@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { getAdminBranch } from '@/actions/admin-settings';
+import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
 const settingsSchema = z.object({
   whatsappPhone: z.string().min(9, "El número debe ser válido"),
@@ -44,14 +46,14 @@ export async function getStoreConfig() {
   // Fallback si no hay configuración en BD
   return { 
     whatsappPhone: '51999999999', 
-    welcomeMessage: 'Hola FiestasYa...', 
+    welcomeMessage: `Hola ${activeBranch.name}, quiero confirmar mi pedido...`, 
     localDeliveryPrice: 0,
     heroImage: '',
     heroTitle: '',
     heroSubtitle: '',
     heroButtonText: '',
     heroButtonLink: '',
-    heroBtnColor: '#fb3099', // 👈 ESTE ERA EL QUE FALTABA
+    heroBtnColor: (activeBranch.brandColors as { primary?: string } | null)?.primary || '#475569',
     templateKey: 'classic',
     primaryColor: '#475569',
     secondaryColor: '#e2e8f0',
@@ -61,6 +63,8 @@ export async function getStoreConfig() {
 
 export async function updateStoreConfig(data: z.infer<typeof settingsSchema>) {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, message: 'No autorizado' };
     const valid = settingsSchema.parse(data);
     const { business, branches, activeBranch: ecommerceBranch } = await getEcommerceContextFromCookie();
     const adminBranchId = await getAdminBranch();

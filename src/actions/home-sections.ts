@@ -15,9 +15,10 @@ export interface HomeSectionInput {
   isActive: boolean;
 }
 
-export const getHomeSections = async (branchId: string, onlyActive: boolean = true) => {
+export const getHomeSections = async (onlyActive: boolean = true) => {
   try {
-    const whereClause: any = { OR: [{ branchId }, { branchId: null }] };
+    const { activeBranch } = await getEcommerceContextFromCookie();
+    const whereClause: any = { branchId: activeBranch.id };
     if (onlyActive) whereClause.isActive = true;
 
     const sections = await prisma.homeSection.findMany({
@@ -34,7 +35,7 @@ export const getHomeSections = async (branchId: string, onlyActive: boolean = tr
 export const getHomeSectionById = async (id: string) => {
   try {
     const { activeBranch } = await getEcommerceContextFromCookie();
-    return await prisma.homeSection.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+    return await prisma.homeSection.findFirst({ where: { id, branchId: activeBranch.id } });
   } catch (error) {
     return null;
   }
@@ -49,7 +50,7 @@ export const saveHomeSection = async (data: HomeSectionInput, id?: string) => {
     const scopedData = { ...data, branchId: activeBranch.id };
     if (id) {
       // Actualizar existente
-      const current = await prisma.homeSection.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+      const current = await prisma.homeSection.findFirst({ where: { id, branchId: activeBranch.id } });
       if (!current) return { ok: false, message: 'Sección no encontrada en la sucursal activa' };
       await prisma.homeSection.update({ where: { id }, data: scopedData });
     } else {
@@ -82,7 +83,7 @@ export const reorderHomeSections = async (items: { id: string; order: number }[]
     const session = await auth();
     if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { ok: false };
     const { activeBranch } = await getEcommerceContextFromCookie();
-    const allowed = await prisma.homeSection.count({ where: { id: { in: items.map(item => item.id) }, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+    const allowed = await prisma.homeSection.count({ where: { id: { in: items.map(item => item.id) }, branchId: activeBranch.id } });
     if (allowed !== items.length) return { ok: false };
     await prisma.$transaction(
       items.map((item) =>
@@ -106,7 +107,7 @@ export const deleteHomeSection = async (id: string) => {
     const session = await auth();
     if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { ok: false };
     const { activeBranch } = await getEcommerceContextFromCookie();
-    const current = await prisma.homeSection.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+    const current = await prisma.homeSection.findFirst({ where: { id, branchId: activeBranch.id } });
     if (!current) return { ok: false };
     await prisma.homeSection.delete({ where: { id } });
     revalidatePath('/');

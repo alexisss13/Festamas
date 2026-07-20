@@ -24,7 +24,7 @@ interface Props {
 }
 
 export const metadata: Metadata = {
-  title: 'Recién Llegados | FiestasYa',
+  title: 'Recién llegados',
   description: 'Descubre lo último en juguetes y decoración.',
 };
 

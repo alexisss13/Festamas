@@ -1,4 +1,4 @@
-# Documentación de Festamas (Ecommerce)
+# Documentación de Ecommerce
 
 > **Última actualización:** 2026-07-18
 

@@ -9,6 +9,7 @@ import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { auth } from '@/auth';
 import { sendNewOrderEmail, sendStatusEmail } from '@/lib/email';
 import { recordAdminAudit } from '@/lib/admin-audit';
+import { canTransitionOrder } from '@/lib/order-state-machine';
 
 const orderSchema = z.object({
   name: z.string().min(3),
@@ -36,6 +37,13 @@ interface CreateOrderInput {
   shippingAddress?: string;
   shippingCost?: number;
   notes?: string;
+}
+
+function getEmailBrand(business: { name: string; brandColors?: unknown }, branch: { name: string; brandColors?: unknown }) {
+  const rawColors = branch.brandColors && typeof branch.brandColors === 'object' ? branch.brandColors : business.brandColors;
+  const colors = rawColors as { primary?: unknown } | null;
+  const primaryColor = typeof colors?.primary === 'string' && /^#[0-9a-fA-F]{6}$/.test(colors.primary) ? colors.primary : undefined;
+  return { name: branch.name || business.name, primaryColor };
 }
 
 export async function createOrder(data: CreateOrderInput) {
@@ -79,6 +87,10 @@ export async function createOrder(data: CreateOrderInput) {
   });
 
   revalidatePath('/profile/orders');
+  const recipients = await prisma.user.findMany({
+    where: { businessId: business.id, isActive: true, role: { in: ['OWNER', 'ADMIN', 'MANAGER'] }, email: { not: null } },
+    select: { email: true },
+  });
 
   void sendNewOrderEmail({
     orderId: order.id,
@@ -90,6 +102,8 @@ export async function createOrder(data: CreateOrderInput) {
     shippingAddress: data.shippingAddress,
     shippingCost: data.shippingCost ?? 0,
     notes: data.notes,
+    recipientEmails: recipients.flatMap(item => item.email ? [item.email] : []),
+    brand: getEmailBrand(business, activeBranch),
   });
 
   return { success: true, orderId: order.id };
@@ -122,7 +136,7 @@ export async function getOrderById(id: string) {
   if (!session?.user || !canAccessEcommerceAdmin(session.user)) return null;
   const { business, activeBranch } = await getEcommerceContextFromCookie();
   const order = await prisma.order.findFirst({
-    where: { id, businessId: business.id, OR: [{ branchId: activeBranch.id }, { branchId: null }] },
+    where: { id, businessId: business.id, source: 'ONLINE', OR: [{ branchId: activeBranch.id }, { branchId: null }] },
     include: {
       orderItems: true,
       trackingEvents: { orderBy: { createdAt: 'asc' } },
@@ -149,6 +163,7 @@ const STATUS_TRACKING_DESC: Record<string, string> = {
   DELIVERED:        'Pedido entregado al cliente',
   CANCELLED:        'Pedido cancelado',
 };
+
 
 export async function updateOrderStatus(
   id: string,
@@ -177,12 +192,20 @@ export async function updateOrderStatus(
     return { success: false, message: 'Pedido no encontrado' };
   }
 
+  if (!canTransitionOrder(order.status, newStatus)) {
+    return { success: false, message: `No se puede pasar de ${order.status} a ${newStatus}` };
+  }
+  if (order.isPaid && !isPaid && newStatus !== 'CANCELLED') {
+    return { success: false, message: 'Un pedido pagado requiere un reembolso antes de volver a pendiente.' };
+  }
+
   // Actualizar el pedido
   await prisma.order.update({
     where: { id },
     data: {
       status: newStatus,
       isPaid,
+      paymentStatus: isPaid ? 'PAID' : newStatus === 'CANCELLED' ? 'FAILED' : 'PENDING',
       ...(extra?.trackingNumber !== undefined && { trackingNumber: extra.trackingNumber }),
       ...(extra?.carrier !== undefined && { carrier: extra.carrier }),
       ...(extra?.cancelReason !== undefined && { cancelReason: extra.cancelReason }),
@@ -216,6 +239,7 @@ export async function updateOrderStatus(
       trackingNumber: extra?.trackingNumber,
       carrier: extra?.carrier,
       cancelReason: extra?.cancelReason,
+      brand: getEmailBrand(business, activeBranch),
     });
   }
 

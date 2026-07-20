@@ -163,7 +163,7 @@ export function OrderActions({
             <Label className="text-sm font-semibold">Pagado</Label>
             <p className="text-xs text-slate-400 mt-0.5">Marcar si el pago fue recibido</p>
           </div>
-          <Switch checked={isPaid} onCheckedChange={setIsPaid} disabled={loading} />
+          <Switch checked={isPaid} onCheckedChange={setIsPaid} disabled={loading || initialIsPaid} />
         </div>
 
         <Button

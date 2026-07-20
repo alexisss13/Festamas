@@ -177,7 +177,7 @@ export async function processReturnRequest(input: { id: string; refundAmount?: n
   const { business } = await getEcommerceContextFromCookie();
   const request = await prisma.returnRequest.findFirst({
     where: { id: input.id, businessId: business.id, status: 'APPROVED' },
-    include: { items: true, order: { select: { id: true, branchId: true, culqiPaymentId: true, totalAmount: true } } },
+    include: { items: true, order: { select: { id: true, branchId: true, culqiPaymentId: true, totalAmount: true, paymentStatus: true } } },
   });
   if (!request) return { success: false, message: 'La solicitud debe estar aprobada antes de procesarse.' };
   if (!request.order.branchId) return { success: false, message: 'El pedido no tiene sucursal asignada.' };
@@ -220,6 +220,12 @@ export async function processReturnRequest(input: { id: string; refundAmount?: n
       });
     }
     await tx.returnRequest.update({ where: { id: request.id }, data: { status: 'COMPLETED', refundAmount, refundReference, processedAt: new Date() } });
+    if (request.type === 'RETURN' && refundAmount > 0) {
+      await tx.order.update({
+        where: { id: request.order.id },
+        data: { paymentStatus: refundAmount >= Number(request.order.totalAmount) ? 'REFUNDED' : 'PARTIALLY_REFUNDED' },
+      });
+    }
   });
 
   revalidatePath('/admin/returns');

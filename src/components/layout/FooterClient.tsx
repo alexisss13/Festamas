@@ -24,12 +24,12 @@ export function FooterClient({ allCategories }: FooterClientProps) {
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
   const activeBranch = branches.find((branch) => branch.id === activeBranchId) ?? branches[0];
-  const brandName = activeBranch?.name || 'Festamas';
-  const primaryColor = activeBranch?.brandColors?.primary ?? '#fc4b65';
+  const brandName = activeBranch?.name || 'Tienda online';
+  const primaryColor = activeBranch?.brandColors?.primary ?? '#475569';
 
   const activeLogo = activeBranch?.logos?.imagotipoWhite ?? activeBranch?.logos?.alternate ?? '';
-  const branchAddress = activeBranch?.address ?? 'Trujillo, Perú';
-  const branchPhone = activeBranch?.phone ?? '---';
+  const branchAddress = activeBranch?.address ?? 'Consulta nuestras sedes';
+  const branchPhone = activeBranch?.phone ?? 'Canal de atención disponible en tienda';
 
   const displayCategories = allCategories
     .filter((cat) => cat.ecommerceCode === activeBranch?.ecommerceCode)
@@ -102,14 +102,7 @@ export function FooterClient({ allCategories }: FooterClientProps) {
               <li><Link href="/terms" className="text-white/80 hover:text-white transition-colors block py-1.5 md:py-0">Términos y Condiciones</Link></li>
               <li><Link href="/privacy" className="text-white/80 hover:text-white transition-colors block py-1.5 md:py-0">Política de Privacidad</Link></li>
               <li>
-                <a
-                  href="https://docs.google.com/forms/d/e/1FAIpQLSeRwJVEuZlu14QhTtBkNIVToNBP7oUcgUJhf2tEvaAI5DR9rg/viewform"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white transition-colors block py-1.5 md:py-0"
-                >
-                  Devoluciones
-                </a>
+                <Link href="/profile/orders" className="text-white/80 hover:text-white transition-colors block py-1.5 md:py-0">Cambios y devoluciones</Link>
               </li>
               <li><Link href="/tiendas" className="text-white/80 hover:text-white transition-colors block py-1.5 md:py-0">Nuestras Tiendas</Link></li>
             </ul>

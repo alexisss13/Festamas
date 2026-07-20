@@ -135,7 +135,7 @@ export default function SettingsPage() {
                     </FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Hola FiestasYa, quiero confirmar mi pedido..." 
+                        placeholder="Hola, quiero confirmar mi pedido..." 
                         className="resize-none h-24"
                         {...field} 
                       />
@@ -155,7 +155,7 @@ export default function SettingsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
-                        <Package className="h-4 w-4" /> Precio Delivery Local (Trujillo)
+                        <Package className="h-4 w-4" /> Precio de delivery local
                     </FormLabel>
                     <FormControl>
                       <div className="relative">

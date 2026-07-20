@@ -3,6 +3,7 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 // 1. Obtener lista de IDs favoritos (Nuevo)
 export async function getFavoriteIds() {
@@ -11,9 +12,10 @@ export async function getFavoriteIds() {
   if (!session?.user?.id) {
     return [];
   }
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
 
   const favorites = await prisma.favorite.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, product: { businessId: business.id, OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }] } },
     select: { productId: true }, // Solo necesitamos el ID
   });
 
@@ -30,6 +32,9 @@ export async function toggleFavorite(productId: string) {
   }
 
   try {
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const product = await prisma.product.findFirst({ where: { id: productId, businessId: business.id, OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }], active: true, isAvailable: true }, select: { id: true } });
+    if (!product) return { ok: false, message: 'Producto no disponible en esta tienda' };
     const existingFavorite = await prisma.favorite.findUnique({
       where: {
         userId_productId: {
@@ -49,7 +54,7 @@ export async function toggleFavorite(productId: string) {
       return { ok: true, isFavorite: false, message: 'Eliminado de favoritos' };
     } else {
       await prisma.favorite.create({
-        data: { userId, productId },
+        data: { userId, productId: product.id },
       });
       revalidatePath('/');
       return { ok: true, isFavorite: true, message: 'Agregado a favoritos' };

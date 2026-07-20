@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
-export const metadata: Metadata = {
-  title: 'Términos y Condiciones | FiestasYa',
-  description: 'Conoce nuestras políticas de servicio, pagos y envíos.',
-};
+export async function generateMetadata(): Promise<Metadata> { const { business, activeBranch } = await getEcommerceContextFromCookie(); const name = activeBranch.name || business.name; return { title: `Términos y condiciones | ${name}`, description: `Políticas de servicio, pagos y entregas de ${name}.` }; }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const name = activeBranch.name || business.name;
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <h1 className="text-4xl font-bold text-slate-900 mb-8">Términos y Condiciones</h1>
@@ -15,7 +15,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-bold text-slate-900 mb-3">1. Introducción</h2>
           <p>
-            Bienvenido a <strong>FiestasYa</strong>. Al acceder a nuestro sitio web y realizar pedidos, aceptas los siguientes términos y condiciones.
+            Bienvenido a <strong>{name}</strong>. Al acceder a nuestro sitio web y realizar pedidos, aceptas los siguientes términos y condiciones.
             Nos reservamos el derecho de actualizar estos términos en cualquier momento sin previo aviso.
           </p>
         </section>
@@ -23,34 +23,29 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-bold text-slate-900 mb-3">2. Proceso de Compra</h2>
           <p>
-            Nuestra plataforma funciona bajo la modalidad de <strong>Catálogo Digital</strong>.
-            El proceso de compra se finaliza a través de WhatsApp:
+            Nuestra plataforma permite consultar el catálogo y solicitar pedidos según las modalidades habilitadas por la tienda:
           </p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>Selecciona tus productos y agrégalos al carrito.</li>
-            <li>Al completar el pedido, se generará un enlace automático a nuestro WhatsApp oficial.</li>
-            <li>La confirmación del stock y el pago final se coordinan directamente con nuestro equipo de ventas.</li>
+            <li>Al completar el pedido recibirás la confirmación disponible para la tienda.</li>
+            <li>El stock, pago y entrega se confirman conforme a la modalidad seleccionada.</li>
           </ul>
         </section>
 
         <section>
           <h2 className="text-xl font-bold text-slate-900 mb-3">3. Precios y Pagos</h2>
           <p>
-            Todos los precios están expresados en Soles (S/.) e incluyen IGV. 
-            Aceptamos los siguientes métodos de pago (previa coordinación):
+            Los precios y medios de pago disponibles se muestran antes de confirmar el pedido.
           </p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li>Transferencia Bancaria (BCP, Interbank, BBVA).</li>
-            <li>Yape / Plin.</li>
-            <li>Pago contra entrega (sujeto a cobertura y disponibilidad).</li>
+            <li>Los medios de pago pueden variar según la tienda y el pedido.</li>
           </ul>
         </section>
 
         <section>
           <h2 className="text-xl font-bold text-slate-900 mb-3">4. Envíos y Entregas</h2>
           <p>
-            Realizamos envíos a todo Trujillo y zonas aledañas. El costo del delivery varía según la distancia y se cotizará al momento de confirmar el pedido por WhatsApp.
-            También ofrecemos la opción de <strong>Recojo en Tienda</strong> sin costo adicional.
+            Las zonas, costos y tiempos de entrega se informan durante el pedido. Cuando esté habilitado, también podrás elegir <strong>recojo en tienda</strong>.
           </p>
         </section>
 

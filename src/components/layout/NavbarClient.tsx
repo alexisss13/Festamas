@@ -19,6 +19,7 @@ import { SmartSearch } from '@/components/features/SmartSearch';
 import { LoginModal } from '@/components/auth/LoginModal';
 import { RegisterModal } from '@/components/auth/RegisterModal';
 import { setCookie } from 'cookies-next';
+import { ECOMMERCE_BRANCH_COOKIE } from '@/lib/ecommerce-branch';
 import { logout } from '@/actions/auth-actions';
 import { BranchUI } from '@/store/ui';
 
@@ -142,7 +143,7 @@ export function NavbarClient({ categories, branches, defaultBranchId, user }: Na
     if (optimisticBranchId === branchId) return;
     setOptimisticBranchId(branchId); 
     setActiveBranchId(branchId);
-    setCookie('festamas_branch_id', branchId, { maxAge: 60 * 60 * 24 * 30, path: '/' }); 
+    setCookie(ECOMMERCE_BRANCH_COOKIE, branchId, { maxAge: 60 * 60 * 24 * 30, path: '/' }); 
     if (cart.length > 0) {
       clearCart();
     }

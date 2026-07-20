@@ -266,8 +266,9 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
       }
     };
 
+    const activeBranch = useUIStore.getState().branches.find(branch => branch.id === useUIStore.getState().activeBranchId) ?? useUIStore.getState().branches[0];
     window.Culqi.settings({
-      title: 'Festamas',
+      title: activeBranch?.name || 'Tienda online',
       currency: 'PEN',
       amount: Math.round(getGrandTotal() * 100),
     });

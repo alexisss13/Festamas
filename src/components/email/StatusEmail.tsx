@@ -11,42 +11,44 @@ interface StatusEmailProps {
   trackingNumber?: string | null;
   carrier?: string | null;
   cancelReason?: string | null;
+  brand: { name: string; primaryColor?: string | null };
+  ordersUrl: string;
 }
 
 const STATUS_CONFIG: Record<string, { heading: string; preview: string; description: string; color: string }> = {
   PAID: {
     heading: '¡Pago Confirmado! ✅',
-    preview: 'Tu pago fue confirmado — FiestasYa',
+    preview: 'Tu pago fue confirmado',
     description: 'Hemos recibido tu pago correctamente. Ya estamos preparando tu pedido.',
     color: '#16a34a',
   },
   PROCESSING: {
     heading: 'Pedido en Preparación 📦',
-    preview: 'Tu pedido está siendo preparado — FiestasYa',
+    preview: 'Tu pedido está siendo preparado',
     description: 'Estamos preparando tu pedido con mucho cuidado. Te avisaremos cuando salga.',
     color: '#2563eb',
   },
   SHIPPED: {
     heading: '¡Tu Pedido fue Enviado! 🚚',
-    preview: 'Tu pedido ya está en camino — FiestasYa',
+    preview: 'Tu pedido ya está en camino',
     description: 'Tu pedido ya está en camino. Pronto llegará a tu dirección.',
     color: '#7c3aed',
   },
   READY_FOR_PICKUP: {
     heading: '¡Listo para Recoger! 🛍️',
-    preview: 'Tu pedido está listo — FiestasYa',
+    preview: 'Tu pedido está listo',
     description: 'Tu pedido ya está listo. Puedes pasar a recogerlo en nuestra tienda.',
     color: '#d97706',
   },
   DELIVERED: {
     heading: '¡Pedido Entregado! 🎉',
-    preview: 'Tu pedido fue entregado — FiestasYa',
-    description: '¡Tu pedido ha sido entregado exitosamente! Gracias por tu compra en FiestasYa.',
+    preview: 'Tu pedido fue entregado',
+    description: '¡Tu pedido ha sido entregado exitosamente! Gracias por tu compra.',
     color: '#16a34a',
   },
   CANCELLED: {
     heading: 'Pedido Cancelado',
-    preview: 'Tu pedido fue cancelado — FiestasYa',
+    preview: 'Tu pedido fue cancelado',
     description: 'Tu pedido ha sido cancelado. Si tienes alguna duda, no dudes en contactarnos.',
     color: '#dc2626',
   },
@@ -59,10 +61,12 @@ export const StatusEmail: React.FC<Readonly<StatusEmailProps>> = ({
   trackingNumber,
   carrier,
   cancelReason,
+  brand,
+  ordersUrl,
 }) => {
   const cfg = STATUS_CONFIG[status] ?? {
     heading: 'Actualización de Pedido',
-    preview: 'Actualización de tu pedido — FiestasYa',
+    preview: 'Actualización de tu pedido',
     description: 'El estado de tu pedido ha sido actualizado.',
     color: '#64748b',
   };
@@ -72,10 +76,10 @@ export const StatusEmail: React.FC<Readonly<StatusEmailProps>> = ({
   return (
     <Html>
       <Head />
-      <Preview>{cfg.preview}</Preview>
+      <Preview>{cfg.preview} · {brand.name}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={{ ...h1, color: cfg.color }}>{cfg.heading}</Heading>
+          <Heading style={{ ...h1, color: brand.primaryColor || cfg.color }}>{cfg.heading}</Heading>
 
           <Text style={greeting}>Hola {customerName},</Text>
           <Text style={text}>{cfg.description}</Text>
@@ -101,15 +105,15 @@ export const StatusEmail: React.FC<Readonly<StatusEmailProps>> = ({
 
           <Section style={btnContainer}>
             <Button
-              style={button}
-              href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://fiestas-ya.vercel.app'}/profile/orders`}
+              style={{ ...button, backgroundColor: brand.primaryColor || '#0f172a' }}
+              href={ordersUrl}
             >
               Ver mis pedidos
             </Button>
           </Section>
 
           <Text style={footer}>
-            FiestasYa — Artículos para eventos y fiestas
+            {brand.name}
           </Text>
         </Container>
       </Body>

@@ -25,6 +25,7 @@ interface OrderEmailProps {
   shippingAddress?: string;
   shippingCost: number;
   notes?: string;
+  brand: { name: string; primaryColor?: string | null };
 }
 
 export const OrderEmail: React.FC<Readonly<OrderEmailProps>> = ({
@@ -38,6 +39,7 @@ export const OrderEmail: React.FC<Readonly<OrderEmailProps>> = ({
   shippingAddress,
   shippingCost,
   notes,
+  brand,
 }) => {
   
   const getDeliveryLabel = (method: string) => {
@@ -57,8 +59,8 @@ export const OrderEmail: React.FC<Readonly<OrderEmailProps>> = ({
       <Preview>Nuevo pedido #{formattedOrderId} de {customerName}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>¡Nuevo Pedido! 🎉</Heading>
-          <Text style={text}>Hola Admin, tienes una nueva venta en FiestasYa.</Text>
+          <Heading style={{ ...h1, color: brand.primaryColor || '#0f172a' }}>¡Nuevo pedido! 🎉</Heading>
+          <Text style={text}>Hola, tienes una nueva venta en {brand.name}.</Text>
           
           <Section style={card}>
             <Row>
@@ -116,13 +118,13 @@ export const OrderEmail: React.FC<Readonly<OrderEmailProps>> = ({
           </Section>
 
           <Section style={btnContainer}>
-            <Button style={button} href={url}>
+            <Button style={{ ...button, backgroundColor: brand.primaryColor || '#0f172a' }} href={url}>
               Ver en el Panel Admin
             </Button>
           </Section>
           
           <Text style={footer}>
-            Sistema FiestasYa - Notificación Automática
+            {brand.name} · Notificación automática
           </Text>
         </Container>
       </Body>

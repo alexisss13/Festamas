@@ -20,7 +20,7 @@ export const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://fiestas-ya.vercel.app';
+export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
 
 /**
  * Convierte un color hex (#fc4b65) a string HSL raw "H S% L%"

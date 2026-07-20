@@ -141,7 +141,7 @@ export default function OrdersPage() {
                     </span>
                     <span className="text-slate-500 block leading-relaxed">
                         {order.deliveryMethod === 'PICKUP' 
-                            ? 'Av. España 123, Trujillo' 
+                            ? (activeBranch?.address || 'Consulta la dirección de recojo en tienda')
                             : (order.shippingAddress || 'Dirección no registrada')}
                     </span>
                  </div>

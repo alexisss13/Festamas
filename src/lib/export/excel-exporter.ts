@@ -13,7 +13,7 @@ export const exportToExcel = (orders: OrderForExport[], selectedColumns?: string
   workbook.Props = {
     Title: "Reporte de Pedidos",
     Subject: "Ventas",
-    Author: "FiestasYa",
+    Author: "Zaiko Ecommerce",
     CreatedDate: new Date()
   };
   

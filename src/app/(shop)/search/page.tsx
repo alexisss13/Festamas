@@ -25,7 +25,7 @@ interface Props {
 }
 
 export const metadata = {
-  title: 'Resultados de búsqueda | FiestasYa',
+  title: 'Resultados de búsqueda',
   description: 'Encuentra los mejores artículos para tu fiesta.',
 };
 

@@ -5,7 +5,7 @@ import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { CartClient } from './CartClient';
 
 export const metadata = {
-  title: 'Carrito de Compras | Festamas',
+  title: 'Carrito de compras',
   description: 'Revisa tu carrito y procede al pago.',
 };
 

@@ -3,6 +3,8 @@
 import prisma from '@/lib/prisma';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
 export type CollectionCard = {
   id: string;
@@ -114,6 +116,8 @@ export async function createCollection(data: {
   activeUntil?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
     const { business } = await getEcommerceContextFromCookie();
 
     await prisma.productCollection.create({
@@ -154,6 +158,8 @@ export async function updateCollection(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
     const { business } = await getEcommerceContextFromCookie();
 
     await prisma.productCollection.updateMany({
@@ -185,6 +191,8 @@ export async function updateCollection(
 
 export async function toggleCollectionActive(id: string, active: boolean): Promise<{ success: boolean; error?: string }> {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
     const { business } = await getEcommerceContextFromCookie();
     await prisma.productCollection.updateMany({
       where: { id, businessId: business.id },
@@ -199,6 +207,8 @@ export async function toggleCollectionActive(id: string, active: boolean): Promi
 
 export async function deleteCollection(id: string): Promise<{ success: boolean; error?: string }> {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
     const { business } = await getEcommerceContextFromCookie();
     await prisma.productCollection.deleteMany({
       where: { id, businessId: business.id },

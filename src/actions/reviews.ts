@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { canAccessEcommerceAdmin } from '@/lib/permissions';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { z } from 'zod';
 
 const reviewSchema = z.object({
@@ -33,10 +34,8 @@ export async function createOrUpdateReview(data: {
 
     const { productId, rating, comment } = parsed.data;
 
-    // Verificar que el producto existe
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const product = await prisma.product.findFirst({ where: { id: productId, businessId: business.id, OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }], active: true, isAvailable: true } });
 
     if (!product) {
       return { success: false, error: 'Producto no encontrado' };
@@ -99,9 +98,16 @@ export async function createOrUpdateReview(data: {
 // Obtener reseñas de un producto (solo aprobadas para usuarios normales)
 export async function getProductReviews(productId: string, includeAll = false) {
   try {
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const product = await prisma.product.findFirst({ where: { id: productId, businessId: business.id, OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }] }, select: { id: true } });
+    if (!product) return { success: false, error: 'Producto no encontrado', reviews: [] };
+    if (includeAll) {
+      const session = await auth();
+      if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado', reviews: [] };
+    }
     const where = includeAll 
-      ? { productId }
-      : { productId, status: 'APPROVED' as const };
+      ? { productId: product.id }
+      : { productId: product.id, status: 'APPROVED' as const };
 
     const reviews = await prisma.review.findMany({
       where,
@@ -134,11 +140,14 @@ export async function getUserReviewForProduct(productId: string) {
     if (!session?.user?.id) {
       return { success: false, review: null };
     }
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const product = await prisma.product.findFirst({ where: { id: productId, businessId: business.id, OR: [{ branchOwnerId: activeBranch.id }, { branchOwnerId: null }] }, select: { id: true } });
+    if (!product) return { success: false, review: null };
 
     const review = await prisma.review.findUnique({
       where: {
         productId_userId: {
-          productId,
+          productId: product.id,
           userId: session.user.id,
         },
       },
@@ -291,8 +300,11 @@ export async function approveReview(reviewId: string) {
       return { success: false, error: 'No tienes permisos' };
     }
 
+    const { business } = await getEcommerceContextFromCookie();
+    const current = await prisma.review.findFirst({ where: { id: reviewId, product: { businessId: business.id } }, select: { id: true } });
+    if (!current) return { success: false, error: 'Reseña no encontrada' };
     const review = await prisma.review.update({
-      where: { id: reviewId },
+      where: { id: current.id },
       data: { status: 'APPROVED' },
       include: { product: true },
     });
@@ -317,8 +329,11 @@ export async function rejectReview(reviewId: string) {
       return { success: false, error: 'No tienes permisos' };
     }
 
+    const { business } = await getEcommerceContextFromCookie();
+    const current = await prisma.review.findFirst({ where: { id: reviewId, product: { businessId: business.id } }, select: { id: true } });
+    if (!current) return { success: false, error: 'Reseña no encontrada' };
     const review = await prisma.review.update({
-      where: { id: reviewId },
+      where: { id: current.id },
       data: { status: 'REJECTED' },
       include: { product: true },
     });

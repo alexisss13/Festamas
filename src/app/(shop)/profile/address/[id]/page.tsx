@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export const metadata = {
-  title: 'Editar Dirección | Festamas',
+  title: 'Editar dirección',
   description: 'Edita tu dirección de entrega.',
 };
 

@@ -7,6 +7,9 @@ import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';      
 import PrintButton from './PrintButton';
 import { Metadata } from 'next';
+import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -15,55 +18,50 @@ interface Props {
 // 1. 🧠 METADATA DINÁMICA (Esto define el nombre del archivo PDF al guardar)
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const order = await prisma.order.findUnique({ where: { id } });
+  const session = await auth();
+  if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { title: 'Documento no disponible' };
+  const { business } = await getEcommerceContextFromCookie();
+  const order = await prisma.order.findFirst({ where: { id, businessId: business.id }, include: { business: { select: { name: true } } } });
 
   if (!order) return { title: 'Boleta no encontrada' };
 
-  // Detectamos la marca igual que en el componente
-  const isFestamas = order.notes?.includes('Tienda: Festamas') || order.notes?.includes('JUGUETERIA') || false;
-  const brandName = isFestamas ? 'Festamas' : 'FiestasYa';
+  const brandName = order.business?.name || 'Comercio';
   const receiptNum = order.receiptNumber || 'PENDIENTE';
 
   return {
-    title: `Boleta ${receiptNum} - ${brandName}`, // Ej: Boleta B001-000045 - Festamas
+    title: `Boleta ${receiptNum} - ${brandName}`,
   };
 }
 
 export default async function InvoicePage({ params }: Props) {
   const { id } = await params;
+  const session = await auth();
+  if (!session?.user || !canAccessEcommerceAdmin(session.user)) notFound();
+  const { business } = await getEcommerceContextFromCookie();
 
-  const order = await prisma.order.findUnique({
-    where: { id },
+  const order = await prisma.order.findFirst({
+    where: { id, businessId: business.id },
     include: {
-      orderItems: true
+      orderItems: true,
+      business: { select: { name: true, ruc: true, address: true, logoUrl: true } },
+      branch: { select: { name: true, phone: true, address: true, customRuc: true, customLegalName: true, customAddress: true, logos: true, brandColors: true } },
     }
   });
 
   if (!order) notFound();
 
-  // 2. 🏷️ LÓGICA DE MARCA (Detección robusta)
-  // Buscamos explícitamente "Tienda: Festamas" que guardamos en el backend
-  const isFestamas = order.notes?.includes('Tienda: Festamas') || order.notes?.includes('JUGUETERIA') || false;
-  
-  // Configuración dinámica
-  const brandConfig = isFestamas 
-    ? {
-        name: 'FESTAMÁS',
-        logo: '/images/IconoFestamas.png',
-        color: '#fc4b65' // Rojo Festamas (opcional para bordes)
-      }
-    : {
-        name: 'FIESTASYA',
-        logo: '/images/IconoFiestasYa.png',
-        color: '#fb3099' // Rosa FiestasYa
-      };
+  const branchLogos = order.branch?.logos as Record<string, unknown> | null;
+  const brandConfig = {
+    name: order.branch?.name || order.business?.name || 'Comercio',
+    logo: typeof branchLogos?.imagotipo === 'string' ? branchLogos.imagotipo : order.business?.logoUrl || null,
+    color: typeof (order.branch?.brandColors as Record<string, unknown> | null)?.primary === 'string' ? String((order.branch?.brandColors as Record<string, unknown>).primary) : '#334155',
+  };
 
-  // Datos fiscales (Fijos para ambos según pediste)
   const companyInfo = {
-    razonSocial: "FiestasYa SAC",
-    ruc: "20610153756",
-    address: "Trujillo, Perú",
-    email: "festamastrujillo@gmail.com"
+    razonSocial: order.branch?.customLegalName || order.business?.name || order.branch?.name || 'Comercio',
+    ruc: order.branch?.customRuc || order.business?.ruc || 'Pendiente',
+    address: order.branch?.customAddress || order.branch?.address || order.business?.address || 'Perú',
+    email: '',
   };
 
   const subtotal = Number(order.totalAmount) / 1.18;

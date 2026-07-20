@@ -9,7 +9,7 @@ import { DeleteAddressButton } from '@/components/profile/DeleteAddressButton';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export const metadata = {
-  title: 'Mis Direcciones | Festamas',
+  title: 'Mis direcciones',
   description: 'Gestiona tus direcciones de entrega.',
 };
 

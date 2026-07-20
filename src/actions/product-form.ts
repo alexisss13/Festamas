@@ -1,112 +1,13 @@
 'use server';
 
-import prisma from '@/lib/prisma';
-import { productSchema } from '@/lib/zod';
-import { revalidatePath } from 'next/cache';
-
-const generateBarcode = () => {
-  return Math.floor(100000000000 + Math.random() * 900000000000).toString();
-};
-
-export async function createOrUpdateProduct(formData: FormData, id?: string) {
-  const data = Object.fromEntries(formData.entries());
-
-  const images = formData.getAll('images').filter(img => typeof img === 'string' && img.length > 0) as string[];
-
-  const rawBarcode = data.barcode?.toString().trim();
-  const rawGroupTag = data.groupTag?.toString().trim().toUpperCase();
-  const groupTag = rawGroupTag && rawGroupTag.length > 0 ? rawGroupTag : null;
-  const barcode = (rawBarcode && rawBarcode.length > 0) ? rawBarcode : generateBarcode();
-
-  const rawColor = data.color?.toString().trim();
-  const color = rawColor && rawColor.length > 0 ? rawColor : null;
-
-  const rawData = {
-    ...data,
-    images: images,
-    isAvailable: formData.get('isAvailable') === 'on',
-    price: data.price === '' ? 0 : data.price,
-    stock: data.stock === '' ? 0 : data.stock,
-    discountPercentage: data.discountPercentage === '' ? 0 : data.discountPercentage,
-    wholesalePrice: data.wholesalePrice === '' ? null : data.wholesalePrice,
-    wholesaleMinCount: data.wholesaleMinCount === '' ? null : data.wholesaleMinCount,
-    groupTag: groupTag ?? undefined,
-    color: color ?? undefined,
-    barcode,
-    businessId: data.businessId,
-    branchOwnerId: data.branchOwnerId
+/**
+ * El maestro de productos, variantes, precios y stock pertenece al POS.
+ * Esta acción se conserva solo como barrera explícita para componentes
+ * heredados: ecommerce no puede crear ni alterar esos datos operativos.
+ */
+export async function createOrUpdateProduct(_formData: FormData, _id?: string) {
+  return {
+    success: false,
+    error: 'Los productos se administran desde el POS. En ecommerce solo se personaliza su presentación comercial.',
   };
-
-  const parsed = productSchema.safeParse(rawData);
-
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0].message };
-  }
-
-  const {
-    title, slug, description, price, stock, categoryId, isAvailable,
-    businessId, branchOwnerId, wholesalePrice, wholesaleMinCount, discountPercentage, tags, color: parsedColor
-  } = parsed.data;
-
-  const tagsArray = tags
-    ? tags.split(',').map(t => t.trim().toLowerCase()).filter(t => t !== '')
-    : [];
-
-  try {
-    const productData = {
-      title,
-      slug,
-      description,
-      basePrice: price, 
-      categoryId,
-      images,
-      isAvailable,
-      groupTag,
-      businessId,
-      branchOwnerId,
-      wholesalePrice,
-      wholesaleMinCount,
-      discountPercentage,
-      tags: tagsArray,
-    };
-
-    if (id) {
-      await prisma.product.update({ where: { id }, data: productData });
-      // Update first variant
-      const firstVariant = await prisma.productVariant.findFirst({ where: { productId: id } });
-      if (firstVariant) {
-        await prisma.productVariant.update({
-          where: { id: firstVariant.id },
-          data: {
-            barcode,
-            name: color || 'Default Variant',
-            attributes: color ? { color } : {},
-          }
-        });
-      }
-    } else {
-      const existing = await prisma.product.findUnique({ where: { slug } });
-      if (existing) return { success: false, error: 'El slug ya existe.' };
-      
-      const newProduct = await prisma.product.create({ data: productData });
-      
-      // Create Default Variant
-      await prisma.productVariant.create({
-        data: {
-          productId: newProduct.id,
-          name: color || 'Default Variant',
-          barcode,
-          attributes: color ? { color } : {},
-        }
-      });
-      // Stock will be created separately when received in inventory, or we can create 0 stock here
-    }
-
-    revalidatePath('/admin/products');
-    revalidatePath('/');
-    return { success: true };
-  } catch (error) {
-    console.error("Error DB:", error);
-    return { success: false, error: 'Error al guardar en base de datos.' };
-  }
 }

@@ -3,6 +3,8 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
 export interface CatalogData {
   title: string;
@@ -14,10 +16,11 @@ export interface CatalogData {
 
 export async function getCatalogs() {
   try {
-    const { activeBranch } = await getEcommerceContextFromCookie();
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
     const catalogs = await prisma.catalog.findMany({
       where: {
-        OR: [{ branchId: activeBranch.id }, { branchId: null }],
+        businessId: business.id,
+        branchId: activeBranch.id,
         isActive: true,
       },
       orderBy: {
@@ -35,7 +38,10 @@ export async function getCatalogs() {
 // 2. Obtener todos los catálogos para el Admin
 export async function getAdminCatalogs() {
   try {
-    const catalogs = await prisma.catalog.findMany({
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado', data: [] };
+    const { business } = await getEcommerceContextFromCookie();
+    const catalogs = await prisma.catalog.findMany({ where: { businessId: business.id },
       orderBy: { createdAt: 'desc' },
     });
     return { success: true, data: catalogs };
@@ -48,11 +54,17 @@ export async function getAdminCatalogs() {
 // 3. Crear un catálogo
 export async function createCatalog(data: CatalogData) {
   try {
-    const { activeBranch } = await getEcommerceContextFromCookie();
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const selectedBranchId = data.branchId ?? activeBranch.id;
+    const selectedBranch = await prisma.branch.findFirst({ where: { id: selectedBranchId, businessId: business.id }, select: { id: true } });
+    if (!selectedBranch) return { success: false, error: 'La sucursal no pertenece al negocio activo' };
     const catalog = await prisma.catalog.create({
       data: {
         ...data,
-        branchId: data.branchId ?? activeBranch.id,
+        businessId: business.id,
+        branchId: selectedBranch.id,
       },
     });
     revalidatePath('/');
@@ -67,9 +79,17 @@ export async function createCatalog(data: CatalogData) {
 // 4. Actualizar un catálogo
 export async function updateCatalog(id: string, data: Partial<CatalogData>) {
   try {
-    const catalog = await prisma.catalog.update({
-      where: { id },
-      data,
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const current = await prisma.catalog.findFirst({ where: { id, businessId: business.id }, select: { id: true } });
+    if (!current) return { success: false, error: 'Catálogo no encontrado' };
+    const selectedBranchId = data.branchId ?? activeBranch.id;
+    const selectedBranch = await prisma.branch.findFirst({ where: { id: selectedBranchId, businessId: business.id }, select: { id: true } });
+    if (!selectedBranch) return { success: false, error: 'La sucursal no pertenece al negocio activo' };
+    const catalog = await prisma.catalog.updateMany({
+      where: { id: current.id, businessId: business.id },
+      data: { ...data, branchId: selectedBranch.id },
     });
     revalidatePath('/');
     revalidatePath('/admin/catalogs');
@@ -83,7 +103,10 @@ export async function updateCatalog(id: string, data: Partial<CatalogData>) {
 // 5. Eliminar un catálogo
 export async function deleteCatalog(id: string) {
   try {
-    await prisma.catalog.delete({ where: { id } });
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
+    const { business } = await getEcommerceContextFromCookie();
+    await prisma.catalog.deleteMany({ where: { id, businessId: business.id } });
     revalidatePath('/');
     revalidatePath('/admin/catalogs');
     return { success: true };
@@ -96,8 +119,11 @@ export async function deleteCatalog(id: string) {
 // 6. Cambiar estado de un catálogo
 export async function toggleCatalogStatus(id: string, currentStatus: boolean) {
   try {
-    const catalog = await prisma.catalog.update({
-      where: { id },
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
+    const { business } = await getEcommerceContextFromCookie();
+    const catalog = await prisma.catalog.updateMany({
+      where: { id, businessId: business.id },
       data: { isActive: !currentStatus },
     });
     revalidatePath('/');

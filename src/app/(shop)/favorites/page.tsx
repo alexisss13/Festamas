@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export const metadata = {
-  title: 'Mis Favoritos | FiestasYa',
+  title: 'Mis favoritos',
   description: 'Tus productos guardados y lista de deseos.',
 };
 

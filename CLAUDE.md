@@ -1,7 +1,7 @@
-# Reglas del proyecto Festamas (Ecommerce)
+# Reglas del proyecto Ecommerce
 
 ## Documentación obligatoria — por repo
-Toda modificación del ecommerce se documenta en `Festamas/docs/` en la misma iteración (ver `Festamas/docs/README.md`). **No hay `docs/` en la raíz del workspace.** Cada doc lleva bajo su título la línea `> **Última actualización:** YYYY-MM-DD`, que se actualiza en cada edición (no poner la fecha de hoy en un doc que no revisaste).
+Toda modificación del ecommerce se documenta en `ecommerce/docs/` en la misma iteración (ver `ecommerce/docs/README.md`). **No hay `docs/` en la raíz del workspace.** Cada doc lleva bajo su título la línea `> **Última actualización:** YYYY-MM-DD`, que se actualiza en cada edición (no poner la fecha de hoy en un doc que no revisaste).
 
 - `integraciones/` — servicios externos (Culqi, etc.): credenciales, webhooks, pendientes.
 - `decisiones/` — ADRs y decisiones técnicas del ecommerce.
@@ -15,7 +15,7 @@ Los docs **transversales** (contrato POS↔ecommerce, modelo SaaS, base de datos
 - El **POS es la fuente maestra** de productos, variantes, precios, stock, sucursales y operación física. El ecommerce administra presentación, marketing, pedidos online y postventa.
 
 ## Base de datos compartida
-`Festamas` y `pos` comparten PostgreSQL y deben conservar schemas compatibles. No ejecutar `db push` en producción. Las migraciones se documentan en `pos/docs/operaciones/DATABASE_MIGRATIONS.md` y se aplican una sola vez con respaldo. Si el historial de Prisma está desalineado, no usar `migrate resolve` sin revisar primero el estado real de la base.
+`ecommerce` y `pos` comparten PostgreSQL y deben conservar schemas compatibles. No ejecutar `db push` en producción. Las migraciones se documentan en `pos/docs/operaciones/DATABASE_MIGRATIONS.md` y se aplican una sola vez con respaldo. Si el historial de Prisma está desalineado, no usar `migrate resolve` sin revisar primero el estado real de la base.
 
 ## Seguridad
 - Nunca exponer secretos en `NEXT_PUBLIC_*`.
@@ -24,4 +24,9 @@ Los docs **transversales** (contrato POS↔ecommerce, modelo SaaS, base de datos
 - El ecommerce **no** modifica productos maestros, precios o stock salvo los flujos operativos explícitamente autorizados.
 
 ## Validación mínima
-Antes de entregar: `tsc --noEmit` en `Festamas` (y en `pos` si el cambio cruza el schema), tests existentes, `prisma generate` en el proyecto afectado.
+Antes de entregar: `tsc --noEmit` en `ecommerce` (y en `pos` si el cambio cruza el schema), tests existentes, `prisma generate` en el proyecto afectado.
+
+## Handoff vigente
+Antes de continuar el trabajo transversal, leer
+`../pos/docs/sesiones/2026-07-19-HANDOFF_CONTINUIDAD_CLAUDE.md`. Contiene el
+estado de la base compartida, migraciones, SaaS, verificaciones y pendientes.

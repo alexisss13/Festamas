@@ -21,10 +21,11 @@ export async function createBanner(data: BannerData) {
   try {
     const session = await auth();
     if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
-    const { activeBranch } = await getEcommerceContextFromCookie();
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
     const banner = await prisma.banner.create({
       data: {
         ...data,
+        businessId: business.id,
         branchId: activeBranch.id,
         active: true,
         order: 0, // Se pone al principio o final según lógica, aquí 0 por defecto
@@ -43,8 +44,8 @@ export async function updateBanner(id: string, data: Partial<BannerData>) {
   try {
     const session = await auth();
     if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
-    const { activeBranch } = await getEcommerceContextFromCookie();
-    const current = await prisma.banner.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const current = await prisma.banner.findFirst({ where: { id, businessId: business.id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
     if (!current) return { success: false, error: 'Banner no encontrado en la sucursal activa' };
     const banner = await prisma.banner.update({
       where: { id },
@@ -63,8 +64,8 @@ export async function deleteBanner(id: string) {
   try {
     const session = await auth();
     if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
-    const { activeBranch } = await getEcommerceContextFromCookie();
-    const current = await prisma.banner.findFirst({ where: { id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const current = await prisma.banner.findFirst({ where: { id, businessId: business.id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
     if (!current) return { success: false, error: 'Banner no encontrado en la sucursal activa' };
     await prisma.banner.delete({ where: { id } });
     revalidatePath('/');
@@ -80,9 +81,9 @@ export async function getAdminBanners() {
   try {
     const session = await auth();
     if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado', data: [] };
-    const { activeBranch } = await getEcommerceContextFromCookie();
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
     const banners = await prisma.banner.findMany({
-      where: { OR: [{ branchId: activeBranch.id }, { branchId: null }] },
+      where: { businessId: business.id, OR: [{ branchId: activeBranch.id }, { branchId: null }] },
       orderBy: { order: 'asc' }, // Ordenamos por el campo 'order'
     });
     return { success: true, data: banners };
@@ -96,8 +97,8 @@ export async function reorderBanners(items: { id: string; order: number }[]) {
   try {
     const session = await auth();
     if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, error: 'No autorizado' };
-    const { activeBranch } = await getEcommerceContextFromCookie();
-    const allowed = await prisma.banner.count({ where: { id: { in: items.map(item => item.id) }, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const allowed = await prisma.banner.count({ where: { id: { in: items.map(item => item.id) }, businessId: business.id, OR: [{ branchId: activeBranch.id }, { branchId: null }] } });
     if (allowed !== items.length) return { success: false, error: 'Hay banners fuera de la sucursal activa' };
     // Transacción para asegurar integridad
     await prisma.$transaction(

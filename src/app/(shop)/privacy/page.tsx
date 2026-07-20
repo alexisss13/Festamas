@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
-export const metadata: Metadata = {
-  title: 'Política de Privacidad | FiestasYa',
-  description: 'Cómo recopilamos, usamos y protegemos tus datos personales.',
-};
+export async function generateMetadata(): Promise<Metadata> { const { business, activeBranch } = await getEcommerceContextFromCookie(); const name = activeBranch.name || business.name; return { title: `Política de privacidad | ${name}`, description: `Cómo ${name} recopila, usa y protege tus datos.` }; }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const name = activeBranch.name || business.name;
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <h1 className="text-4xl font-bold text-slate-900 mb-8">Política de Privacidad</h1>
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-xl font-bold text-slate-900 mb-3">1. Compromiso de Seguridad</h2>
           <p>
-            En <strong>FiestasYa</strong>, valoramos tu confianza. Nos comprometemos a proteger tu privacidad y a utilizar tu información personal de manera responsable y segura, cumpliendo con la normativa vigente de protección de datos personales.
+            En <strong>{name}</strong>, valoramos tu confianza. Nos comprometemos a proteger tu privacidad y a utilizar tu información personal de manera responsable y segura, cumpliendo con la normativa vigente de protección de datos personales.
           </p>
         </section>
 

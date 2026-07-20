@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { MarketingAnalytics } from "@/components/analytics/MarketingAnalytics";
 import { getActiveStorefrontConfig } from "@/lib/storefront-config";
 import { hexToHslString } from "@/lib/utils";
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 // Configuración de Fuente Rubik
 const rubik = Rubik({ 
@@ -16,10 +17,13 @@ const rubik = Rubik({
   variable: "--font-rubik",
 });
 
-export const metadata: Metadata = {
-  title: "Festamas | Artículos de Fiesta",
-  description: "La mejor tienda de celebraciones.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const name = activeBranch.name || business.name;
+    return { title: { default: name, template: `%s | ${name}` }, description: `Tienda online de ${name}` };
+  } catch { return { title: 'Tienda online', description: 'Catálogo y pedidos online.' }; }
+}
 
 export default async function RootLayout({
   children,
@@ -39,9 +43,6 @@ export default async function RootLayout({
 
   return (
     <html lang="es">
-      {/* 🚀 AQUÍ ESTÁ EL TRUCO: data-theme="festamas"
-         Esto activa el bloque CSS que definimos arriba con el color Rojo.
-      */}
       <body 
         className={cn(rubik.className, "antialiased")}
         data-template={storefront.templateKey}

@@ -5,8 +5,13 @@ import { StatusEmail } from '@/components/email/StatusEmail';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? 'FiestasYa <onboarding@resend.dev>';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fiestas-ya.vercel.app';
+const FROM = process.env.RESEND_FROM_EMAIL ?? 'Zaiko <onboarding@resend.dev>';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001';
+
+export interface StoreEmailBrand {
+  name: string;
+  primaryColor?: string | null;
+}
 
 export interface NewOrderEmailData {
   orderId: string;
@@ -18,17 +23,18 @@ export interface NewOrderEmailData {
   shippingAddress?: string;
   shippingCost: number;
   notes?: string;
+  recipientEmails: string[];
+  brand: StoreEmailBrand;
 }
 
 export async function sendNewOrderEmail(data: NewOrderEmailData): Promise<void> {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail || !process.env.RESEND_API_KEY) return;
+  if (!data.recipientEmails.length || !process.env.RESEND_API_KEY) return;
 
   try {
     await resend.emails.send({
       from: FROM,
-      to: adminEmail,
-      subject: `Nuevo Pedido #${data.orderId.split('-')[0].toUpperCase()} — FiestasYa`,
+      to: data.recipientEmails,
+      subject: `Nuevo pedido #${data.orderId.split('-')[0].toUpperCase()} — ${data.brand.name}`,
       react: React.createElement(OrderEmail, {
         ...data,
         url: `${APP_URL}/admin/orders`,
@@ -47,6 +53,7 @@ export interface StatusEmailData {
   trackingNumber?: string | null;
   carrier?: string | null;
   cancelReason?: string | null;
+  brand: StoreEmailBrand;
 }
 
 const STATUS_SUBJECTS: Record<string, string> = {
@@ -77,6 +84,8 @@ export async function sendStatusEmail(data: StatusEmailData): Promise<void> {
         trackingNumber: data.trackingNumber,
         carrier: data.carrier,
         cancelReason: data.cancelReason,
+        brand: data.brand,
+        ordersUrl: `${APP_URL}/profile/orders`,
       }),
     });
   } catch (err) {

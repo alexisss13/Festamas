@@ -27,8 +27,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const collection = await getCollectionBySlug(slug);
   if (!collection) return { title: 'Colección no encontrada' };
 
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
   return {
-    title: `${collection.name} | FiestasYa`,
+    title: `${collection.name} | ${activeBranch.name || business.name}`,
     description: collection.description ?? `Explora los productos de la colección ${collection.name}.`,
   };
 }
@@ -45,9 +46,8 @@ export default async function CollectionSlugPage({ params, searchParams }: Props
   if (!collection) notFound();
 
   const activeDivision = inferLegacyDivision(activeBranch.ecommerceCode);
-  const isToys = activeDivision === 'JUGUETERIA';
-  const brandColor = isToys ? '#fc4b65' : '#ec4899';
-  const bgBrand = isToys ? 'bg-rose-50' : 'bg-pink-50';
+  const brandColor = (activeBranch.brandColors as { primary?: string } | null)?.primary || '#475569';
+  const bgBrand = 'bg-slate-50';
 
   const currentPage = Number(page) || 1;
   const minPrice = min ? Number(min) : undefined;
@@ -82,11 +82,11 @@ export default async function CollectionSlugPage({ params, searchParams }: Props
       {/* Header */}
       <div className="mb-12 flex flex-col items-center text-center space-y-4">
         <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase bg-white border border-slate-200 text-slate-400">
-          {isToys ? 'Festamas' : 'FiestasYa'} • Colección
+          {activeBranch.name} · Colección
         </span>
         <div className="relative">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight flex items-center justify-center gap-3">
-            <Layers className={`h-8 w-8 ${isToys ? 'text-rose-200' : 'text-pink-200'}`} />
+            <Layers className="h-8 w-8" style={{ color: brandColor }} />
             {collection.name}
           </h1>
           <div

@@ -75,11 +75,26 @@
     --secondary: var(--brand-secondary-hsl);
     --accent: var(--brand-accent-hsl);
   }
+
+  /* Cada plantilla modifica tokens de presentación, no contenido ni reglas de negocio. */
+  [data-template='classic'] { --radius: 0.5rem; }
+  [data-template='modern'] { --radius: 0.9rem; }
+  [data-template='playful'] { --radius: 1.25rem; }
+  [data-template='editorial'] { --radius: 0.2rem; }
+  [data-template='minimal'] { --radius: 0.35rem; }
 }
 
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground; }
+  body[data-template='modern'] { letter-spacing: -0.01em; }
+  body[data-template='playful'] { background-color: color-mix(in srgb, var(--brand-secondary) 18%, white); }
+  body[data-template='editorial'] { font-family: Georgia, 'Times New Roman', serif; }
+  body[data-template='editorial'] button,
+  body[data-template='editorial'] input,
+  body[data-template='editorial'] textarea,
+  body[data-template='editorial'] select { font-family: var(--font-rubik), sans-serif; }
+  body[data-template='minimal'] { letter-spacing: -0.015em; }
 }
 
 @layer utilities {

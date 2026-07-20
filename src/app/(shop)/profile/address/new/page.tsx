@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 export const metadata = {
-  title: 'Nueva Dirección | Festamas',
+  title: 'Nueva dirección',
   description: 'Agrega una nueva dirección de entrega.',
 };
 

@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { ECOMMERCE_BRANCH_COOKIE } from '@/lib/ecommerce-branch';
 
 /**
  * Guarda la preferencia de sucursal del administrador en una cookie.
@@ -12,7 +13,8 @@ export async function setAdminBranch(branchId: string) {
   const options = { path: '/', sameSite: 'lax' as const };
   cookieStore.set('admin_branch', branchId, options);
   // Mantiene alineado el storefront que se visualiza en el mismo navegador.
-  cookieStore.set('festamas_branch_id', branchId, options);
+  cookieStore.set(ECOMMERCE_BRANCH_COOKIE, branchId, options);
+  cookieStore.delete('festamas_branch_id');
   
   // Revalidamos todas las rutas del admin
   revalidatePath('/admin', 'layout');

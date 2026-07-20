@@ -48,6 +48,7 @@ export function HeroClient({ banners }: HeroClientProps) {
       branchId: activeBranchId,
       active: true,
       order: 0,     
+      businessId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       isDefault: true 

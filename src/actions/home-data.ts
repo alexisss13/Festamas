@@ -80,7 +80,7 @@ export const getHomeData = async (businessId: string, branchId: string, ecommerc
       }
     });
 
-    const { sections } = await getHomeSections(branchId, true);
+    const { sections } = await getHomeSections(true);
 
     return {
       newArrivals: newArrivals.map((product) => mapProductForBranch(product, branchId, ecommerceCode)),

@@ -4,7 +4,7 @@
 
 ## Objetivo
 
-Registrar qué existe actualmente en Festamas, qué falta para convertirlo en un
+Registrar qué existe actualmente en ecommerce, qué falta para convertirlo en un
 ecommerce SaaS profesional y cómo se relaciona con el roadmap transversal del
 POS. El plan maestro vive en `pos/docs/roadmap/`; este documento contiene el
 detalle específico del ecommerce.
@@ -163,7 +163,7 @@ componentes ni textos hardcodeados.
 
 ## Alcance transversal de producto
 
-Festamas no debe quedar diseñado únicamente para tiendas de productos. El
+ecommerce no debe quedar diseñado únicamente para tiendas de productos. El
 roadmap de la plataforma contempla negocios de comercio, restaurantes,
 servicios y profesionales. El ecommerce debe consumir capacidades del núcleo
 según el tipo de negocio: catálogo para retail, menú y pedidos para restaurantes,
@@ -191,6 +191,14 @@ cotizaciones y órdenes de servicio.
 - Contrato POS–ecommerce.
 - Documentación y migraciones.
 
+## Iteración de integración SaaS
+
+- Se añadió `src/lib/ecommerce-entitlements.ts` para resolver la capacidad
+  `ecommerce.store` desde override o plan vigente.
+- El checkout verifica esta capacidad antes de reservar stock y crear el pedido.
+- La verificación se encuentra detrás de `SAAS_ENTITLEMENTS_ENABLED` para
+  permitir una activación controlada después de aplicar la migración compartida.
+
 ## Pendientes que sí dependen de acceso externo
 
 - Activación real de Culqi.
@@ -199,4 +207,55 @@ cotizaciones y órdenes de servicio.
 
 Estos pendientes no deben detener el desarrollo de las fases E1–E4 ni la mayor
 parte de E5–E8; se documentan en
-`Festamas/docs/integraciones/CULQI_PENDING_SETUP.md`.
+`ecommerce/docs/integraciones/CULQI_PENDING_SETUP.md`.
+
+## Iteración checkout: idempotencia y estados independientes
+
+- Se añadió `PaymentStatus` al contrato compartido, separado de `OrderStatus`.
+- Los pedidos ahora conservan `idempotencyKey` único y `paymentError`.
+- El checkout evita crear nuevamente un pedido cuando la misma operación ya fue confirmada o está en procesamiento.
+- Los pagos rechazados quedan marcados como fallidos y requieren una nueva clave.
+- La migración correspondiente está incluida en `pos/prisma/hotfix_saas_plans.sql` y sigue pendiente de ejecución controlada.
+
+## Iteración fulfillment y máquina de estados
+
+- Se formalizaron transiciones válidas de pedido: pago, preparación, envío,
+  recojo, entrega y cancelación.
+- Se bloquean retrocesos peligrosos, como devolver un pedido pagado a pendiente
+  sin un reembolso.
+- La actualización administrativa sincroniza `isPaid` con `paymentStatus`.
+- El control de empaquetamiento continúa confirmando la sucursal final y
+  registrando el movimiento entre stocks cuando la sucursal cambia.
+- El acceso de administración evita desmarcar manualmente un pago confirmado.
+
+## Iteración postventa y ticket dinámico
+
+- Las devoluciones completas y parciales actualizan `paymentStatus` a
+  `REFUNDED` o `PARTIALLY_REFUNDED`.
+- La reposición de stock continúa dentro de la misma transacción que cierra la
+  solicitud, evitando completar una devolución sin registrar inventario.
+- El ticket online ahora usa datos del `Business` y `Branch`: nombre, RUC,
+  dirección, teléfono y razón social configurados.
+- El comprobante se presenta como ticket de pedido online y no como boleta o
+  factura, manteniendo la decisión operativa actual.
+- Se eliminaron los valores de marca y datos fiscales hardcodeados del ticket.
+- El ticket administrativo ahora exige sesión, permiso de ecommerce y
+  coincidencia de `businessId`, corrigiendo un posible acceso por IDOR.
+- La vista administrativa de invoice y edición de catálogos ahora aplica la
+  misma validación de sesión, permiso y tenant.
+- Invoice dejó de usar marcas, logos, RUC, dirección y correo hardcodeados;
+  toma la configuración del negocio y la sucursal.
+- Se extrajo la máquina de estados a `src/lib/order-state-machine.ts` y se
+  añadieron pruebas automatizadas para flujo normal, retrocesos peligrosos e
+  idempotencia de estado.
+
+## Iteración CMS, marketing y aislamiento tenant-aware
+
+- `Banner`, `Catalog` y `Coupon` incorporan `businessId` en ambos schemas.
+- Banners, catálogos y cupones administrativos requieren sesión y permisos.
+- Las lecturas y mutaciones se filtran por negocio y, cuando corresponde, por
+  sucursal activa.
+- Los cupones nuevos quedan asociados al negocio y a una sucursal explícita,
+  evitando códigos globales ambiguos entre tenants.
+- La SQL idempotente agrega las columnas e índices, pero requiere ejecución
+  controlada y eventual backfill de registros antiguos.

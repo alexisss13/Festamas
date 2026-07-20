@@ -4,18 +4,12 @@ import Link from 'next/link';
 import { Layers, ArrowRight } from 'lucide-react';
 import { getActiveCollections } from '@/actions/collections';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
-import { inferLegacyDivision } from '@/lib/ecommerce-helpers';
 
-export const metadata: Metadata = {
-  title: 'Colecciones | FiestasYa',
-  description: 'Explora nuestras colecciones temáticas de productos.',
-};
+export async function generateMetadata(): Promise<Metadata> { const { business, activeBranch } = await getEcommerceContextFromCookie(); const name = activeBranch.name || business.name; return { title: `Colecciones | ${name}`, description: `Colecciones temáticas de ${name}.` }; }
 
 export default async function CollectionsPage() {
-  const { activeBranch } = await getEcommerceContextFromCookie();
-  const activeDivision = inferLegacyDivision(activeBranch.ecommerceCode);
-  const isToys = activeDivision === 'JUGUETERIA';
-  const brandColor = isToys ? '#fc4b65' : '#ec4899';
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const brandColor = (activeBranch.brandColors as { primary?: string } | null)?.primary || (business.brandColors as { primary?: string } | null)?.primary || '#475569';
 
   const collections = await getActiveCollections();
 
@@ -25,11 +19,11 @@ export default async function CollectionsPage() {
       {/* Header */}
       <div className="mb-12 flex flex-col items-center text-center space-y-4">
         <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase bg-white border border-slate-200 text-slate-400">
-          {isToys ? 'Festamas' : 'FiestasYa'} • Colecciones
+          {activeBranch.name || business.name} · Colecciones
         </span>
         <div className="relative">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight flex items-center justify-center gap-3">
-            <Layers className={`h-8 w-8 ${isToys ? 'text-rose-200' : 'text-pink-200'}`} />
+            <Layers className="h-8 w-8" style={{ color: brandColor }} />
             Nuestras Colecciones
           </h1>
           <div

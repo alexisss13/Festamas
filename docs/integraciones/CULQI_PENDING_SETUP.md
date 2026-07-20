@@ -56,7 +56,7 @@ Nunca colocar `CULQI_SECRET_KEY` en variables `NEXT_PUBLIC_*`, componentes de cl
 ## Orden de despliegue de base de datos
 
 En la base compartida se deben ejecutar una sola vez y en este orden las
-migraciones de `Festamas/prisma/migrations/`:
+migraciones de `ecommerce/prisma/migrations/`:
 
 1. `20260718000000_add_culqi_payment_fields`
 2. `20260718010000_add_returns_workflow`
@@ -64,7 +64,7 @@ migraciones de `Festamas/prisma/migrations/`:
 4. `20260718030000_add_packing_trace`
 5. `20260718040000_schedule_popups`
 
-Después se debe regenerar Prisma en `Festamas` y `pos`. No se debe ejecutar
+Después se debe regenerar Prisma en `ecommerce` y `pos`. No se debe ejecutar
 `db push` en producción porque ambos sistemas comparten la estructura de datos.
 
 ### Nota sobre la base compartida actual
@@ -72,7 +72,7 @@ Después se debe regenerar Prisma en `Festamas` y `pos`. No se debe ejecutar
 La base existente no tiene alineado el historial de migraciones inicial de
 Prisma: `migrate deploy` intenta recrear tipos que ya existen y se detiene.
 Para corregir los errores actuales se ejecutó el hotfix idempotente
-`Festamas/prisma/hotfix_shared_schema_alignment.sql` (el hotfix específico
+`ecommerce/prisma/hotfix_shared_schema_alignment.sql` (el hotfix específico
 anterior queda como referencia). El saneamiento completo del
 historial (`prisma migrate resolve`) debe realizarse con respaldo y ventana de
 mantenimiento, no automáticamente desde la aplicación.

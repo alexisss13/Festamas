@@ -12,6 +12,7 @@
     "seed": "prisma db seed"
   },
   "dependencies": {
+    "@zaiko/contracts": "file:../packages/contracts",
     "@auth/prisma-adapter": "^2.11.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

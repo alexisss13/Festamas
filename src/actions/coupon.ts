@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
 
 const createCouponSchema = z.object({
   code: z.string().min(3, "Mínimo 3 caracteres").toUpperCase().trim(),
@@ -16,9 +18,9 @@ const createCouponSchema = z.object({
 
 export async function validateCoupon(code: string) {
   try {
-    const { activeBranch } = await getEcommerceContextFromCookie();
-    const coupon = await prisma.coupon.findUnique({
-      where: { code: code.toUpperCase() }
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
+    const coupon = await prisma.coupon.findFirst({
+      where: { code: code.toUpperCase(), businessId: business.id }
     });
 
     if (!coupon) return { success: false, message: 'Cupón no encontrado' };
@@ -59,7 +61,10 @@ export async function validateCoupon(code: string) {
 // --- LISTAR (Para Admin) ---
 export async function getCoupons() {
   try {
-    const coupons = await prisma.coupon.findMany({
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return [];
+    const { business } = await getEcommerceContextFromCookie();
+    const coupons = await prisma.coupon.findMany({ where: { businessId: business.id },
       orderBy: { createdAt: 'desc' }
     });
     return coupons.map(c => ({ ...c, discount: Number(c.discount) }));
@@ -71,6 +76,9 @@ export async function getCoupons() {
 // --- CREAR ---
 export async function createCoupon(data: unknown) {
   try {
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, message: 'No autorizado' };
+    const { business, activeBranch } = await getEcommerceContextFromCookie();
     const valid = createCouponSchema.safeParse(data);
     
     if (!valid.success) {
@@ -81,7 +89,10 @@ export async function createCoupon(data: unknown) {
     const { code, discount, type, branchId, expirationDate, maxUses } = valid.data;
 
     // Verificar duplicados
-    const existing = await prisma.coupon.findUnique({ where: { code } });
+    const selectedBranchId = branchId ?? activeBranch.id;
+    const selectedBranch = await prisma.branch.findFirst({ where: { id: selectedBranchId, businessId: business.id }, select: { id: true } });
+    if (!selectedBranch) return { success: false, message: 'La sucursal seleccionada no pertenece al negocio activo.' };
+    const existing = await prisma.coupon.findFirst({ where: { code, businessId: business.id } });
     if (existing) return { success: false, message: 'El código de cupón ya existe.' };
 
     // Ajuste de Hora: Si hay fecha, forzar final del día (23:59:59)
@@ -94,9 +105,10 @@ export async function createCoupon(data: unknown) {
     await prisma.coupon.create({
       data: {
         code,
+        businessId: business.id,
         discount,
         type,
-        branchId: branchId ?? null,
+        branchId: selectedBranchId,
         maxUses: maxUses ?? null,
         expirationDate: finalExpiration ?? null,
         isActive: true
@@ -114,7 +126,10 @@ export async function createCoupon(data: unknown) {
 // --- ELIMINAR ---
 export async function deleteCoupon(id: string) {
   try {
-    await prisma.coupon.delete({ where: { id } });
+    const session = await auth();
+    if (!session?.user || !canAccessEcommerceAdmin(session.user)) return { success: false, message: 'No autorizado' };
+    const { business } = await getEcommerceContextFromCookie();
+    await prisma.coupon.deleteMany({ where: { id, businessId: business.id } });
     revalidatePath('/admin/coupons');
     return { success: true };
   } catch (error) {
@@ -126,8 +141,9 @@ export async function deleteCoupon(id: string) {
 // --- INCREMENTAR USO (Llamar al completar orden) ---
 export async function incrementCouponUsage(code: string) {
   try {
-    await prisma.coupon.update({
-      where: { code },
+    const { business } = await getEcommerceContextFromCookie();
+    await prisma.coupon.updateMany({
+      where: { code, businessId: business.id },
       data: { currentUses: { increment: 1 } }
     });
   } catch (error) {

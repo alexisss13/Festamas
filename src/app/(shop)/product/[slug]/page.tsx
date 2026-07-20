@@ -118,7 +118,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!product) return { title: 'Producto no encontrado' };
   const metaDesc = (product.ecommerceDescription || product.description || '').substring(0, 160);
   return {
-    title: product.metaTitle || `${product.title} | FiestasYa`,
+    title: product.metaTitle || `${product.title} | ${activeBranch.name || business.name}`,
     description: metaDesc,
     openGraph: {
       title: product.metaTitle || product.title,

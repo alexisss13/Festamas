@@ -28,13 +28,13 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const { business } = await getEcommerceContextFromCookie();
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
   const category = await prisma.category.findFirst({ where: { slug, businessId: business.id }, select: { name: true, image: true } });
   const title = category?.name ?? slug.charAt(0).toUpperCase() + slug.slice(1);
   return {
-    title: `${title} | FiestasYa`,
-    description: `Compra los mejores artículos de ${slug} en Trujillo.`,
-    openGraph: { title: `${title} | FiestasYa`, description: `Compra los mejores artículos de ${slug} en Trujillo.`, ...(category?.image ? { images: [{ url: category.image }] } : {}) },
+    title: `${title} | ${activeBranch.name || business.name}`,
+    description: `Explora ${title} en ${activeBranch.name || business.name}.`,
+    openGraph: { title: `${title} | ${activeBranch.name || business.name}`, description: `Explora ${title} en ${activeBranch.name || business.name}.`, ...(category?.image ? { images: [{ url: category.image }] } : {}) },
   };
 }
 

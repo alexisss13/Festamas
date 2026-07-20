@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/auth';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { reserveCartItems, releaseUserReservations, ReservationItem } from '@/actions/reservations';
+import { canBusinessUseEcommerce } from '@/lib/ecommerce-entitlements';
 
 interface CheckoutItem extends ReservationItem {
   title?: string;
@@ -18,6 +19,7 @@ interface CheckoutData {
   contactPhone: string;
   notes?: string;
   couponCode?: string;
+  idempotencyKey?: string;
 }
 
 interface CulqiChargeResponse {
@@ -33,7 +35,10 @@ function money(value: unknown) {
 }
 
 async function calculateCanonicalCheckout(data: CheckoutData) {
-  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const { business, activeBranch, contractContext } = await getEcommerceContextFromCookie();
+  if (!(await canBusinessUseEcommerce(business.id))) {
+    throw new Error('El ecommerce no está habilitado para el plan de este negocio.');
+  }
   const productIds = [...new Set(data.items.map(item => item.productId))];
   const products = await prisma.product.findMany({
     where: {
@@ -99,7 +104,7 @@ async function calculateCanonicalCheckout(data: CheckoutData) {
 
   const total = money(Math.max(0, subtotal - discount + shippingCost));
 
-  return { business, canonicalItems, subtotal, discount: money(discount), shippingCost: money(shippingCost), total, couponCode };
+  return { business, canonicalItems, subtotal, discount: money(discount), shippingCost: money(shippingCost), total, couponCode, contractContext };
 }
 
 async function createCulqiCharge(args: {
@@ -176,6 +181,8 @@ async function finalizePaidOrder(orderId: string, paymentId: string) {
       where: { id: orderId },
       data: {
         isPaid: true,
+        paymentStatus: 'PAID',
+        paymentError: null,
         amountPaid: order.totalAmount,
         status: 'PAID',
         culqiPaymentId: paymentId,
@@ -220,6 +227,14 @@ export async function createCulqiChargeForCheckout(data: CheckoutData, tokenId: 
   let orderId: string | null = null;
   try {
     const calculated = await calculateCanonicalCheckout(data);
+    if (data.idempotencyKey) {
+      const previousOrder = await prisma.order.findFirst({ where: { idempotencyKey: data.idempotencyKey, businessId: calculated.business.id, userId: session.user.id, source: 'ONLINE' } });
+      if (previousOrder) {
+        if (previousOrder.isPaid && previousOrder.culqiPaymentId) return { success: true, orderId: previousOrder.id, paymentId: previousOrder.culqiPaymentId };
+        if (previousOrder.paymentStatus === 'PROCESSING') return { success: false, message: 'Este pedido ya está siendo procesado.' };
+        if (previousOrder.paymentStatus === 'FAILED' || previousOrder.status === 'CANCELLED') return { success: false, message: 'Esta operación ya falló. Genera una nueva solicitud de pago.' };
+      }
+    }
     const reservation = await reserveCartItems(data.items);
     if (!reservation.success || !reservation.branchId) {
       return { success: false, message: reservation.message ?? 'Stock insuficiente.' };
@@ -236,6 +251,8 @@ export async function createCulqiChargeForCheckout(data: CheckoutData, tokenId: 
         totalAmount: calculated.total,
         totalItems: calculated.canonicalItems.reduce((sum, item) => sum + item.quantity, 0),
         status: 'PENDING',
+        paymentStatus: 'PROCESSING',
+        idempotencyKey: data.idempotencyKey || null,
         clientName: data.contactName,
         clientPhone: data.contactPhone,
         deliveryMethod: data.deliveryMethod,
@@ -266,12 +283,12 @@ export async function createCulqiChargeForCheckout(data: CheckoutData, tokenId: 
     });
 
     await finalizePaidOrder(order.id, charge.id!);
-    return { success: true, orderId: order.id, paymentId: charge.id };
+    return { success: true, orderId: order.id, paymentId: charge.id, requestId: calculated.contractContext.requestId, contractVersion: calculated.contractContext.contractVersion };
   } catch (error) {
     if (orderId) {
       await prisma.order.update({
         where: { id: orderId },
-        data: { status: 'CANCELLED', cancelReason: error instanceof Error ? error.message : 'Pago rechazado' },
+        data: { status: 'CANCELLED', paymentStatus: 'FAILED', paymentError: error instanceof Error ? error.message : 'Pago rechazado', cancelReason: error instanceof Error ? error.message : 'Pago rechazado' },
       }).catch(() => undefined);
     }
     await releaseUserReservations().catch(() => undefined);

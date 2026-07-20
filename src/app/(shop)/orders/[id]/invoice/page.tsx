@@ -8,6 +8,7 @@ import { es } from 'date-fns/locale';
 import PrintButton from './PrintButton';
 import { Metadata } from 'next';
 import { auth } from '@/auth';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -16,14 +17,12 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   
-  const order = await prisma.order.findUnique({ 
-    where: { id },
-  });
+  const { business } = await getEcommerceContextFromCookie();
+  const order = await prisma.order.findFirst({ where: { id, businessId: business.id }, include: { business: { select: { name: true } }, branch: { select: { name: true } } } });
 
   if (!order) return { title: 'Ticket no encontrado' };
 
-  const isFestamas = order.notes?.includes('JUGUETERIA') ?? false;
-  const brandName = isFestamas ? 'Festamas' : 'FiestasYa';
+  const brandName = order.branch?.name || order.business?.name || 'Tienda online';
   
   // Si no hay numero de recibo, usamos el ID corto
   const receiptNum = order.receiptNumber || `WEB-${order.id.split('-')[0].toUpperCase()}`;
@@ -42,46 +41,32 @@ export default async function InvoicePage({ params }: Props) {
 
   const { id } = await params;
 
-  const order = await prisma.order.findUnique({
-    where: { id },
+  const { business } = await getEcommerceContextFromCookie();
+  const order = await prisma.order.findFirst({
+    where: { id, businessId: business.id, source: 'ONLINE' },
     include: {
-      orderItems: true
+      orderItems: true,
+      business: { select: { name: true, ruc: true, address: true, logoUrl: true } },
+      branch: { select: { name: true, phone: true, address: true, customRuc: true, customLegalName: true, customAddress: true, logos: true, brandColors: true } },
     }
   });
 
   if (!order) notFound();
 
   // Validación de seguridad (Dueño o Admin)
-  if (order.userId !== session.user.id && session.user.role !== 'ADMIN') {
+  if (order.userId !== session.user.id && !['ADMIN', 'OWNER', 'SUPER_ADMIN'].includes(session.user.role || '')) {
       redirect('/');
   }
 
-  const isFestamas = order.notes?.includes('JUGUETERIA') ?? true;
-  
-  // Al no estar almacenando los logos crudos y las imágenes estáticas han sido eliminadas,
-  // recaeremos en el modo solo-texto para el nombre de la tienda hasta que haya
-  // un refactor del modelo Order que contenga los logotipos.
-  const dbLogo = '';
-
-  const brandConfig = isFestamas 
-    ? {
-        name: 'FESTAMÁS',
-        logo: dbLogo,
-        color: '#fc4b65',
-        razonSocial: 'INVERSIONES FESTAMAS S.A.C.' // Ejemplo, ajusta si tienes razón social distinta
-      }
-    : {
-        name: 'FIESTASYA',
-        logo: dbLogo,
-        color: '#fb3099',
-        razonSocial: 'CORPORACIÓN FIESTASYA S.A.C.'
-      };
+  const branchLogos = order.branch?.logos as Record<string, unknown> | null;
+  const branchColors = order.branch?.brandColors as Record<string, unknown> | null;
+  const brandConfig = { name: order.branch?.name || order.business?.name || 'Tienda online', logo: typeof branchLogos?.imagotipo === 'string' ? branchLogos.imagotipo : order.business?.logoUrl || '', color: typeof branchColors?.primary === 'string' ? branchColors.primary : '#334155' };
 
   const companyInfo = {
-    razonSocial: brandConfig.razonSocial, // Usamos la razón social de la marca
-    ruc: "20610153756",
-    address: "Av. España 123, Trujillo, Perú",
-    email: isFestamas ? "ventas@festamas.com" : "ventas@fiestasya.com"
+    razonSocial: order.branch?.customLegalName || order.business?.name || brandConfig.name,
+    ruc: order.branch?.customRuc || order.business?.ruc || 'Pendiente',
+    address: order.branch?.customAddress || order.branch?.address || order.business?.address || 'Perú',
+    email: ''
   };
 
 
@@ -163,7 +148,7 @@ export default async function InvoicePage({ params }: Props) {
             </div>
             
             <div className="text-right">
-              <div className={`inline-block border-2 p-4 rounded-lg text-center min-w-[220px] ${isFestamas ? 'border-red-100 bg-red-50' : 'border-pink-100 bg-pink-50'}`}>
+              <div className="inline-block border-2 p-4 rounded-lg text-center min-w-[220px] border-slate-200 bg-slate-50">
                   <h2 className="text-xl font-black text-slate-800 uppercase mb-1">Ticket de Pedido</h2>
                   <p className="text-xs text-slate-500 mb-3 tracking-widest uppercase">Venta online</p>
                   
@@ -187,7 +172,7 @@ export default async function InvoicePage({ params }: Props) {
           {/* DATOS CLIENTE */}
           <div className="mb-8 p-5 bg-slate-50 rounded-xl border border-slate-100 text-sm">
               <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isFestamas ? 'bg-red-500' : 'bg-pink-500'}`}></span>
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: brandConfig.color }}></span>
                 Datos del Cliente
               </h3>
               <div className="grid grid-cols-2 gap-y-3 gap-x-8">
@@ -265,7 +250,7 @@ export default async function InvoicePage({ params }: Props) {
                   )}
                   <div className="border-t-2 border-slate-200/60 my-2 pt-2 flex justify-between items-center">
                       <span className="font-black text-slate-800 text-sm uppercase">Importe Total</span>
-                      <span className={`font-black text-xl font-mono ${isFestamas ? 'text-red-600' : 'text-pink-600'}`}>
+                      <span className="font-black text-xl font-mono" style={{ color: brandConfig.color }}>
                         {formatCurrency(Number(order.totalAmount))}
                       </span>
                   </div>
@@ -279,7 +264,7 @@ export default async function InvoicePage({ params }: Props) {
               </p>
               <p className="text-[10px] text-slate-400 leading-tight max-w-md mx-auto">
                 Representación impresa del ticket de pedido online. 
-                Consulte el detalle desde su cuenta Festamas.
+                Consulte el detalle desde su cuenta en la tienda.
               </p>
               <p className="mt-2 font-mono text-[9px] text-slate-300">UUID: {order.id}</p>
           </div>

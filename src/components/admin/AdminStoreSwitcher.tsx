@@ -45,7 +45,7 @@ export const AdminStoreSwitcher = ({ activeBranch, branches, isCollapsed, isGlob
     setIsMounted(true);
   }, []);
 
-  const logoFestamas = activeBranch?.logos?.isotipo ?? activeBranch?.logos?.imagotipo ?? '';
+  const storeLogo = activeBranch?.logos?.isotipo ?? activeBranch?.logos?.imagotipo ?? '';
   const brandName = activeBranch?.name || "Tienda";
 
   const handleSwitchRequest = (newBranch: any) => {
@@ -116,10 +116,10 @@ export const AdminStoreSwitcher = ({ activeBranch, branches, isCollapsed, isGlob
                     <Globe className="text-slate-600" style={{ width: '24px', height: '24px' }} />
                   ) : (
                     <div className="relative w-full h-full flex items-center justify-center">
-                      {logoFestamas ? (
+                      {storeLogo ? (
                         <Image 
                             loader={cloudinaryLoader}
-                            src={logoFestamas}
+                            src={storeLogo}
                             alt="Logo" 
                             fill 
                             sizes="32px"

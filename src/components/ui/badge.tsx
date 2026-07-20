@@ -18,12 +18,9 @@ const badgeVariants = cva(
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
           
-        // 🌟 TUS NUEVAS VARIANTES DE MARCA 🌟
-        // Festamas: Rojo/Rosa (#fc4b65)
-        festamas: 
+        brandPrimary:
           "border-transparent bg-[#fc4b65] text-white shadow-sm [a&]:hover:bg-[#fc4b65]/90",
-        // FiestasYa: Fucsia (#fb3099)
-        fiestasya: 
+        brandAccent:
           "border-transparent bg-[#fb3099] text-white shadow-sm [a&]:hover:bg-[#fb3099]/90",
       },
     },

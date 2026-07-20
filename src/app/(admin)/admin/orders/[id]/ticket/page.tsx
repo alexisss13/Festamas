@@ -4,6 +4,9 @@ import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz'; 
 import { es } from 'date-fns/locale';      
+import { auth } from '@/auth';
+import { canAccessEcommerceAdmin } from '@/lib/permissions';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -11,26 +14,27 @@ interface Props {
 
 export default async function TicketPage({ params }: Props) {
   const { id } = await params;
+  const session = await auth();
+  if (!session?.user || !canAccessEcommerceAdmin(session.user)) notFound();
+  const { business } = await getEcommerceContextFromCookie();
 
   const order = await prisma.order.findUnique({
-    where: { id },
+    where: { id, businessId: business.id },
     include: {
-      orderItems: true
+      orderItems: true,
+      business: { select: { name: true, ruc: true, address: true } },
+      branch: { select: { name: true, phone: true, address: true, customRuc: true, customLegalName: true, customAddress: true } },
     }
   });
 
   if (!order) notFound();
 
-  // 1. Detección de marca
-  const isFestamas = order.notes?.includes('Tienda: Festamas') || order.notes?.includes('JUGUETERIA') || false;
-  const brandName = isFestamas ? 'FESTAMÁS' : 'FIESTASYA';
-
-  // 2. Datos fiscales
+  const brandName = order.business?.name || order.branch?.name || 'Comercio';
   const companyInfo = {
-    razonSocial: "FiestasYa SAC",
-    ruc: "20610153756",
-    address: "Trujillo, Perú",
-    phone: "916173003",
+    razonSocial: order.branch?.customLegalName || order.business?.name || order.branch?.name || 'Comercio',
+    ruc: order.branch?.customRuc || order.business?.ruc || 'Pendiente',
+    address: order.branch?.customAddress || order.branch?.address || order.business?.address || 'Perú',
+    phone: order.branch?.phone || '',
   };
 
   const subtotal = Number(order.totalAmount) / 1.18;
@@ -84,7 +88,7 @@ export default async function TicketPage({ params }: Props) {
 
         {/* Info del Documento */}
         <div className="mb-3 pb-2 border-b-2 border-dashed border-black">
-          <p className="text-center font-bold text-sm uppercase mb-1">BOLETA DE VENTA ELECTRÓNICA</p>
+          <p className="text-center font-bold text-sm uppercase mb-1">TICKET DE PEDIDO ONLINE</p>
           <p className="text-center font-bold text-sm mb-2">{order.receiptNumber || 'PENDIENTE'}</p>
           <div className="flex justify-between">
             <span>Fecha: {format(zonedDate, "dd/MM/yyyy", { locale: es })}</span>

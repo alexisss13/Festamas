@@ -15,7 +15,7 @@ export default async function AdminSectionsPage() {
   const storeName = activeBranch ? activeBranch.name : 'Tienda';
 
   // Obtener todas las secciones (activas e inactivas)
-  const { sections } = await getHomeSections(activeBranch?.id || '', false);
+  const { sections } = await getHomeSections(false);
 
   // Componente de KPI card
   function StatCard({ 

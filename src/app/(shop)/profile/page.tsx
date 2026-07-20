@@ -13,7 +13,7 @@ import { EditCustomerInfo } from '@/components/profile/EditCustomerInfo';
 import { DeleteAddressButton } from '@/components/profile/DeleteAddressButton';
 
 export const metadata = {
-  title: 'Mi Perfil | Festamas',
+  title: 'Mi perfil',
   description: 'Gestiona tu cuenta, direcciones y pedidos.',
 };
 
