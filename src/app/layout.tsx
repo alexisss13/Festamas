@@ -9,6 +9,7 @@ import { MarketingAnalytics } from "@/components/analytics/MarketingAnalytics";
 import { getActiveStorefrontConfig } from "@/lib/storefront-config";
 import { hexToHslString } from "@/lib/utils";
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+import { StorefrontUnavailable } from '@/components/storefront/StorefrontUnavailable';
 
 // Configuración de Fuente Rubik
 const rubik = Rubik({ 
@@ -31,7 +32,18 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
-  const storefront = await getActiveStorefrontConfig();
+  let storefront;
+  try {
+    storefront = await getActiveStorefrontConfig();
+  } catch (error) {
+    return (
+      <html lang="es">
+        <body className={cn(rubik.className, "antialiased")}>
+          <StorefrontUnavailable reason={error instanceof Error ? error.message : undefined} />
+        </body>
+      </html>
+    );
+  }
   const themeStyle = {
     '--brand-primary': storefront.theme.primary,
     '--brand-secondary': storefront.theme.secondary,

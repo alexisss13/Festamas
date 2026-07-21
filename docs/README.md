@@ -18,6 +18,7 @@ Documentación **específica del ecommerce**. Lo transversal (contrato POS↔eco
 - [ADR-001 — Alcance de la personalización del ecommerce](decisiones/ADR-001-saas-business-branch-template.md)
 - [Auditoría y roadmap ecommerce SaaS](sesiones/2026-07-18-auditoria-roadmap-saas.md)
 - [Fix del build de Vercel: `@zaiko/contracts` vendorizado](sesiones/2026-07-20-fix-vercel-build-zaiko-contracts.md)
+- [Vistas de fallback: dominio sin negocio, sin sucursales, 404 y crash inesperado](sesiones/2026-07-21-vistas-fallback-storefront.md)
 
 El roadmap transversal de despliegue compartido/dedicado, política offline,
 planes y contratos POS–ecommerce vive en `pos/docs/` porque el POS es la fuente
