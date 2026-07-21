@@ -32,6 +32,7 @@ import {
 declare global {
   interface Window {
     Culqi?: {
+      publicKey?: string;
       settings: (options: Record<string, unknown>) => void;
       options: (options: Record<string, unknown>) => void;
       open: () => void;
@@ -254,6 +255,12 @@ export function CartClient({ user, storeConfig, brandColor }: CartClientProps) {
       toast.error('El medio de pago todavía está cargando. Intenta nuevamente.');
       return;
     }
+
+    if (!process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY) {
+      toast.error('El medio de pago no está configurado. Contacta a soporte.');
+      return;
+    }
+    window.Culqi.publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY;
 
     window.culqi = () => {
       if (window.Culqi?.token?.id) {
