@@ -175,7 +175,7 @@ export async function verifyInternalRequestHeaders(headers: Headers, secret: str
   return expected === signature ? context : null;
 }
 
-export type BusinessVertical = 'COMMERCE' | 'RESTAURANT' | 'SERVICES' | 'PROFESSIONALS';
+export type BusinessVertical = 'RETAIL' | 'COMMERCE' | 'RESTAURANT' | 'SERVICES' | 'PROFESSIONALS' | 'QUOTES';
 
 export type WorkspaceProvisionInput = {
   workspaceName: string;
@@ -198,7 +198,7 @@ export function isWorkspaceProvisionInput(value: unknown): value is WorkspacePro
     && typeof input.ownerEmail === 'string' && input.ownerEmail.includes('@')
     && typeof input.ownerPassword === 'string' && input.ownerPassword.length >= 8
     && (input.idempotencyKey === undefined || (typeof input.idempotencyKey === 'string' && input.idempotencyKey.trim().length >= 8))
-    && ['COMMERCE', 'RESTAURANT', 'SERVICES', 'PROFESSIONALS'].includes(String(input.vertical))
+    && ['RETAIL', 'COMMERCE', 'RESTAURANT', 'SERVICES', 'PROFESSIONALS', 'QUOTES'].includes(String(input.vertical))
     && (input.planId === undefined || typeof input.planId === 'string')
     && (input.deploymentMode === undefined || ['SHARED', 'DEDICATED'].includes(String(input.deploymentMode)));
 }
