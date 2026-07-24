@@ -5,7 +5,20 @@ import { Layers, ArrowRight } from 'lucide-react';
 import { getActiveCollections } from '@/actions/collections';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 
-export async function generateMetadata(): Promise<Metadata> { const { business, activeBranch } = await getEcommerceContextFromCookie(); const name = activeBranch.name || business.name; return { title: `Colecciones | ${name}`, description: `Colecciones temáticas de ${name}.` }; }
+export async function generateMetadata(): Promise<Metadata> {
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const name = activeBranch.name || business.name;
+  // El layout raíz ya añade " | <negocio>" vía su title template.
+  const title = 'Colecciones';
+  const description = `Colecciones temáticas de ${name}.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: '/collections' },
+    openGraph: { title, description },
+    twitter: { card: 'summary', title, description },
+  };
+}
 
 export default async function CollectionsPage() {
   const { business, activeBranch } = await getEcommerceContextFromCookie();

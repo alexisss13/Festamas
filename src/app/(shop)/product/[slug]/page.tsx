@@ -117,14 +117,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
   if (!product) return { title: 'Producto no encontrado' };
   const metaDesc = (product.ecommerceDescription || product.description || '').substring(0, 160);
+  const title = product.metaTitle || product.title;
+  const image = product.images[0] || `${SITE_URL}/og-image.jpg`;
   return {
-    title: product.metaTitle || `${product.title} | ${activeBranch.name || business.name}`,
+    // El layout raíz ya añade " | <negocio>" vía su title template — poner el
+    // nombre del negocio también aquí lo duplicaba ("Producto | Negocio | Negocio").
+    title,
     description: metaDesc,
-    openGraph: {
-      title: product.metaTitle || product.title,
-      description: metaDesc,
-      images: [{ url: product.images[0] || `${SITE_URL}/og-image.jpg` }],
-    },
+    alternates: { canonical: `/product/${slug}` },
+    openGraph: { title, description: metaDesc, images: [{ url: image }] },
+    twitter: { card: 'summary_large_image', title, description: metaDesc, images: [image] },
   };
 }
 

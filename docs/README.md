@@ -19,6 +19,10 @@ Documentación **específica del ecommerce**. Lo transversal (contrato POS↔eco
 - [Auditoría y roadmap ecommerce SaaS](sesiones/2026-07-18-auditoria-roadmap-saas.md)
 - [Fix del build de Vercel: `@zaiko/contracts` vendorizado](sesiones/2026-07-20-fix-vercel-build-zaiko-contracts.md)
 - [Vistas de fallback: dominio sin negocio, sin sucursales, 404 y crash inesperado](sesiones/2026-07-21-vistas-fallback-storefront.md)
+- [Endurecimiento de seguridad (cabeceras, rate limiting) + cobertura de tests de checkout/webhook/auth](sesiones/2026-07-22-endurecimiento-seguridad-y-tests.md)
+- [SEO: metadataBase, canonical, Twitter cards, noindex + fix de título duplicado](sesiones/2026-07-22-seo-metadata.md)
+- [Preview/Publish para la configuración de tienda (plantilla, colores, hero, whatsapp) — verificado en vivo en staging, aplicado en producción](sesiones/2026-07-22-preview-publish-configuracion-tienda.md)
+- [Dashboard de rendimiento de catálogo (vistas vs. ventas reales) + fix de Product.salesCount, que nunca se incrementaba](sesiones/2026-07-22-dashboard-rendimiento-catalogo.md)
 
 El roadmap transversal de despliegue compartido/dedicado, política offline,
 planes y contratos POS–ecommerce vive en `pos/docs/` porque el POS es la fuente

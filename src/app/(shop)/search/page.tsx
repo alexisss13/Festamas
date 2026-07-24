@@ -27,6 +27,9 @@ interface Props {
 export const metadata = {
   title: 'Resultados de búsqueda',
   description: 'Encuentra los mejores artículos para tu fiesta.',
+  // Páginas de resultados de búsqueda interna: contenido variable y sin valor
+  // propio para SEO — práctica estándar (recomendación de Google) es no indexarlas.
+  robots: { index: false, follow: false },
 };
 
 export default async function SearchPage({ searchParams }: Props) {

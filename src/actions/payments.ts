@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { reserveCartItems, releaseUserReservations, ReservationItem } from '@/actions/reservations';
 import { canBusinessUseEcommerce } from '@/lib/ecommerce-entitlements';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 interface CheckoutItem extends ReservationItem {
   title?: string;
@@ -175,6 +176,16 @@ async function finalizePaidOrder(orderId: string, paymentId: string) {
           reason: `Venta online #${order.id.slice(0, 8).toUpperCase()}`,
         },
       });
+
+      // Product.salesCount nunca se incrementaba en ningún lado (confirmado
+      // por grep en todo el repo) — quedaba siempre en su valor inicial pese
+      // a que ya se usa para ordenar "más vendidos" en /api/search/suggestions
+      // y /api/search/top-products. Se corrige acá, en el único punto donde
+      // una venta online se confirma como pagada de verdad.
+      const variant = await tx.productVariant.findUnique({ where: { id: item.variantId }, select: { productId: true } });
+      if (variant) {
+        await tx.product.update({ where: { id: variant.productId }, data: { salesCount: { increment: item.quantity } } });
+      }
     }
 
     await tx.order.update({
@@ -222,6 +233,14 @@ export async function createCulqiChargeForCheckout(data: CheckoutData, tokenId: 
   }
   if (!tokenId || !tokenId.startsWith('tkn_')) {
     return { success: false, message: 'Token de pago inválido.' };
+  }
+
+  // Por usuario autenticado, no por IP: frena la prueba rápida de tarjetas
+  // robadas contra una misma cuenta sin bloquear a un comprador real que
+  // reintenta tras una tarjeta rechazada o un dato mal tipeado.
+  const rate = checkRateLimit(`checkout-charge:${session.user.id}`, { max: 10, windowMs: 15 * 60_000 });
+  if (!rate.allowed) {
+    return { success: false, message: 'Demasiados intentos de pago. Espera unos minutos antes de volver a intentar.' };
   }
 
   let orderId: string | null = null;

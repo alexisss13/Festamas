@@ -1,6 +1,23 @@
+import { Metadata } from 'next';
 import { MapPin, Clock, Phone, Navigation } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStoreBranches } from '@/actions/stores';
+import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  const name = activeBranch.name || business.name;
+  // El layout raíz ya añade " | <negocio>" vía su title template.
+  const title = 'Nuestras tiendas';
+  const description = `Direcciones, horarios y contacto de las tiendas físicas de ${name}.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: '/tiendas' },
+    openGraph: { title, description },
+    twitter: { card: 'summary', title, description },
+  };
+}
 
 const DAY_LABELS: Record<string, string> = {
   lun: 'Lun', mar: 'Mar', mie: 'Mié', jue: 'Jue', vie: 'Vie', sab: 'Sáb', dom: 'Dom',

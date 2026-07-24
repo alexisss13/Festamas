@@ -11,6 +11,7 @@ import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 export const metadata = {
   title: 'Mis direcciones',
   description: 'Gestiona tus direcciones de entrega.',
+  robots: { index: false, follow: false },
 };
 
 export default async function AddressesPage() {

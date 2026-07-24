@@ -1571,6 +1571,10 @@ model StoreConfig {
   branchId           String?
   templateKey        String  @default("classic")
   themeConfig        Json?
+  /// Cambios de configuración de tienda editados pero aún no publicados
+  /// (mismo shape que los campos publicados: templateKey, theme, hero,
+  /// topbar, whatsapp, delivery). Null = no hay cambios pendientes.
+  draftConfig        Json?
   whatsappPhone      String  @default("51999999999")
   welcomeMessage     String  @default("Hola, quiero confirmar mi pedido...")
   localDeliveryPrice Decimal @default(10.00) @db.Decimal(10, 2)

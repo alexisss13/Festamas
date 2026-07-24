@@ -99,6 +99,59 @@ export async function getTopProducts(branchId: string) {
   return [...byProduct.values()].map(product => ({ id: product.id, title: product.title, images: product.images, isAvailable: product.isAvailable, stock: product.stock, price: product.revenue / product.quantity, _count: { orderItems: product.quantity } })).sort((a, b) => b._count.orderItems - a._count.orderItems).slice(0, 8);
 }
 
+// Rendimiento de catálogo: cruza vistas reales (Product.viewCount, sí se
+// incrementa en cada visita — ver actions/products.ts) contra ventas reales
+// computadas desde OrderItem (igual que getTopProducts). No usa
+// Product.salesCount: ese campo nunca se incrementó en ningún lado hasta
+// ahora (bug corregido en actions/payments.ts, finalizePaidOrder) — para
+// pedidos ya pagados ANTES de ese fix, salesCount seguiría en 0 aunque sí se
+// vendieron, así que para el histórico completo hay que seguir calculando
+// desde OrderItem, no confiar en el contador.
+export async function getProductPerformance(branchId: string) {
+  const businessId = await getBusinessId(branchId);
+  if (!businessId) return [];
+
+  const [products, orderItems] = await Promise.all([
+    prisma.product.findMany({
+      where: { businessId, OR: [{ branchOwnerId: branchId }, { branchOwnerId: null }], active: true },
+      select: { id: true, title: true, images: true, viewCount: true, isAvailable: true },
+    }),
+    prisma.orderItem.findMany({
+      where: { order: { businessId, branchId, source: 'ONLINE', isPaid: true } },
+      select: { productName: true, quantity: true, price: true, variant: { select: { productId: true } } },
+    }),
+  ]);
+
+  const soldByProduct = new Map<string, { quantity: number; revenue: number }>();
+  for (const item of orderItems) {
+    const productId = item.variant?.productId;
+    if (!productId) continue;
+    const current = soldByProduct.get(productId) ?? { quantity: 0, revenue: 0 };
+    current.quantity += item.quantity;
+    current.revenue += Number(item.price) * item.quantity;
+    soldByProduct.set(productId, current);
+  }
+
+  return products
+    .map(product => {
+      const sold = soldByProduct.get(product.id) ?? { quantity: 0, revenue: 0 };
+      return {
+        id: product.id,
+        title: product.title,
+        images: product.images,
+        isAvailable: product.isAvailable,
+        viewCount: product.viewCount,
+        unitsSold: sold.quantity,
+        revenue: sold.revenue,
+        // Sin vistas registradas todavía no hay base para calcular una tasa —
+        // null en vez de 0 para no sugerir "0% de conversión" cuando en
+        // realidad es "sin datos suficientes".
+        conversionRate: product.viewCount > 0 ? sold.quantity / product.viewCount : null,
+      };
+    })
+    .sort((a, b) => b.viewCount - a.viewCount);
+}
+
 export async function getOrderStatuses(branchId: string) {
   const businessId = await getBusinessId(branchId);
   if (!businessId) return { PENDING: 0, PAID: 0, DELIVERED: 0 };

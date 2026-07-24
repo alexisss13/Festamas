@@ -10,6 +10,7 @@ import { getActiveStorefrontConfig } from "@/lib/storefront-config";
 import { hexToHslString } from "@/lib/utils";
 import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 import { StorefrontUnavailable } from '@/components/storefront/StorefrontUnavailable';
+import { getRequestSiteUrl } from '@/lib/request-site-url';
 
 // Configuración de Fuente Rubik
 const rubik = Rubik({ 
@@ -19,11 +20,22 @@ const rubik = Rubik({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
+  // metadataBase resuelve URLs relativas (imágenes OG) contra el dominio real
+  // de la request, no un env var fijo — necesario porque cada negocio puede
+  // tener su propio storefrontDomain (ver getRequestSiteUrl).
+  const metadataBase = new URL(await getRequestSiteUrl());
   try {
     const { business, activeBranch } = await getEcommerceContextFromCookie();
     const name = activeBranch.name || business.name;
-    return { title: { default: name, template: `%s | ${name}` }, description: `Tienda online de ${name}` };
-  } catch { return { title: 'Tienda online', description: 'Catálogo y pedidos online.' }; }
+    const description = `Tienda online de ${name}`;
+    return {
+      metadataBase,
+      title: { default: name, template: `%s | ${name}` },
+      description,
+      openGraph: { siteName: name, type: 'website' },
+      twitter: { card: 'summary_large_image' },
+    };
+  } catch { return { metadataBase, title: 'Tienda online', description: 'Catálogo y pedidos online.' }; }
 }
 
 export default async function RootLayout({

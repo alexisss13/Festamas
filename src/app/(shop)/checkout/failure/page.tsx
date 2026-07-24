@@ -1,6 +1,12 @@
+import { Metadata } from 'next';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { XCircle, ShoppingBag } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: 'Pago no completado',
+  robots: { index: false, follow: false },
+};
 
 export default function FailurePage() {
   return (

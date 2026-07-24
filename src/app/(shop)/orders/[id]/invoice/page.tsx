@@ -29,6 +29,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `Ticket ${receiptNum} - ${brandName}`,
+    // Comprobante con datos personales del comprador — nunca debe indexarse.
+    robots: { index: false, follow: false },
   };
 }
 

@@ -27,10 +27,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const collection = await getCollectionBySlug(slug);
   if (!collection) return { title: 'Colección no encontrada' };
 
-  const { business, activeBranch } = await getEcommerceContextFromCookie();
+  // El layout raíz ya añade " | <negocio>" vía su title template.
+  const title = collection.name;
+  const description = collection.description ?? `Explora los productos de la colección ${collection.name}.`;
+  const images = collection.coverImage ? [{ url: collection.coverImage }] : undefined;
   return {
-    title: `${collection.name} | ${activeBranch.name || business.name}`,
-    description: collection.description ?? `Explora los productos de la colección ${collection.name}.`,
+    title,
+    description,
+    alternates: { canonical: `/collections/${slug}` },
+    openGraph: { title, description, ...(images ? { images } : {}) },
+    twitter: { card: 'summary_large_image', title, description, ...(images ? { images: images.map(i => i.url) } : {}) },
   };
 }
 

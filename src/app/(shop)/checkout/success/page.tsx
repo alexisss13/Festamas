@@ -1,6 +1,12 @@
+import { Metadata } from 'next';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: 'Pedido confirmado',
+  robots: { index: false, follow: false },
+};
 
 export default async function SuccessPage({ searchParams }: { searchParams: Promise<{ orderId?: string }> }) {
   const { orderId } = await searchParams;

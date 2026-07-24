@@ -7,6 +7,7 @@ import { CartClient } from './CartClient';
 export const metadata = {
   title: 'Carrito de compras',
   description: 'Revisa tu carrito y procede al pago.',
+  robots: { index: false, follow: false },
 };
 
 export default async function CartPage() {

@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma';
 import { AuthError } from 'next-auth';
 import bcryptjs from 'bcryptjs';
 import { canAccessEcommerceAdmin } from '@/lib/permissions';
+import { checkLoginRateLimit, checkRegisterRateLimit, resetLoginRateLimit } from '@/lib/action-rate-limit';
+import { validateRegistration } from '@/lib/registration-validation';
 
 // --- LOGIN CON GOOGLE ---
 export async function loginWithGoogle() {
@@ -20,6 +22,9 @@ export async function authenticate(prevState: string | undefined, formData: Form
   try {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+
+    const rate = await checkLoginRateLimit(email);
+    if (!rate.allowed) return 'Demasiados intentos. Espera unos minutos antes de volver a intentar.';
 
     // Validar que el usuario existe y está activo
     const user = await prisma.user.findUnique({
@@ -48,6 +53,8 @@ export async function authenticate(prevState: string | undefined, formData: Form
       redirect: false,
     });
 
+    await resetLoginRateLimit(email);
+
     // Redirección post-login según permisos
     if (canAccessEcommerceAdmin({ role: user.role, permissions: user.permissions as any })) {
       return 'Redirect:Admin';
@@ -73,6 +80,9 @@ export async function authenticate(prevState: string | undefined, formData: Form
 // --- REGISTRO DE USUARIO ---
 export async function registerUser(name: string, email: string, password: string) {
   try {
+    const rate = await checkRegisterRateLimit();
+    if (!rate.allowed) return { ok: false, message: 'Demasiados registros desde este origen. Intenta más tarde.' };
+
     // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
@@ -82,18 +92,8 @@ export async function registerUser(name: string, email: string, password: string
       return { ok: false, message: 'El correo ya está registrado' };
     }
 
-    // Validar datos
-    if (!name || name.trim().length < 2) {
-      return { ok: false, message: 'El nombre debe tener al menos 2 caracteres' };
-    }
-
-    if (!email || !email.includes('@')) {
-      return { ok: false, message: 'El correo no es válido' };
-    }
-
-    if (!password || password.length < 6) {
-      return { ok: false, message: 'La contraseña debe tener al menos 6 caracteres' };
-    }
+    const validationError = validateRegistration(name, email, password);
+    if (validationError) return { ok: false, message: validationError };
 
     // Hash de la contraseña
     const hashedPassword = bcryptjs.hashSync(password, 10);

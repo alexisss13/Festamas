@@ -15,6 +15,7 @@ import { DeleteAddressButton } from '@/components/profile/DeleteAddressButton';
 export const metadata = {
   title: 'Mi perfil',
   description: 'Gestiona tu cuenta, direcciones y pedidos.',
+  robots: { index: false, follow: false },
 };
 
 export default async function ProfilePage() {

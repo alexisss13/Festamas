@@ -31,10 +31,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { business, activeBranch } = await getEcommerceContextFromCookie();
   const category = await prisma.category.findFirst({ where: { slug, businessId: business.id }, select: { name: true, image: true } });
   const title = category?.name ?? slug.charAt(0).toUpperCase() + slug.slice(1);
+  const description = `Explora ${title} en ${activeBranch.name || business.name}.`;
+  const images = category?.image ? [{ url: category.image }] : undefined;
   return {
-    title: `${title} | ${activeBranch.name || business.name}`,
-    description: `Explora ${title} en ${activeBranch.name || business.name}.`,
-    openGraph: { title: `${title} | ${activeBranch.name || business.name}`, description: `Explora ${title} en ${activeBranch.name || business.name}.`, ...(category?.image ? { images: [{ url: category.image }] } : {}) },
+    // El layout raíz ya añade " | <negocio>" vía su title template — no
+    // repetirlo aquí (antes salía duplicado: "Categoría | Negocio | Negocio").
+    title,
+    description,
+    // Canónico apunta a la página sin filtros/paginación (query params) —
+    // evita que Google indexe /category/x?sort=... como contenido duplicado.
+    alternates: { canonical: `/category/${slug}` },
+    openGraph: { title, description, ...(images ? { images } : {}) },
+    twitter: { card: 'summary_large_image', title, description, ...(images ? { images: images.map(i => i.url) } : {}) },
   };
 }
 

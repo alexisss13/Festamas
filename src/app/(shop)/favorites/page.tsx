@@ -10,6 +10,7 @@ import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 export const metadata = {
   title: 'Mis favoritos',
   description: 'Tus productos guardados y lista de deseos.',
+  robots: { index: false, follow: false },
 };
 
 export default async function FavoritesPage() {

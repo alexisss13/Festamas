@@ -26,6 +26,9 @@ interface Props {
 export const metadata: Metadata = {
   title: 'Recién llegados',
   description: 'Descubre lo último en juguetes y decoración.',
+  alternates: { canonical: '/new-arrivals' },
+  openGraph: { title: 'Recién llegados', description: 'Descubre lo último en juguetes y decoración.' },
+  twitter: { card: 'summary', title: 'Recién llegados', description: 'Descubre lo último en juguetes y decoración.' },
 };
 
 export default async function NewArrivalsPage({ searchParams }: Props) {

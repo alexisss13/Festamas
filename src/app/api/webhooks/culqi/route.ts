@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { finalizePaidOrder } from '@/actions/payments';
+import { isChargeApproved, extractOrderId, type CulqiChargeData } from '@/lib/culqi-charge';
 
 interface CulqiWebhookPayload {
   type?: string;
-  data?: {
-    id?: string;
-    object?: string;
-    metadata?: { order_id?: string };
-    outcome?: { type?: string };
-    paid?: boolean;
-    status?: string;
-  };
+  data?: CulqiChargeData;
 }
 
 export async function POST(request: NextRequest) {
@@ -32,10 +26,9 @@ export async function POST(request: NextRequest) {
     if (!response.ok) return NextResponse.json({ error: 'No se pudo validar el cargo' }, { status: 502 });
 
     const charge = await response.json() as CulqiWebhookPayload['data'];
-    const paid = charge?.paid === true || charge?.status === 'paid' || charge?.outcome?.type === 'venta_exitosa';
-    if (!paid) return NextResponse.json({ success: true, ignored: true });
+    if (!isChargeApproved(charge)) return NextResponse.json({ success: true, ignored: true });
 
-    const orderId = charge?.metadata?.order_id || body?.data?.metadata?.order_id;
+    const orderId = extractOrderId(charge, body?.data?.metadata);
     if (!orderId) return NextResponse.json({ success: true, ignored: true });
 
     const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, isPaid: true } });

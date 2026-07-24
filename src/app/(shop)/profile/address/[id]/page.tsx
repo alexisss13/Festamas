@@ -8,6 +8,7 @@ import { getEcommerceContextFromCookie } from '@/lib/ecommerce-context';
 export const metadata = {
   title: 'Editar dirección',
   description: 'Edita tu dirección de entrega.',
+  robots: { index: false, follow: false },
 };
 
 interface Props {

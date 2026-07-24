@@ -5,8 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Loader2, Save, MessageSquare, Phone, Package } from 'lucide-react';
-import { getStoreConfig, updateStoreConfig } from '@/actions/settings';
+import { Loader2, Save, MessageSquare, Phone, Package, Eye, CheckCircle2, Undo2 } from 'lucide-react';
+import { getStoreConfig, updateStoreConfig, publishStoreConfig, discardStoreConfigDraft, enableStorefrontPreview, disableStorefrontPreview } from '@/actions/settings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -38,6 +38,10 @@ type SettingsFormValues = z.infer<typeof formSchema>;
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
 
   const form = useForm<SettingsFormValues>({
     // 👇 3. SOLUCIÓN: Silenciamos el conflicto de tipos del resolver
@@ -66,6 +70,7 @@ export default function SettingsPage() {
         secondaryColor: config.secondaryColor,
         accentColor: config.accentColor,
       });
+      setHasPendingChanges(Boolean((config as { hasPendingChanges?: boolean }).hasPendingChanges));
       setLoading(false);
     });
   }, [form]);
@@ -75,10 +80,59 @@ export default function SettingsPage() {
     const res = await updateStoreConfig(values);
     if (res.success) {
       toast.success(res.message);
+      setHasPendingChanges(true);
     } else {
       toast.error(res.message);
     }
     setSaving(false);
+  };
+
+  const onPreview = async () => {
+    setPreviewing(true);
+    const res = await enableStorefrontPreview();
+    if (res.success) {
+      window.open('/', '_blank', 'noopener,noreferrer');
+    } else {
+      toast.error(res.message);
+    }
+    setPreviewing(false);
+  };
+
+  const onPublish = async () => {
+    setPublishing(true);
+    const res = await publishStoreConfig();
+    if (res.success) {
+      toast.success(res.message);
+      setHasPendingChanges(false);
+      await disableStorefrontPreview();
+    } else {
+      toast.error(res.message);
+    }
+    setPublishing(false);
+  };
+
+  const onDiscard = async () => {
+    if (!window.confirm('¿Descartar los cambios sin publicar? Se perderán y volverás a ver la última versión publicada.')) return;
+    setDiscarding(true);
+    const res = await discardStoreConfigDraft();
+    if (res.success) {
+      toast.success(res.message);
+      setHasPendingChanges(false);
+      await disableStorefrontPreview();
+      const fresh = await getStoreConfig();
+      form.reset({
+        whatsappPhone: fresh.whatsappPhone,
+        welcomeMessage: fresh.welcomeMessage,
+        localDeliveryPrice: fresh.localDeliveryPrice || 0,
+        templateKey: fresh.templateKey as SettingsFormValues['templateKey'],
+        primaryColor: fresh.primaryColor,
+        secondaryColor: fresh.secondaryColor,
+        accentColor: fresh.accentColor,
+      });
+    } else {
+      toast.error(res.message);
+    }
+    setDiscarding(false);
   };
 
   if (loading) {
@@ -91,6 +145,28 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold text-slate-900">Configuración</h1>
         <p className="text-slate-500">Personaliza los datos de contacto de tu tienda.</p>
       </div>
+
+      {hasPendingChanges && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+          <p className="text-sm text-amber-900">
+            Tienes cambios sin publicar. Los clientes siguen viendo la última versión publicada.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={previewing} onClick={onPreview}>
+              {previewing ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Eye className="mr-2 h-3.5 w-3.5" />}
+              Vista previa
+            </Button>
+            <Button type="button" variant="outline" size="sm" disabled={discarding} onClick={onDiscard}>
+              {discarding ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Undo2 className="mr-2 h-3.5 w-3.5" />}
+              Descartar
+            </Button>
+            <Button type="button" size="sm" disabled={publishing} onClick={onPublish} className="bg-emerald-600 hover:bg-emerald-700">
+              {publishing ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="mr-2 h-3.5 w-3.5" />}
+              Publicar cambios
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -189,7 +265,7 @@ export default function SettingsPage() {
                     </>
                   ) : (
                     <>
-                        <Save className="mr-2 h-4 w-4" /> Guardar Cambios
+                        <Save className="mr-2 h-4 w-4" /> Guardar borrador
                     </>
                   )}
                 </Button>

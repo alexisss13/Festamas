@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Settings, LogOut, Menu,
   ChevronLeft, ChevronRight, Tag, Images, Store, BookOpen,
-  Star, Ticket, Megaphone, Sparkles, ExternalLink, Layers, RotateCcw, MessageSquare,
+  Star, Ticket, Megaphone, Sparkles, ExternalLink, Layers, RotateCcw, MessageSquare, TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -46,6 +46,7 @@ const NAV_GROUPS = [
     label: 'Marketing',
     items: [
       { href: '/admin/coupons', label: 'Cupones', icon: Ticket },
+      { href: '/admin/marketing/performance', label: 'Rendimiento', icon: TrendingUp },
     ],
   },
 ];
